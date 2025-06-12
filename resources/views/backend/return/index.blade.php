@@ -1,0 +1,750 @@
+@extends('backend.layout.main') @section('content')
+@if(session()->has('message'))
+  <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{!! session()->get('message') !!}</div>
+@endif
+@if(session()->has('not_permitted'))
+  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
+@endif
+
+<section>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header mt-2">
+                <h3 class="text-center">{{trans('Order Return List')}}</h3>
+            </div>
+            {!! Form::open(['route' => 'return-sale.index', 'method' => 'get']) !!}
+            <div class="row mb-3">
+                <div class="col-md-6 offset-md-2 mt-3">
+                    <div class="d-flex">
+                        <label class="">{{trans('file.Date')}} &nbsp;</label>
+                        <div class="">
+                            <div class="input-group">
+                                <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} To {{$ending_date}}" required />
+                                <input type="hidden" name="starting_date" value="{{$starting_date}}" />
+                                <input type="hidden" name="ending_date" value="{{$ending_date}}" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="col-md-4 mt-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
+                    <div class="d-flex">
+                        <label class="">{{trans('file.Warehouse')}} &nbsp;</label>
+                        <div class="">
+                            <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
+                                <option value="0">{{trans('file.All Warehouse')}}</option>
+                                @foreach($lims_warehouse_list as $warehouse)
+                                    @if($warehouse->id == $warehouse_id)
+                                        <option selected value="{{$warehouse->id}}">{{$warehouse->name}}</option>
+                                    @else
+                                        <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div> -->
+                <div class="col-md-2 mt-3">
+                    <div class="form-group">
+                        <button class="btn btn-primary" id="filter-btn" type="submit">{{trans('file.submit')}}</button>
+                    </div>
+                </div>
+            </div>
+            {!! Form::close() !!}
+        </div> 
+        @if(in_array("returns-add", $all_permission))
+            <a href="#" data-toggle="modal" data-target="#add-sale-return" class="btn btn-info"><i class="dripicons-plus"></i> {{trans('file.Add Return')}}</a>
+        @endif
+    </div>
+    <div class="table-responsive">
+        <table id="return-table" class="table return-list" style="width: 100%">
+            <thead>
+                <tr>
+                    <th class="not-exported"></th>
+                    <th>{{trans('Order ID')}}</th>
+                    <th>{{trans('Reporting Reason')}}</th>      
+                    <th>{{trans('Reporting Time')}}</th>      
+                    <th>{{trans('file.Product Name')}}</th>
+                    <th>{{trans('Product Number')}}</th>     
+                    <th>{{trans('Order Time')}}</th>  
+                    <th>{{trans('Product Quantity')}}</th>                         
+                    <th>{{trans('Total Product Price')}}</th>              
+                    <!-- <th>{{trans('file.Warehouse')}}</th> -->
+                    <!-- <th>{{trans('file.Biller')}}</th> -->
+                    <th>{{trans('Customer Information')}}</th>    
+                    <th>{{trans('Customer Address')}}</th>      
+                    <!-- <th>{{trans('file.grand total')}}</th> -->
+                    <th class="not-exported">{{trans('file.action')}}</th>
+                </tr>
+            </thead>
+
+            <tfoot class="tfoot active">
+                <th></th>
+                <th>{{trans('file.Total')}}</th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <!-- <th></th> -->
+                <!-- <th></th> -->
+                <th></th>
+                <th></th>
+                <!-- <th></th> -->
+                <th></th>
+            </tfoot>
+        </table>
+    </div>
+
+    <div id="return-details" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+        <div role="document" class="modal-dialog">
+          <div class="modal-content">
+            <div class="container mt-3 pb-2 border-bottom">
+            <div class="row">
+                <div class="col-md-6 d-print-none">
+                    <button id="print-btn" type="button" class="btn btn-default btn-sm"><i class="dripicons-print"></i> {{trans('file.Print')}}</button>
+                    {{ Form::open(['route' => 'return-sale.sendmail', 'method' => 'post', 'class' => 'sendmail-form'] ) }}
+                        <input type="hidden" name="return_id">
+                        <button class="btn btn-default btn-sm d-print-none"><i class="dripicons-mail"></i> {{trans('file.Email')}}</button>
+                    {{ Form::close() }}
+                </div>
+                <div class="col-md-6 d-print-none">
+                    <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+                </div>
+                <div class="col-md-12">
+                    <h3 id="exampleModalLabel" class="modal-title text-center container-fluid">{{$general_setting->site_title}}</h3>
+                </div>
+                <div class="col-md-12 text-center">
+                    <i style="font-size: 15px;">{{trans('file.Return Details')}}</i>
+                </div>
+            </div>
+        </div>
+                <div id="return-content" class="modal-body">
+                </div>
+                <br>
+                <table class="table table-bordered product-return-list">
+                    <thead>
+                        <th>#</th>
+                        <th>{{trans('file.product')}}</th>
+                        <th>{{trans('file.Batch No')}}</th>
+                        <th>{{trans('file.Qty')}}</th>
+                        <th>{{trans('file.Unit Price')}}</th>
+                        <th>{{trans('file.Tax')}}</th>
+                        <th>{{trans('file.Discount')}}</th>
+                        <th>{{trans('file.Subtotal')}}</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div id="return-footer" class="modal-body"></div>
+          </div>
+        </div>
+    </div>
+</section>
+
+<div id="update-status" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="exampleModalLabel" class="modal-title">{{trans('Edit Status')}}</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+                {!! Form::open(['route' => 'sale.update-status', 'method' => 'post', 'files' => true, 'class' => 'update_status']) !!}
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('file.Delivery Reference')}}</label>
+                        <p class="dr_num"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('file.Sale Reference')}}</label>
+                        <p class="sr_num"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Customer Name')}}</label>
+                        <p class="customer_name"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Customer Address')}}</label>
+                        <p class="customer_address"></p>
+                    </div>
+                    <div class="col-md-12 form-group">
+                         <label>{{trans('Location')}} *</label>
+                        <select  name="location" class="form-control selectpicker">
+                            <option value="0">{{ trans('Not Selected') }}</option>
+                            <option value="1">{{trans('Inside Accra')}}</option>
+                            <option value="2">{{trans('Outside Accra')}}</option>
+                            <option value="3">{{trans('Kumasi')}}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                            <label class="btn btn-success active">
+                                <input type="radio" name="res_type" id="confirm" value="confirm" onchange="order_reason(this.id);reset_validation('input', 'res_type');" checked> Confirm Order
+                            </label>
+                            <label class="btn btn-danger">
+                                <input type="radio" name="res_type" id="cancel" value="cancel" onchange="order_reason(this.id);reset_validation('input', 'res_type');"> Cancel Order
+                            </label>
+                            <label class="btn btn-warning">
+                                <input type="radio" name="res_type" id="report" value="report" onchange="order_reason(this.id);reset_validation('input', 'res_type');"> Report Order
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-12 form-group" id="res_reason_1">
+                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
+                            <option value="Rejected">{{trans('Rejected')}}</option>
+                            <option value="Other">{{trans('Other Reason')}}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12 form-group" id="res_reason_2">
+                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <select name="res_reason_2" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_2');">
+                            <option value="Rejected">{{trans('Rejected')}}</option>
+                            <option value="Delayed">{{trans('Delayed Delivery')}}</option>
+                            <option value="Insufficient">{{trans('Insufficient Invantory')}}</option>
+                            <option value="Other">{{trans('Other Reason')}}</option>
+                        </select>
+                    </div>                    
+                    
+                    <div class="col-md-12 form-group">
+                        <label>{{trans('Remark')}}</label>
+                        <textarea rows="3" name="res_info" class="form-control" onclick="reset_validation('textarea', 'res_info');"></textarea>
+                    </div>
+                </div>
+                <input type="hidden" name="reference_no">
+                <input type="hidden" name="sale_id">
+                <button type="button" class="btn btn-primary update_status_btn">{{trans('file.submit')}}</button>
+                {{ Form::close() }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="cancel-order" tabindex="-1" role="dialog" aria-labelledby="orderCancel" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="orderCancel" class="modal-title">{{trans('Update Status')}}</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+                {!! Form::open(['route' => 'sale.update-status', 'method' => 'post', 'files' => true, 'class' => 'cancel_order']) !!}
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('file.Delivery Reference')}}</label>
+                        <p class="dr_num"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('file.Sale Reference')}}</label>
+                        <p class="sr_num"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Customer Name')}}</label>
+                        <p class="customer_name"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Customer Address')}}</label>
+                        <p class="customer_address"></p>
+                    </div>
+                    <div class="col-md-12 form-group" id="res_reason">
+                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
+                            <option value="Rejected">{{trans('Rejected')}}</option>
+                            <option value="Other">{{trans('Other Reason')}}</option>
+                        </select>
+                    </div>                    
+                    <div class="col-md-12 form-group">
+                        <label>{{trans('Remark')}}</label>
+                        <textarea rows="3" name="res_info" class="form-control" onclick="reset_validation('textarea', 'res_info');"></textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12"><p class="ajax-status"></p></div>
+                    <div class="col-md-6 form-group text-left">
+                        <input type="hidden" name="reference_no">
+                        <input type="hidden" name="sale_id">
+                        <input type="hidden" name="order_type">
+                        <h5 id="orderCancelLabel">Are you sure to cancel delivery ?</h5>
+                    </div>
+                    <div class="col-md-6 form-group text-left">
+                        <button type="button" class="btn btn-info order_cancel_btn">{{trans('file.submit')}}</button>
+                    </div>
+                </div>
+                {{ Form::close() }}
+            </div>
+        </div>
+    </div>
+</div>
+
+@endsection
+
+@push('scripts')
+<script type="text/javascript">
+    $("ul#return").siblings('a').attr('aria-expanded','true');
+    $("ul#return").addClass("show");
+    $("ul#return #sale-return-menu").addClass("active");
+
+    $(".daterangepicker-field").daterangepicker({
+      callback: function(startDate, endDate, period){
+        var starting_date = startDate.format('YYYY-MM-DD');
+        var ending_date = endDate.format('YYYY-MM-DD');
+        var title = starting_date + ' To ' + ending_date;
+        $(this).val(title);
+        $('input[name="starting_date"]').val(starting_date);
+        $('input[name="ending_date"]').val(ending_date);
+      }
+    });
+
+    var all_permission = <?php echo json_encode($all_permission) ?>;
+    var return_id = [];
+    var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+    function confirmDelete() {
+        if (confirm("Are you sure want to delete?")) {
+            return true;
+        }
+        return false;
+    }
+
+     $(document).on("click", "tr.return-link td:not(:first-child, :last-child)", function() {
+        var returns = $(this).parent().data('return');
+        returnDetails(returns);
+    });
+
+    $(document).on("click", ".view", function() {
+        var returns = $(this).parent().parent().parent().parent().parent().data('return');
+        returnDetails(returns);
+    });
+
+    $("#print-btn").on("click", function(){
+        var divContents = document.getElementById("return-details").innerHTML;
+        var a = window.open('');
+        a.document.write('<html>');
+        a.document.write('<body>');
+        a.document.write('<style>body{font-family: sans-serif;line-height: 1.15;-webkit-text-size-adjust: 100%;}.d-print-none{display:none}.text-center{text-align:center}.row{width:100%;margin-right: -15px;margin-left: -15px;}.col-md-12{width:100%;display:block;padding: 5px 15px;}.col-md-6{width: 50%;float:left;padding: 5px 15px;}table{width:100%;margin-top:30px;}th{text-aligh:left}td{padding:10px}table,th,td{border: 1px solid black; border-collapse: collapse;}</style><style>@media print {.modal-dialog { max-width: 1000px;} }</style>');
+        a.document.write(divContents);
+        a.document.write('</body></html>');
+        a.document.close();
+        setTimeout(function(){a.close();},10);
+        a.print();
+    });
+
+    var starting_date = $("input[name=starting_date]").val();
+    var ending_date = $("input[name=ending_date]").val();
+    var warehouse_id = $("#warehouse_id").val();
+
+    $('#return-table').DataTable( {
+        "processing": true,
+        "serverSide": true,
+        "ajax":{
+            url:"return-sale/return-data",
+            data:{
+                all_permission: all_permission,
+                starting_date: starting_date,
+                ending_date: ending_date,
+                warehouse_id: warehouse_id
+            },
+            dataType: "json",
+            type:"post"
+        },
+        "createdRow": function( row, data, dataIndex ) {
+            //alert(data);
+            $(row).addClass('return-link');
+            $(row).attr('data-return', data['return']);
+        },
+        "columns": [
+            {"data": "key"},            
+            {"data": "sale_reference"},
+            {"data": "return_note"},
+            {"data": "date"},
+            {"data": "product_name"}, 
+            {"data": "product_code"},
+            {"data": "order_date"},
+            {"data": "item"}, 
+            {"data": "grand_total"},
+            //{"data": "warehouse"},
+            //{"data": "biller"},
+            {"data": "customer"},
+            {"data": "customer_address"},
+            //{"data": "grand_total"},
+            {"data": "options"},
+        ],
+        'language': {
+
+            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
+             "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+            "search":  '{{trans("file.Search")}}',
+            'paginate': {
+                    'previous': '<i class="dripicons-chevron-left"></i>',
+                    'next': '<i class="dripicons-chevron-right"></i>'
+            }
+        },
+        order:[['1', 'desc']],
+        'columnDefs': [
+            {
+                "orderable": false,
+                'targets': [0, 3, 4, 5, 6, 7, 8]
+            },
+            {
+                'render': function(data, type, row, meta){
+                    if(type === 'display'){
+                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
+                    }
+
+                   return data;
+                },
+                'checkboxes': {
+                   'selectRow': true,
+                   'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
+                },
+                'targets': [0]
+            }
+        ],
+        'select': { style: 'multi',  selector: 'td:first-child'},
+        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        dom: '<"row"lfB>rtip',
+        rowId: 'ObjectID',
+        buttons: [
+            {
+                extend: 'pdf',
+                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                action: function(e, dt, button, config) {
+                    datatable_sum(dt, true);
+                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
+                    datatable_sum(dt, false);
+                },
+                footer:true
+            },
+            {
+                extend: 'excel',
+                text: '<i title="export to excel" class="dripicons-document-new"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                action: function(e, dt, button, config) {
+                    datatable_sum(dt, true);
+                    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                    datatable_sum(dt, false);
+                },
+                footer:true
+            },
+            {
+                extend: 'csv',
+                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                action: function(e, dt, button, config) {
+                    datatable_sum(dt, true);
+                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
+                    datatable_sum(dt, false);
+                },
+                footer:true
+            },
+            {
+                extend: 'print',
+                text: '<i title="print" class="fa fa-print"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                action: function(e, dt, button, config) {
+                    datatable_sum(dt, true);
+                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
+                    datatable_sum(dt, false);
+                },
+                footer:true
+            },
+            {
+                text: '<i title="delete" class="dripicons-cross"></i>',
+                className: 'buttons-delete',
+                action: function ( e, dt, node, config ) {
+                    if(user_verified == '1') {
+                        return_id.length = 0;
+                        $(':checkbox:checked').each(function(i){
+                            if(i){
+                                var returns = $(this).closest('tr').data('return');
+                                return_id[i-1] = returns[13];
+                            }
+                        });
+                        if(return_id.length && confirm("Are you sure want to delete?")) {
+                            $.ajax({
+                                type:'POST',
+                                url:'returns/deletebyselection',
+                                data:{
+                                    returnIdArray: return_id
+                                },
+                                success:function(data){
+                                    alert(data);
+                                    //dt.rows({ page: 'current', selected: true }).deselect();
+                                    dt.rows({ page: 'current', selected: true }).remove().draw(false);
+                                }
+                            });
+                        }
+                        else if(!return_id.length)
+                            alert('Nothing is selected!');
+                    }
+                    else
+                        alert('This feature is disable for demo!');
+                }
+            },
+            {
+                extend: 'colvis',
+                text: '<i title="column visibility" class="fa fa-eye"></i>',
+                columns: ':gt(0)'
+            },
+        ],
+        drawCallback: function () {
+            var api = this.api();
+            datatable_sum(api, false);
+        }
+    } );
+
+    function datatable_sum(dt_selector, is_calling_first) {
+        if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
+            var rows = dt_selector.rows( '.selected' ).indexes();
+
+            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+        }
+        else {
+            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+        }
+    }
+
+    function returnDetails(returns){
+        $('input[name="return_id"]').val(returns[13]);
+        var htmltext = '<strong>{{trans("file.Date")}}: </strong>'+returns[0]+'<br><strong>{{trans("file.reference")}}: </strong>'+returns[1]+'<br><strong>{{trans("file.Sale Reference")}}: </strong>'+returns[24]+'<br><strong>{{trans("file.Warehouse")}}: </strong>'+returns[2]+'<br><strong>{{trans("file.Currency")}}: </strong>'+returns[26];
+        if(returns[27])
+            htmltext += '<br><strong>{{trans("file.Exchange Rate")}}: </strong>'+returns[27]+'<br>';
+        else
+            htmltext += '<br><strong>{{trans("file.Exchange Rate")}}: </strong>N/A<br>';
+        if(returns[25])
+            htmltext += '<strong>{{trans("file.Attach Document")}}: </strong><a href="documents/sale_return/'+returns[25]+'">Download</a><br>';
+        htmltext += '<br><div class="row"><div class="col-md-6"><strong>{{trans("file.From")}}:</strong><br>'+returns[3]+'<br>'+returns[4]+'<br>'+returns[5]+'<br>'+returns[6]+'<br>'+returns[7]+'<br>'+returns[8]+'</div><div class="col-md-6"><div class="float-right"><strong>{{trans("file.To")}}:</strong><br>'+returns[9]+'<br>'+returns[10]+'<br>'+returns[11]+'<br>'+returns[12]+'</div></div></div>';
+        $.get('return-sale/product_return/' + returns[13], function(data){
+            $(".product-return-list tbody").remove();
+            var name_code = data[0];
+            var qty = data[1];
+            var unit_code = data[2];
+            var tax = data[3];
+            var tax_rate = data[4];
+            var discount = data[5];
+            var subtotal = data[6];
+            var batch_no = data[7];
+            var newBody = $("<tbody>");
+            $.each(name_code, function(index){
+                var newRow = $("<tr>");
+                var cols = '';
+                cols += '<td><strong>' + (index+1) + '</strong></td>';
+                cols += '<td>' + name_code[index] + '</td>';
+                cols += '<td>' + batch_no[index] + '</td>';
+                cols += '<td>' + qty[index] + ' ' + unit_code[index] + '</td>';
+                cols += '<td>' + (subtotal[index] / qty[index]) + '</td>';
+                cols += '<td>' + tax[index] + '(' + tax_rate[index] + '%)' + '</td>';
+                cols += '<td>' + discount[index] + '</td>';
+                cols += '<td>' + subtotal[index] + '</td>';
+                newRow.append(cols);
+                newBody.append(newRow);
+            });
+
+            var newRow = $("<tr>");
+            cols = '';
+            cols += '<td colspan=5><strong>{{trans("file.Total")}}:</strong></td>';
+            cols += '<td>' + returns[14] + '</td>';
+            cols += '<td>' + returns[15] + '</td>';
+            cols += '<td>' + returns[16] + '</td>';
+            newRow.append(cols);
+            newBody.append(newRow);
+
+            var newRow = $("<tr>");
+            cols = '';
+            cols += '<td colspan=7><strong>{{trans("file.Order Tax")}}:</strong></td>';
+            cols += '<td>' + returns[17] + '(' + returns[18] + '%)' + '</td>';
+            newRow.append(cols);
+            newBody.append(newRow);
+
+            var newRow = $("<tr>");
+            cols = '';
+            cols += '<td colspan=7><strong>{{trans("file.grand total")}}:</strong></td>';
+            cols += '<td>' + returns[19] + '</td>';
+            newRow.append(cols);
+            newBody.append(newRow);
+
+            $("table.product-return-list").append(newBody);
+        });
+        var htmlfooter = '<p><strong>{{trans("file.Return Note")}}:</strong> '+returns[20]+'</p><p><strong>{{trans("file.Staff Note")}}:</strong> '+returns[21]+'</p><strong>{{trans("file.Created By")}}:</strong><br>'+returns[22]+'<br>'+returns[23];
+        $('#return-content').html(htmltext);
+        $('#return-footer').html(htmlfooter);
+        $('#return-details').modal('show');
+    }
+
+    if(all_permission.indexOf("returns-delete") == -1)
+        $('.buttons-delete').addClass('d-none');
+</script>
+<script>
+    function order_reason(id){
+        if(id == "all"){
+            $("#res_reason_1").addClass("hidden");
+            $("#res_reason_2").addClass("hidden");    
+        } else if(id == "confirm"){
+            $("#res_reason_1").addClass("hidden");
+            $("#res_reason_2").addClass("hidden"); 
+        } else if(id == "cancel"){
+            $("#res_reason_1").removeClass("hidden");
+            $("#res_reason_2").addClass("hidden"); 
+        } else if(id == "report"){
+            $("#res_reason_1").addClass("hidden");
+            $("#res_reason_2").removeClass("hidden");
+        }
+    }
+    order_reason("all");
+
+    function check_validation(field_type, field_name, field_value){
+        if(field_value == ""){
+            if(field_type == "input"){
+                $('input[name="'+field_name+'"]').css("border","1px solid red");
+                return false;
+            }            
+            if(field_type == "select"){
+                $('select[name="'+field_name+'"]').css("border","1px solid red");
+                return false;
+            }            
+            if(field_type == "textarea"){
+                $('textarea[name="'+field_name+'"]').css("border","1px solid red");
+                return false;
+            }            
+        }
+    }
+
+    function reset_validation(field_type, field_name){
+        if(field_type == "input"){
+            $('input[name="'+field_name+'"]').css("border","1px solid #e4e6fc");
+            return false;
+        }            
+        if(field_type == "select"){
+            $('select[name="'+field_name+'"]').css("border","1px solid #e4e6fc");
+            return false;
+        }            
+        if(field_type == "textarea"){
+            $('textarea[name="'+field_name+'"]').css("border","1px solid #e4e6fc");
+            return false;
+        }
+    }
+
+    function update_status(id, location = 0){
+        //var id = $(this).data('id').toString();
+        $.get('delivery/create/'+id, function(data) {
+            $('.dr_num').text(data[0]);
+            $('.sr_num').text(data[1]);
+            $('.customer_name').text(data[5]);
+            $('.customer_address').text(data[6]);
+            
+            $('select[name="status"]').val(data[2]);
+            $('.selectpicker').selectpicker('refresh');
+            $('input[name="delivered_by"]').val(data[3]);
+            $('input[name="recieved_by"]').val(data[4]);
+            $('#customer').text(data[5]);
+            $('textarea[name="address"]').val(data[6]);
+            $('textarea[name="note"]').val(data[7]);
+            $('select[name="courier_id"]').val(data[8]);
+            $('select[name=location]').val(location); // $$$dorian$$$
+            $('input[name="reference_no"]').val(data[0]);
+            $('input[name="sale_id"]').val(id);
+            $('.selectpicker').selectpicker('refresh');
+            //$('#add-delivery').modal('show');
+        });
+        $('#update-status').modal('show');
+    }
+
+    
+    $(".update_status_btn").on("click", function(){
+
+        var sale_id = $('input[name="sale_id"]').val();
+        var reference_no = $('input[name="reference_no"]').val();
+        
+        var res_type = $('input[name="res_type"]:checked').val();
+        check_validation("input", "res_type", res_type);
+
+        if(res_type == "confirm"){
+            var res_info = $('textarea[name="res_info"]').val();
+            check_validation("textarea", "res_info", res_info);
+        } else if(res_type == "cancel"){
+            var res_reason_1 = $('select[name="res_reason_1"]').val();
+            check_validation("select", "res_reason_1", res_reason_1);
+            var res_info = $('textarea[name="res_info"]').val();
+            check_validation("textarea", "res_info", res_info); 
+        } else if(res_type == "reject"){
+            var res_reason_2 = $('select[name="res_reason_2"]').val();
+            check_validation("select", "res_reason_2", res_reason_2);
+            var res_info = $('textarea[name="res_info"]').val();
+            check_validation("textarea", "res_info", res_info);
+        }
+
+        $.ajax({
+            url: '../../sales/updatestatus',
+            type: "POST",
+            data: $(".update_status").serializeArray(),
+            success:function(data) {
+                //alert(data);
+                $('#update-status').modal('hide');
+                location.reload();
+            }
+        });
+    }); 
+
+    function cancel_order(id){
+        $.get('delivery/create/'+id, function(data) {
+                $('.dr_num').text(data[0]);
+                $('.sr_num').text(data[1]);
+                $('.customer_name').text(data[5]);
+                $('.customer_address').text(data[6]);
+                
+                $('input[name="reference_no"]').val(data[0]);
+                $('input[name="sale_id"]').val(id);
+                $('input[name="order_type"]').val("cancel_order");
+                //$(".ajax-status").html(data);
+                $("#orderCancel").text("Cancel Order");
+                $("#orderCancelLabel").text("Are you sure to cancel this order ?");
+
+                var res_reason = $('select[name="res_reason_1"]').val();
+                check_validation("select", "res_reason", res_reason_2);
+                var res_info = $('textarea[name="res_info"]').val();
+                check_validation("textarea", "res_info", res_info);
+            });
+            $('#cancel-order').modal('show');
+    }
+    $(".order_cancel_btn").on("click", function(){
+
+        var sale_id = $('input[name="sale_id"]').val();
+        var reference_no = $('input[name="reference_no"]').val();
+
+        $.ajax({
+            url: '../../sales/updatestatusfilters',
+            type: "POST",
+            data: $(".cancel_order").serializeArray(),
+            success:function(data) {
+                //alert(data);
+                $('#cancel-order').modal('hide');
+                location.reload();
+            }
+        });
+    });
+</script>
+<script type="text/javascript" src="https://js.stripe.com/v3/"></script>
+@endpush
