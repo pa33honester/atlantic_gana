@@ -467,7 +467,9 @@
                 @endif
                 @if($supplier_report_active)
                 <li id="supplier-report-menu">
+                    {!! Form::open(['route' => 'report.supplier', 'method' => 'post','id' => 'supplier-due-report-form']) !!}
                     <a id="supplier-report-link" href="">{{trans('file.Supplier Report')}}</a>
+                    {!! Form::close() !!}
                 </li>
                 @endif
                 @if($supplier_due_report_active)

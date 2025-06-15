@@ -1305,7 +1305,8 @@
 
     $("a#supplier-report-link").click(function(e) {
       e.preventDefault();
-      $('#supplier-modal').modal();
+      $('#supplier-due-report-form').submit();
+      // $('#supplier-modal').modal();
     });
 
     $("a#due-report-link").click(function(e) {

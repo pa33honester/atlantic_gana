@@ -357,227 +357,243 @@ class SaleController extends Controller
 
     // krishna singh - https://linktr.ee/iamsinghkrishna
     // changed by dorian at 2025/6/5
+    /**
+     * Update the status of a sale based on the request data.
+     * Handles confirmation, cancellation, and reporting of sales.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
+     */
     public function updateStatus(Request $request)
     {
         $data = $request->input();
-        $sale_id = $data["sale_id"];
-        $sale_details["res_type"] = $data["res_type"];
-        $sale_details["location"] = $data["location"];
-        $res_reason_1 = $data["res_reason_1"];
-        $res_reason_2 = $data["res_reason_2"];
+        $saleId = $data['sale_id'];
+        $resType = $data['res_type'];
+        $location = $data['location'];
+        $resReason1 = $data['res_reason_1'];
+        $resReason2 = $data['res_reason_2'];
+        $resInfo = $data['res_info'];
 
-        $return_data = Returns::where("sale_id", $sale_id)->select('id')->first();
+        // Prepare sale details for update
+        $saleDetails = [
+            'res_type' => $resType,
+            'location' => $location,
+            'res_info' => $resInfo,
+        ];
 
-        if ($data["res_type"] == "confirm") {
-            $sale_details["sale_status"] = 7;
-            if($return_data){
-                $return_controller = new ReturnController();
-                $response = $return_controller->destroy($return_data->id);
-            }
-        }
-        else if ($data["res_type"] == "cancel") {
-            $sale_details["res_reason"] = $res_reason_1;
-            $sale_details["sale_status"] = 11;
-            if($return_data){
-                $return_controller = new ReturnController();
-                $response = $return_controller->destroy($return_data->id);
-            }
-        }
-        else if ($data["res_type"] == "report") {
-            $sale_details["res_reason"] = $res_reason_2;
-            $sale_details["sale_status"] = 4;
+        // Check if a return record exists for this sale
+        $returnData = Returns::where('sale_id', $saleId)->select('id')->first();
 
-            if($return_data){
-                return ;
-            }
-            else {
-                $request_data = [
-                    "sale_id"=> $sale_id,
-                    "total_qty" => 0,
-                    "total_discount"=> 0,
-                    "total_tax" => 0,
-                    "total_price" => 0,
-                    "item" => 0,
-                    "order_tax" => 0,
-                    "grand_total" => 0,
-                    "change_sale_status" => "1",
-                    "return_note" => $res_reason_1,
-                    "staff_note" => $data['res_info'],
-                ];
-        
+        // Handle each response type
+        switch ($resType) {
+            case 'confirm':
+                $saleDetails['sale_status'] = 7;
+                if ($returnData) {
+                    (new ReturnController())->destroy($returnData->id);
+                }
+                break;
 
-                $lims_product_sale_data = Product_Sale::where('sale_id', $sale_id)->get();
-                foreach($lims_product_sale_data as $product_sale) {
-                    $product_data = DB::table('products')->find($product_sale->product_id);
-                    if($product_sale->variant_id) {
-                        $product_variant_data = ProductVariant::select('id', 'item_code')->FindExactProduct($product_data->id, $product_sale->variant_id)->first();
-                        $product_variant_id = $product_variant_data->id;
-                        $product_data->code = $product_variant_data->item_code;
-                    }
-                    else
-                        $product_variant_id = null;
-                    if($product_data->tax_method == 1){
-                        $product_price = $product_sale->net_unit_price + ($product_sale->discount / $product_sale->qty);
-                    }
-                    elseif ($product_data->tax_method == 2) {
-                        $product_price =($product_sale->total / $product_sale->qty) + ($product_sale->discount / $product_sale->qty);
-                    }
+            case 'cancel':
+                $saleDetails['res_reason'] = $resReason1;
+                $saleDetails['sale_status'] = 11;
+                if ($returnData) {
+                    (new ReturnController())->destroy($returnData->id);
+                }
+                break;
 
-                    $tax = DB::table('taxes')->where('rate',$product_sale->tax_rate)->first();
-                    if($product_data->type == 'standard'){
-                        $unit = DB::table('units')->select('unit_name')->find($product_sale->sale_unit_id);
-                        $unit_name = $unit->unit_name;
-                    }
-                    else {
-                        $unit_name = 'n/a';
-                    }
-                    $product_batch_data = ProductBatch::select('batch_no')->find($product_sale->product_batch_id);
-                    if($product_batch_data){
-                        $request_data["product_batch_id"] []= $product_sale->product_batch_id;
-                    }
-                    else
-                        $request_data["product_batch_id"] []= 0;
-                    
-                    $request_data["actual_qty"] []= $product_sale->qty - $product_sale->return_qty;
-                    $request_data["qty"] []= $product_sale->qty - $product_sale->return_qty;
-                    $request_data["is_return"] []= $product_sale->id;
-                    $request_data["product_code"] []= $product_data->code;
-                    $request_data["product_sale_id"] []= $product_sale->id;
-                    $request_data["product_id"] []= $product_data->id;
-                    $request_data["product_variant_id"] []= $product_variant_id;
-                    $request_data["product_price"] []= $product_price;
-                    $request_data["sale_unit"] []= $unit_name;
-                    $request_data["net_unit_price"] []= $product_sale->net_unit_price;
-                    $request_data["discount"] []= $product_sale->discount;
-                    $request_data["tax_rate"] []= $product_sale->tax_rate;
-                    $request_data["tax"] []= $product_sale->tax;
-                    $request_data["subtotal"] []= $product_sale->total;
-                    $request_data["imei_number"] []= "";
+            case 'report':
+                $saleDetails['res_reason'] = $resReason2;
+                $saleDetails['sale_status'] = 4;
+
+                if ($returnData) {
+                    // If a return already exists, do nothing further
+                    break;
                 }
 
-                $return_controller = new ReturnController();
-                $response = $return_controller->store(new Request($request_data));
-            }
+                // Prepare data for creating a new return
+                $requestData = [
+                    'sale_id' => $saleId,
+                    'total_qty' => 0,
+                    'total_discount' => 0,
+                    'total_tax' => 0,
+                    'total_price' => 0,
+                    'item' => 0,
+                    'order_tax' => 0,
+                    'grand_total' => 0,
+                    'change_sale_status' => '1',
+                    'return_note' => $resReason1,
+                    'staff_note' => $resInfo,
+                ];
+
+                $productSales = Product_Sale::where('sale_id', $saleId)->get();
+                foreach ($productSales as $productSale) {
+                    $product = DB::table('products')->find($productSale->product_id);
+
+                    // Get product variant if exists
+                    if ($productSale->variant_id) {
+                        $variant = ProductVariant::select('id', 'item_code')
+                            ->FindExactProduct($product->id, $productSale->variant_id)
+                            ->first();
+                        $productVariantId = $variant->id;
+                        $product->code = $variant->item_code;
+                    } else {
+                        $productVariantId = null;
+                    }
+
+                    // Calculate product price based on tax method
+                    if ($product->tax_method == 1) {
+                        $productPrice = $productSale->net_unit_price + ($productSale->discount / $productSale->qty);
+                    } elseif ($product->tax_method == 2) {
+                        $productPrice = ($productSale->total / $productSale->qty) + ($productSale->discount / $productSale->qty);
+                    } else {
+                        $productPrice = 0;
+                    }
+
+                    // Get unit name
+                    if ($product->type == 'standard') {
+                        $unit = DB::table('units')->select('unit_name')->find($productSale->sale_unit_id);
+                        $unitName = $unit ? $unit->unit_name : 'n/a';
+                    } else {
+                        $unitName = 'n/a';
+                    }
+
+                    // Get product batch id
+                    $batch = ProductBatch::select('batch_no')->find($productSale->product_batch_id);
+                    $batchId = $batch ? $productSale->product_batch_id : 0;
+
+                    // Fill request data arrays
+                    $requestData['product_batch_id'][] = $batchId;
+                    $requestData['actual_qty'][] = $productSale->qty - $productSale->return_qty;
+                    $requestData['qty'][] = $productSale->qty - $productSale->return_qty;
+                    $requestData['is_return'][] = $productSale->id;
+                    $requestData['product_code'][] = $product->code;
+                    $requestData['product_sale_id'][] = $productSale->id;
+                    $requestData['product_id'][] = $product->id;
+                    $requestData['product_variant_id'][] = $productVariantId;
+                    $requestData['product_price'][] = $productPrice;
+                    $requestData['sale_unit'][] = $unitName;
+                    $requestData['net_unit_price'][] = $productSale->net_unit_price;
+                    $requestData['discount'][] = $productSale->discount;
+                    $requestData['tax_rate'][] = $productSale->tax_rate;
+                    $requestData['tax'][] = $productSale->tax;
+                    $requestData['subtotal'][] = $productSale->total;
+                    $requestData['imei_number'][] = '';
+                }
+
+                // Store the return
+                (new ReturnController())->store(new Request($requestData));
+                break;
         }
 
-        $sale_details["res_info"] = $data["res_info"];
-
-        Sale::where([
-            ['id', $sale_id]
-        ])->update($sale_details);
+        // Update the sale record
+        Sale::where('id', $saleId)->update($saleDetails);
     }
-
+   
+    /**
+     * Update sale status and related data based on order type (delivery, shipped, shipping, return_ship, cancel_order, reset_order).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
+     */
     public function updateStatusFilters(Request $request)
     {
         $data = $request->input();
         $sale_id = $data["sale_id"];
+        $orderType = $data["order_type"];
+        $sale_details = [];
 
-        if ($data["order_type"] == "delivery") {
-            $sale_details["sale_status"] = 12;
-        }
+        switch ($orderType) {
+            case "delivery":
+                $sale_details["sale_status"] = 12;
+                break;
 
-        if ($data["order_type"] == "shipped") {
-            $sale_details["sale_status"] = 8;
-        }
+            case "shipped":
+                $sale_details["sale_status"] = 8;
+                break;
 
-        if ($data["order_type"] == "shipping") {
-            $sale_details["sale_status"] = 9;
-            $sale_details["shipping_cost"] = $data["shipping_cost"];
-            // find reference no from sale table
-            $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
-            // update shipping cost in pucrchase table
-            Purchase::where([
-                ['reference_no', $reference_no]
-            ])->update(['shipping_cost'=>$data["shipping_cost"]]);
-            // update shipping cost in sale table
-            Sale::where([
-                ['reference_no', $reference_no]
-            ])->update(['shipping_cost'=>$data["shipping_cost"]]);
-        }
+            case "shipping":
+                $sale_details["sale_status"] = 9;
+                $sale_details["shipping_cost"] = $data["shipping_cost"];
+                $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
+                // Update shipping cost in purchase and sale tables
+                Purchase::where('reference_no', $reference_no)->update(['shipping_cost' => $data["shipping_cost"]]);
+                Sale::where('reference_no', $reference_no)->update(['shipping_cost' => $data["shipping_cost"]]);
+                break;
 
-        if ($data["order_type"] == "return_ship") {
-            $sale_details["sale_status"] = 4;
-            // get order no from sale table
-            $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
+            case "return_ship":
+                $sale_details["sale_status"] = 4;
+                $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
+                $warehouse_id = Sale::select('warehouse_id')->find($sale_id)->warehouse_id;
+                $shipping_cost = Sale::select('shipping_cost')->find($sale_id)->shipping_cost;
+                $return_shipping_cost = $data["return_shipping_cost"];
 
-            $warehouse_id = Sale::select('warehouse_id')->find($sale_id)->warehouse_id;
-            // get shipping cost of order
-            $shipping_cost = Sale::select('shipping_cost')->find($sale_id)->shipping_cost;
+                // Update return shipping cost in purchase and sale tables
+                Purchase::where('reference_no', $reference_no)->update(['return_shipping_cost' => $return_shipping_cost]);
+                Sale::where('reference_no', $reference_no)->update(['return_shipping_cost' => $return_shipping_cost]);
+                $sale_details["shipping_cost"] = $shipping_cost;
 
-            // set shipping cost
-            $sale_details["shipping_cost"] = $shipping_cost;   
-            // set return shipping cost
-            $return_shipping_cost = $data["return_shipping_cost"];
-            // update return shipping cost in purchase table
-            Purchase::where([
-                ['reference_no', $reference_no]
-            ])->update(['return_shipping_cost'=>$return_shipping_cost]);
-            // update return shipping cost in sale table
-            Sale::where([
-                ['reference_no', $reference_no]
-            ])->update(['return_shipping_cost'=>$return_shipping_cost]);
-            
-            $product_sales = Product_Sale::select('id', 'qty', 'return_qty', 'product_id')->where('sale_id', $sale_id)->get();
-            
-            $test_data = [];
-            foreach($product_sales as $product_sale){
-                $product_warehouse_data = Product_Warehouse::where([
+                // Update product warehouse and product sale return quantities
+                $product_sales = Product_Sale::select('id', 'qty', 'return_qty', 'product_id')->where('sale_id', $sale_id)->get();
+                foreach ($product_sales as $product_sale) {
+                    $product_warehouse = Product_Warehouse::where([
                         ['product_id', $product_sale->product_id],
                         ['warehouse_id', $warehouse_id]
-                ])->select('id', 'qty')->first();
-                $product_warehouse_data->qty += $product_sale->qty - $product_sale->return_qty;
-                $product_warehouse_data->save();
+                    ])->first();
+                    if ($product_warehouse) {
+                        $product_warehouse->qty += $product_sale->qty - $product_sale->return_qty;
+                        $product_warehouse->save();
+                    }
+                    $product_sale->return_qty += $product_sale->qty;
+                    $product_sale->save();
+                }
 
-                $product_sale->return_qty += $product_sale->qty;
-                $product_sale->save();
-            }
+                // Create a return purchase record
+                $purchase = Purchase::where('reference_no', $reference_no)->first();
+                if ($purchase) {
+                    $return_purchase_data = [
+                        'reference_no' => $purchase->reference_no,
+                        'supplier_id' => $purchase->supplier_id,
+                        'warehouse_id' => $purchase->warehouse_id,
+                        'user_id' => $purchase->user_id,
+                        'purchase_id' => $purchase->id,
+                        'account_id' => 1,
+                        'currency_id' => $purchase->currency_id,
+                        'shipping_cost' => $shipping_cost,
+                        'return_shipping_cost' => $return_shipping_cost,
+                        'exchange_rate' => $purchase->exchange_rate,
+                        'item' => $purchase->item,
+                        'total_qty' => $purchase->total_qty,
+                        'total_discount' => $purchase->total_discount,
+                        'total_tax' => $purchase->total_tax,
+                        'total_cost' => $purchase->total_cost,
+                        'order_tax_rate' => $purchase->order_tax_rate,
+                        'order_tax' => $purchase->order_tax,
+                        'grand_total' => $purchase->total_cost + ($purchase->order_tax - $purchase->order_discount),
+                        'document' => $purchase->document,
+                        'return_note' => $purchase->note,
+                        'staff_note' => $purchase->note,
+                    ];
+                    ReturnPurchase::create($return_purchase_data);
+                }
+                break;
 
-            // get purchase data from purhcase table
-            $lims_purchase_data = Purchase::where('reference_no', $reference_no)->first();
-            // inserting data into return_purchase table 
-            $return_purchase_data = [];
-            $return_purchase_data['reference_no'] = $lims_purchase_data->reference_no;
-            $return_purchase_data['supplier_id'] = $lims_purchase_data->supplier_id;            
-            $return_purchase_data['warehouse_id'] = $lims_purchase_data->warehouse_id;
-            $return_purchase_data['user_id'] = $lims_purchase_data->user_id;
-            $return_purchase_data['purchase_id'] = $lims_purchase_data->id;
-            $return_purchase_data['account_id'] = 1;
-            $return_purchase_data['currency_id'] = $lims_purchase_data->currency_id;            
-            $return_purchase_data['shipping_cost'] = $shipping_cost;            
-            $return_purchase_data['return_shipping_cost'] = $return_shipping_cost;            
-            $return_purchase_data['exchange_rate'] = $lims_purchase_data->exchange_rate;
-            $return_purchase_data['item'] = $lims_purchase_data->item;
-            $return_purchase_data['total_qty'] = $lims_purchase_data->total_qty;
-            $return_purchase_data['total_discount'] = $lims_purchase_data->total_discount;
-            $return_purchase_data['total_tax'] = $lims_purchase_data->total_tax;
-            $return_purchase_data['total_cost'] = $lims_purchase_data->total_cost;
-            $return_purchase_data['order_tax_rate'] = $lims_purchase_data->order_tax_rate;
-            $return_purchase_data['order_tax'] = $lims_purchase_data->order_tax;
-            $return_purchase_data['grand_total'] = $lims_purchase_data->total_cost  + ($lims_purchase_data->order_tax - $lims_purchase_data->order_discount);
-            $return_purchase_data['document'] = $lims_purchase_data->document;
-            $return_purchase_data['return_note'] = $lims_purchase_data->note;
-            $return_purchase_data['staff_note'] = $lims_purchase_data->note;
-            $lims_return_purchase_data = ReturnPurchase::create($return_purchase_data);
+            case "cancel_order":
+                $sale_details["sale_status"] = 11;
+                $sale_details["res_type"] = "cancel_order";
+                $sale_details["res_reason"] = $data["res_reason_1"];
+                $sale_details["res_info"] = $data["res_info"];
+                break;
+
+            case "reset_order":
+                $sale_details["sale_status"] = 7;
+                break;
         }
 
-        if ($data["order_type"] == "cancel_order") {
-            $sale_details["sale_status"] = 11;
-            $sale_details["res_type"] = "cancel_order";
-            $sale_details["res_reason"] = $data["res_reason_1"];
-            $sale_details["res_info"] = $data["res_info"];
-        }
-
-        if ($data["order_type"] == "reset_order") {
-            $sale_details["sale_status"] = 7;
-        }
-
-        Sale::where([
-            ['id', $sale_id]
-        ])->update($sale_details);
+        // Update the sale record
+        Sale::where('id', $sale_id)->update($sale_details);
     }
 
     // krishna singh - https://linktr.ee/iamsinghkrishna
-
     public function index(Request $request)
     {
 
@@ -653,262 +669,248 @@ class SaleController extends Controller
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
 
+    /**
+     * Fetch and format sales data for DataTables or similar UI components.
+     * Applies filters, search, and sorting based on request parameters.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void (outputs JSON directly)
+     */
     public function saleData(Request $request)
     {
-        $columns = array(
+        // Define columns for ordering
+        $columns = [
             1 => 'created_at',
             2 => 'reference_no',
             7 => 'grand_total',
             8 => 'paid_amount',
-        );
-        
-        $warehouse_id = $request->input('warehouse_id');
-        $sale_status = $request->input('sale_status');
-        $location = $request->input('location');
-        $sale_type = $request->input('sale_type');
-        $payment_method = $request->input('payment_method');
+        ];
 
-        // $q = Sale::whereDate('sales.created_at', '>=' ,$request->input('starting_date'))->whereDate('sales.created_at', '<=' ,$request->input('ending_date'));
-        $q = Sale::join('payments', 'sales.id', '=', 'payments.sale_id')
-            ->whereDate('sales.created_at', '>=', $request->input('starting_date'))
-            ->whereDate('sales.created_at', '<=', $request->input('ending_date'))
+        // Extract filters from request
+        $warehouseId = $request->input('warehouse_id');
+        $saleStatus = $request->input('sale_status');
+        $location = $request->input('location');
+        $saleType = $request->input('sale_type');
+        $paymentMethod = $request->input('payment_method');
+        $startDate = $request->input('starting_date');
+        $endDate = $request->input('ending_date');
+
+        // Build base query
+        $query = Sale::join('payments', 'sales.id', '=', 'payments.sale_id')
+            ->whereDate('sales.created_at', '>=', $startDate)
+            ->whereDate('sales.created_at', '<=', $endDate)
             ->select('sales.id', 'sales.*');
 
-        if (Auth::user()->role_id > 2 && config('staff_access') == 'own')
-            $q = $q->where('user_id', Auth::id());
-        elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
-            $q = $q->where('warehouse_id', Auth::user()->warehouse_id);
-        if ($sale_status)
-            $q = $q->where('sale_status', $sale_status);
-        // if ($payment_status) $q = $q->where('payment_status', $payment_status);
-        if($location)
-            $q = $q->where('location', $location);
-        if ($sale_type)
-            $q = $q->where('sale_type', $sale_type);
-        if ($payment_method)
-            $q = $q->where('paying_method', $payment_method);
+        // Apply user access restrictions
+        $user = Auth::user();
+        if ($user->role_id > 2 && config('staff_access') == 'own') {
+            $query = $query->where('user_id', $user->id);
+        } elseif ($user->role_id > 2 && config('staff_access') == 'warehouse') {
+            $query = $query->where('warehouse_id', $user->warehouse_id);
+        }
 
-        $totalData = $q->count();
+        // Apply additional filters
+        if ($saleStatus) $query = $query->where('sale_status', $saleStatus);
+        if ($location) $query = $query->where('location', $location);
+        if ($saleType) $query = $query->where('sale_type', $saleType);
+        if ($paymentMethod) $query = $query->where('paying_method', $paymentMethod);
+
+        $totalData = $query->count();
         $totalFiltered = $totalData;
 
-        if ($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
+        // Pagination and ordering
+        $limit = $request->input('length') != -1 ? $request->input('length') : $totalData;
         $start = $request->input('start');
         $order = 'sales.' . $columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
-        //fetching custom fields data
-        $custom_fields = CustomField::where([
+
+        // Fetch custom fields for sales
+        $customFields = CustomField::where([
             ['belongs_to', 'sale'],
             ['is_table', true]
         ])->pluck('name');
-        $field_names = [];
-        foreach ($custom_fields as $fieldName) {
-            $field_names[] = str_replace(" ", "_", strtolower($fieldName));
+        $fieldNames = [];
+        foreach ($customFields as $fieldName) {
+            $fieldNames[] = str_replace(" ", "_", strtolower($fieldName));
         }
-        if (empty($request->input('search.value'))) {
-            $q = Sale::with('biller', 'customer', 'warehouse', 'user')
-                ->whereDate('sales.created_at', '>=', $request->input('starting_date'))
-                ->whereDate('sales.created_at', '<=', $request->input('ending_date'))
+
+        // Handle search
+        $searchValue = $request->input('search.value');
+        if (empty($searchValue)) {
+            $query = Sale::with('biller', 'customer', 'warehouse', 'user')
+                ->whereDate('sales.created_at', '>=', $startDate)
+                ->whereDate('sales.created_at', '<=', $endDate)
                 ->offset($start)
                 ->limit($limit)
                 ->orderBy($order, $dir);
-            if (Auth::user()->role_id > 2 && config('staff_access') == 'own')
-                $q = $q->where('user_id', Auth::id());
-            elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
-                $q = $q->where('warehouse_id', Auth::user()->warehouse_id);
-            if ($warehouse_id)
-                $q = $q->where('warehouse_id', $warehouse_id);
-            if ($sale_status)
-                $q = $q->where('sale_status', $sale_status);
-            if ($location > 0)
-                $q = $q->where('location', $location);
-            if ($sale_type)
-                $q = $q->where('sale_type', $sale_type);
-            if ($payment_method)
-                $q = $q->join('payments', 'sales.id', '=', 'payments.sale_id')->select('sales.id', 'sales.*')->where('paying_method', $payment_method);
-            $sales = $q->get();
-            //print_r($sales);
-        }
+            if ($user->role_id > 2 && config('staff_access') == 'own')
+                $query = $query->where('user_id', $user->id);
+            elseif ($user->role_id > 2 && config('staff_access') == 'warehouse')
+                $query = $query->where('warehouse_id', $user->warehouse_id);
+            if ($warehouseId) $query = $query->where('warehouse_id', $warehouseId);
+            if ($saleStatus) $query = $query->where('sale_status', $saleStatus);
+            if ($location > 0) $query = $query->where('location', $location);
+            if ($saleType) $query = $query->where('sale_type', $saleType);
+            if ($paymentMethod) {
+                $query = $query->join('payments', 'sales.id', '=', 'payments.sale_id')
+                    ->select('sales.id', 'sales.*')
+                    ->where('paying_method', $paymentMethod);
+            }
+            $sales = $query->get();
+        } 
         else {
-            $search = $request->input('search.value');
-            $q = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
+            $search = $searchValue;
+            // search by reference number
+            $query = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
                 ->join('billers', 'sales.biller_id', '=', 'billers.id')
                 ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
+                ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id')
                 ->whereDate('sales.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
                 ->offset($start)
                 ->limit($limit)
                 ->orderBy($order, $dir);
-            if (Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $q = $q->select('sales.*')
+            if ($user->role_id > 2 && config('staff_access') == 'own') {
+                $query = $query->select('sales.*')
                     ->with('biller', 'customer', 'warehouse', 'user')
-                    ->where('sales.user_id', Auth::id())
-                    ->orwhere([
-                        ['sales.reference_no', 'LIKE', "%{$search}%"],
-                        ['sales.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['sales.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['sales.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['sales.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['product_sales.imei_number', 'LIKE', "%{$search}%"],
-                        ['sales.user_id', Auth::id()]
-                    ]);
-                foreach ($field_names as $key => $field_name) {
-                    $q = $q->orwhere([
-                        ['sales.user_id', Auth::id()],
-                        ['sales.' . $field_name, 'LIKE', "%{$search}%"]
-                    ]);
-                }
-            } elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
-                $q = $q->select('sales.*')
+                    ->where('sales.user_id', $user->id)
+                    ->orWhere(function($q) use ($search, $user, $fieldNames) {
+                        $q->where('sales.reference_no', 'LIKE', "%{$search}%")
+                        ->where('sales.user_id', $user->id)
+                        ->orWhere('customers.name', 'LIKE', "%{$search}%")
+                        ->where('sales.user_id', $user->id)
+                        ->orWhere('customers.phone_number', 'LIKE', "%{$search}%")
+                        ->where('sales.user_id', $user->id)
+                        ->orWhere('billers.name', 'LIKE', "%{$search}%")
+                        ->where('sales.user_id', $user->id)
+                        ->orWhere('product_sales.imei_number', 'LIKE', "%{$search}%")
+                        ->where('sales.user_id', $user->id);
+                        foreach ($fieldNames as $fieldName) {
+                            $q->orWhere('sales.' . $fieldName, 'LIKE', "%{$search}%")
+                            ->where('sales.user_id', $user->id);
+                        }
+                    });
+            } elseif ($user->role_id > 2 && config('staff_access') == 'warehouse') {
+                $query = $query->select('sales.*')
                     ->with('biller', 'customer', 'warehouse', 'user')
-                    ->where('sales.user_id', Auth::id())
-                    ->orwhere([
-                        ['sales.reference_no', 'LIKE', "%{$search}%"],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['product_sales.imei_number', 'LIKE', "%{$search}%"],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ]);
-                foreach ($field_names as $key => $field_name) {
-                    $q = $q->orwhere([
-                        ['sales.user_id', Auth::id()],
-                        ['sales.warehouse_id', Auth::user()->warehouse_id]
-                    ]);
-                }
+                    ->where('sales.user_id', $user->id)
+                    ->orWhere(function($q) use ($search, $user, $fieldNames) {
+                        $q->where('sales.reference_no', 'LIKE', "%{$search}%")
+                        ->where('sales.warehouse_id', $user->warehouse_id)
+                        ->orWhere('customers.name', 'LIKE', "%{$search}%")
+                        ->where('sales.warehouse_id', $user->warehouse_id)
+                        ->orWhere('customers.phone_number', 'LIKE', "%{$search}%")
+                        ->where('sales.warehouse_id', $user->warehouse_id)
+                        ->orWhere('billers.name', 'LIKE', "%{$search}%")
+                        ->where('sales.warehouse_id', $user->warehouse_id)
+                        ->orWhere('product_sales.imei_number', 'LIKE', "%{$search}%")
+                        ->where('sales.warehouse_id', $user->warehouse_id);
+                        foreach ($fieldNames as $fieldName) {
+                            $q->orWhere('sales.' . $fieldName, 'LIKE', "%{$search}%")
+                            ->where('sales.warehouse_id', $user->warehouse_id);
+                        }
+                    });
             } else {
-                $q = $q->select('sales.*')
+                $query = $query->select('sales.*')
                     ->with('biller', 'customer', 'warehouse', 'user')
-                    ->orwhere('sales.reference_no', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.name', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.phone_number', 'LIKE', "%{$search}%")
-                    ->orwhere('billers.name', 'LIKE', "%{$search}%")
-                    ->orwhere('product_sales.imei_number', 'LIKE', "%{$search}%");
-                foreach ($field_names as $key => $field_name) {
-                    $q = $q->orwhere('sales.' . $field_name, 'LIKE', "%{$search}%");
+                    ->orWhere('sales.reference_no', 'LIKE', "%{$search}%")
+                    ->orWhere('suppliers.name', 'LIKE', "%{$search}%")
+                    ->orWhere('customers.name', 'LIKE', "%{$search}%")
+                    ->orWhere('customers.phone_number', 'LIKE', "%{$search}%")
+                    ->orWhere('billers.name', 'LIKE', "%{$search}%")
+                    ->orWhere('product_sales.imei_number', 'LIKE', "%{$search}%");
+                foreach ($fieldNames as $fieldName) {
+                    $query = $query->orWhere('sales.' . $fieldName, 'LIKE', "%{$search}%");
                 }
             }
-            $sales = $q->groupBy('sales.id')->get();
-            $totalFiltered = $q->groupBy('sales.id')->count();
+            $sales = $query->groupBy('sales.id')->get();
+            $totalFiltered = $query->groupBy('sales.id')->count();
         }
 
-        $data = array();
+        // Format data for output
+        $data = [];
         if (!empty($sales)) {
             foreach ($sales as $key => $sale) {
+                $nestedData = [];
                 $nestedData['id'] = $sale->id;
 
+                // Product names and codes
                 $product_names = DB::table('sales')
                     ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
                     ->join('products', 'products.id', '=', 'product_sales.product_id')
                     ->where('sales.id', $sale->id)
                     ->pluck('products.name')
                     ->toArray();
-
                 $product_codes = DB::table('sales')
                     ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
                     ->join('products', 'products.id', '=', 'product_sales.product_id')
                     ->where('sales.id', $sale->id)
                     ->pluck('products.code')
                     ->toArray();
-
+                
+                $product_suppliers = DB::table('sales')
+                    ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
+                    ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id')
+                    ->where('sales.id', $sale->id)
+                    ->pluck('suppliers.name')
+                    ->toArray();
+                    
                 $nestedData['product_name'] = implode(",", $product_names);
                 $nestedData['product_code'] = implode(",", $product_codes);
+                $nestedData['supplier'] = implode(",", $product_suppliers);
 
                 $nestedData['key'] = $key;
                 $nestedData['date'] = date(config('date_format') . ' h:i:s', strtotime($sale->created_at));
                 $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($sale->updated_at));
-                //$nestedData['date'] = $sale->created_at;
                 $nestedData['reference_no'] = $sale->reference_no;
                 $nestedData['biller'] = $sale->biller->name;
                 $nestedData['customer'] = $sale->customer->name . '<br>' . $sale->customer->phone_number . '<input type="hidden" class="deposit" value="' . ($sale->customer->deposit - $sale->customer->expense) . '" />' . '<input type="hidden" class="points" value="' . $sale->customer->points . '" />';
                 $nestedData['customer_address'] = $sale->customer->address . '<br>' . $sale->customer->city;
-                // $nestedData['payment_method'] = $nestedData['payment_method'] ? '' 'N/A';
                 $payments = Payment::where('sale_id', $sale->id)->pluck('paying_method')->toArray();
                 $nestedData['payment_method'] = implode(",", $payments);
-                if ($sale->sale_status == 1) {
-                    $nestedData['sale_status'] = '<div class="badge badge-info">' . trans('Fulfilled') . '</div>';
-                    $sale_status = trans('Fulfilled');
-                } elseif ($sale->sale_status == 2) {
-                    $nestedData['sale_status'] = '<div class="badge badge-danger">' . trans('file.Pending') . '</div>';
-                    $sale_status = trans('file.Pending');
-                } elseif ($sale->sale_status == 3) {
-                    $nestedData['sale_status'] = '<div class="badge badge-warning">' . trans('file.Draft') . '</div>';
-                    $sale_status = trans('file.Draft');
-                } elseif ($sale->sale_status == 4) {
-                    $nestedData['sale_status'] = '<div class="badge badge-warning">' . trans('file.Returned') . '</div>';
-                    $sale_status = trans('file.Returned');
-                } elseif ($sale->sale_status == 5) {
-                    $nestedData['sale_status'] = '<div class="badge badge-info">' . trans('file.Processing') . '</div>';
-                    $sale_status = trans('file.Processing');
-                } elseif ($sale->sale_status == 6) {
-                    $nestedData['sale_status'] = '<div class="badge badge-warning">' . trans('Unpaid') . '</div>';
-                    $sale_status = trans('Unpaid');
-                } elseif ($sale->sale_status == 7) {
-                    $nestedData['sale_status'] = '<div class="badge badge-success">' . trans('Confirmed') . '</div>';
-                    $sale_status = trans('Confirmed');
-                } elseif ($sale->sale_status == 8) {
-                    $nestedData['sale_status'] = '<div class="badge badge-primary">' . trans('Shipped') . '</div>';
-                    $sale_status = trans('Shipped');
-                } elseif ($sale->sale_status == 9) {
-                    $nestedData['sale_status'] = '<div class="badge badge-info">' . trans('Signed') . '</div>';
-                    $sale_status = trans('Signed');
-                } elseif ($sale->sale_status == 10) {
-                    $nestedData['sale_status'] = '<div class="badge badge-warning">' . trans('Refunded') . '</div>';
-                    $sale_status = trans('Refunded');
-                } elseif ($sale->sale_status == 11) {
-                    $nestedData['sale_status'] = '<div class="badge badge-danger">' . trans('Cancelled') . '</div>';
-                    $sale_status = trans('Cancelled');
-                } elseif ($sale->sale_status == 12) {
-                    $nestedData['sale_status'] = '<div class="badge badge-info">' . trans('Receiving') . '</div>';
-                    $sale_status = trans('Receiving');
+
+                // Sale status badge
+                $statusBadges = [
+                    1 => ['info', 'Fulfilled'],
+                    2 => ['danger', 'file.Pending'],
+                    3 => ['warning', 'file.Draft'],
+                    4 => ['warning', 'file.Returned'],
+                    5 => ['info', 'file.Processing'],
+                    6 => ['warning', 'Unpaid'],
+                    7 => ['success', 'Confirmed'],
+                    8 => ['primary', 'Shipped'],
+                    9 => ['info', 'Signed'],
+                    10 => ['warning', 'Refunded'],
+                    11 => ['danger', 'Cancelled'],
+                    12 => ['info', 'Receiving'],
+                ];
+                $badge = $statusBadges[$sale->sale_status] ?? ['secondary', 'Unknown'];
+                $nestedData['sale_status'] = '<div class="badge badge-' . $badge[0] . '">' . trans($badge[1]) . '</div>';
+                $sale_status = trans($badge[1]);
+
+                // Location badge
+                $locationBadges = [
+                    1 => 'Inside Accra',
+                    2 => 'Outside Accra',
+                    3 => 'Kumasi',
+                ];
+
+                $nestedData['location'] = '<div class="badge badge-success">' . trans($locationBadges[$sale->location] ?? 'Other') . '</div>';
+
+                // Delivery status
+                $delivery_data = DB::table('deliveries')->select('status')->where('sale_id', $sale->id)->first();
+                if ($delivery_data) {
+                    $deliveryBadges = [
+                        1 => ['primary', 'file.Packing'],
+                        2 => ['info', 'file.Delivering'],
+                        3 => ['success', 'file.Delivered'],
+                    ];
+                    $dBadge = $deliveryBadges[$delivery_data->status] ?? ['secondary', 'N/A'];
+                    $nestedData['delivery_status'] = '<div class="badge badge-' . $dBadge[0] . '">' . trans($dBadge[1]) . '</div>';
+                } else {
+                    $nestedData['delivery_status'] = 'N/A';
                 }
 
-                if ($sale->location == 1)
-                    $nestedData['location'] = '<div class="badge badge-success">' . trans('Inside Accra') . '</div>';
-                elseif ($sale->location == 2)
-                    $nestedData['location'] = '<div class="badge badge-success">' . trans('Outside Accra') . '</div>';
-                elseif ($sale->location == 3)
-                    $nestedData['location'] = '<div class="badge badge-success">' . trans('Kumasi') . '</div>';
-                else
-                    $nestedData['location'] = '<div class="badge badge-warning">' . trans('Other') . '</div>';
-                $delivery_data = DB::table('deliveries')->select('status')->where('sale_id', $sale->id)->first();
-
-                if ($delivery_data) {
-                    if ($delivery_data->status == 1)
-                        $nestedData['delivery_status'] = '<div class="badge badge-primary">' . trans('file.Packing') . '</div>';
-                    elseif ($delivery_data->status == 2)
-                        $nestedData['delivery_status'] = '<div class="badge badge-info">' . trans('file.Delivering') . '</div>';
-                    elseif ($delivery_data->status == 3)
-                        $nestedData['delivery_status'] = '<div class="badge badge-success">' . trans('file.Delivered') . '</div>';
-                } else
-                    $nestedData['delivery_status'] = 'N/A';
-
                 $nestedData['grand_total'] = number_format($sale->grand_total, config('decimal'));
-                //$nestedData['grand_total'] = \Illuminate\Support\Number::format($sale->grand_total, locale: 'id');
                 $returned_amount = DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total');
                 $nestedData['returned_amount'] = number_format($returned_amount, config('decimal'));
                 $nestedData['paid_amount'] = number_format($sale->paid_amount, config('decimal'));
@@ -916,26 +918,21 @@ class SaleController extends Controller
                 $nestedData['shipping'] = $sale->shipping_cost;
                 $nestedData['due'] = number_format($sale->grand_total - $returned_amount - $sale->paid_amount, config('decimal'));
 
-                //fetching custom fields data
-                foreach ($field_names as $field_name) {
-                    $nestedData[$field_name] = $sale->$field_name;
+                // Custom fields
+                foreach ($fieldNames as $fieldName) {
+                    $nestedData[$fieldName] = $sale->$fieldName;
                 }
-                
-                // Check RBAC
-                $role = Role::find(Auth::user()->role_id);
-                // if ($role->hasPermissionTo('confirmed')) {
-                //     \Log::info('YES');
-                // } else {
-                //     \Log::info('NO');
-                // }
 
-                if ($sale->sale_status == 1 /*&& $role->hasPermissionTo('completed')*/) {
-                    //$nestedData['options'] = ' <button type="submit" class="btn btn-danger" onclick="return confirmDelete()"><i class="fa fa-trash"></i></button>'; 
+                // RBAC and options
+                $role = Role::find(Auth::user()->role_id);
+                $nestedData['options'] = ' ';
+                if ($sale->sale_status == 1) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
-                } else 
-                if ($sale->sale_status == 4 && $role->hasPermissionTo('returned')) {
+                } 
+                else if ($sale->sale_status == 4 && $role->hasPermissionTo('returned')) {
                     $nestedData['options'] = ' ';
-                } else if ($sale->sale_status == 6 && $role->hasPermissionTo('unpaid')) {
+                } 
+                else if ($sale->sale_status == 6 && $role->hasPermissionTo('unpaid')) {
                     $nestedData['options'] = 
                     '<div class="btn-group">
                         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
@@ -954,42 +951,31 @@ class SaleController extends Controller
                             </li>
                         </ul>
                     </div>';
-
-                    //$nestedData['options'] .= ' <button type="submit" class="btn btn-danger" onclick="return confirmDelete()"><i class="fa fa-trash"></i></button>';
-                } else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
+                } 
+                else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark" onclick="update_status_filters(' . $sale->id . ')">delivery</button>';
-                    //$nestedData['options'] .= ' <button type="submit" class="btn btn-danger" onclick="return confirmDelete()"><i class="fa fa-trash"></i></button>';
-                    //$nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</button>';
-                } else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
+                } 
+                else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
-                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';           
-                    //$nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-danger" onclick="return_ship(' . $sale->id . ')">return</button>';
-                    //$nestedData['options'] .= ' <button type="submit" class="btn btn-danger" onclick="return confirmDelete()"><i class="fa fa-trash"></i></button>';
-                    //$nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</button>';
-                } else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
+                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                } 
+                else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="return_ship(' . $sale->id . ')">return</button>';
                     $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">revise</button>';
-                } else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
+                } 
+                else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-danger" onclick="reset_order(' . $sale->id . ')"><i class="fa fa-refresh"></i></button>';
-                } else if ($sale->sale_status == 12 && $role->hasPermissionTo('receiving')) {
+                } 
+                else if ($sale->sale_status == 12 && $role->hasPermissionTo('receiving')) {
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_status_filters_shipped(' . $sale->id . ')">shipped</button>';
-                } else {
-                    $nestedData['options'] = ' ';
                 }
-                
-                // data for sale details by one click
+
+                // Sale details for one-click view
                 $coupon = Coupon::find($sale->coupon_id);
-                if ($coupon)
-                    $coupon_code = $coupon->code;
-                else
-                    $coupon_code = null;
+                $coupon_code = $coupon ? $coupon->code : null;
+                $currency_code = $sale->currency_id ? Currency::select('code')->find($sale->currency_id)->code : 'N/A';
 
-                if ($sale->currency_id)
-                    $currency_code = Currency::select('code')->find($sale->currency_id)->code;
-                else
-                    $currency_code = 'N/A';
-
-                $nestedData['sale'] = array(
+                $nestedData['sale'] = [
                     '[ "' . date(config('date_format'), strtotime($sale->created_at->toDateString())) . '"',
                     ' "' . $sale->reference_no . '"',
                     ' "' . $sale_status . '"',
@@ -1013,8 +999,8 @@ class SaleController extends Controller
                     ' "' . $sale->shipping_cost . '"',
                     ' "' . $sale->grand_total . '"',
                     ' "' . $sale->paid_amount . '"',
-                    ' "' . preg_replace('/[\n\r]/', "<br>", $sale->sale_note) . '"',
-                    ' "' . preg_replace('/[\n\r]/', "<br>", $sale->staff_note) . '"',
+                    ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->sale_note) . '"',
+                    ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->staff_note) . '"',
                     ' "' . $sale->user->name . '"',
                     ' "' . $sale->user->email . '"',
                     ' "' . $sale->warehouse->name . '"',
@@ -1023,29 +1009,32 @@ class SaleController extends Controller
                     ' "' . $sale->document . '"',
                     ' "' . $currency_code . '"',
                     ' "' . $sale->exchange_rate . '"]'
-                );
+                ];
 
                 $data[] = $nestedData;
             }
         }
-        $json_data = array(
+
+        $json_data = [
             "draw" => intval($request->input('draw')),
             "recordsTotal" => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data" => $data
-        );
-        
-        if(!empty($request->input('search.value'))) {
-            if(!empty($sales) && sizeof($sales) == 1){
-                if($sales[0]['sale_status'] == 12) {
-                    Sale::where(column: [
+        ];
+
+        // Handle special case for search and status update
+        if (!empty($searchValue)) {
+            // This is the case of Barcode Scanner Input
+            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
+                if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 12) {
+                    Sale::where([
                         ['id', $sales[0]['id']]
                     ])->update([
-                        'sale_status'   => 8
+                        'sale_status' => 8
                     ]);
                     $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-shipped\">Receiving</div>";
                 }
-            }
+            }            
         }
         echo json_encode($json_data);
     }

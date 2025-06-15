@@ -146,15 +146,14 @@
                     <th>{{trans('Order Number')}}</th>
                     <th>{{trans('file.Product Name')}}</th>
                     <th>{{trans('Product Number')}}</th>      
+                    <th>{{trans('Supplier')}}</th>         
                     <th>{{trans('Order Time')}}</th>                         
                     <th>{{trans('file.Order Status')}}</th>   
                     <th>{{trans('Product Quantity')}}</th>                         
                     <th>{{trans('Total Product Price')}}</th>
                     <th>{{trans('Delivery Fee')}}</th>                    
-                    <!-- <th>{{trans('file.Paid')}}</th>
-                    <th>{{trans('file.Due')}}</th> -->
                     <th>{{trans('Customer Information')}}</th>    
-                    <th>{{trans('Customer Address')}}</th>                    
+                    <th>{{trans('Customer Address')}}</th>                
                     <th>{{trans('Update Time')}}</th>   
                     @foreach($custom_fields as $fieldName)
                     <th>{{$fieldName}}</th>
@@ -171,8 +170,7 @@
                 <th></th>
                 <th></th>
                 <th></th>
-                <!-- <th></th>
-                <th></th> -->
+                <th></th>
                 <th></th>
                 <th></th>
                 <th></th>
@@ -968,8 +966,7 @@
         });
     @endif
 
-    //var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"}, {"data": "date"}, {"data": "biller"}, {"data": "customer"}, {"data": "sale_status"}, {"data": "payment_status"},{"data": "payment_method"},{"data": "delivery_status"}, {"data": "grand_total"}, {"data": "returned_amount"}, {"data": "paid_amount"}, {"data": "due"}];
-    var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"},{"data": "date"}, {"data": "sale_status"},{"data": "item"}, {"data": "grand_total"},{"data": "shipping"},{"data": "customer"},{"data": "customer_address"},{"data": "updated_date"}];
+    var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"},{"data" : "supplier"}, {"data": "date"}, {"data": "sale_status"},{"data": "item"}, {"data": "grand_total"},{"data": "shipping"},{"data": "customer"},{"data": "customer_address"},{"data": "updated_date"}];
     var field_name = <?php echo json_encode($field_name) ?>;
     for(i = 0; i < field_name.length; i++) {
         columns.push({"data": field_name[i]});
@@ -1280,9 +1277,10 @@
             type: "POST",
             data: $(".return_ship").serializeArray(),
             success:function(data) {
+                console.log(data);
                 //alert(data);
-                $('#return-ship').modal('hide');
-                location.reload();
+                // $('#return-ship').modal('hide');
+                // location.reload();
             }
         });
     });
@@ -1771,7 +1769,7 @@
         'language': {
             'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
              "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{trans("file.Search")}}',
+            "search":  '{{trans("file.Search")}}(Order, Supplier)',
             'paginate': {
                     'previous': '<i class="dripicons-chevron-left"></i>',
                     'next': '<i class="dripicons-chevron-right"></i>'
