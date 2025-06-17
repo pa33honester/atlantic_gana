@@ -61,23 +61,13 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label><strong>{{trans('file.Payment Method')}}</strong></label>
-                            <select id="payment-method" class="form-control" name="payment_method">
+                            <label><strong>{{trans('file.Supplier')}}</strong></label>
+                            <select id="supplier-id" class="form-control" name="supplier_id">
                                 <option value="0">All</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Gift Card">Gift Card</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Cheque">Cheque</option>
-                                <option value="Deposit">Deposit</option>
-                                <option value="Points">Points</option>
-                                <option value="Pesapal">Pesapal</option>
-                                @foreach($options as $option)
-                                    @if($option !== 'cash' && $option !== 'card' && $option !== 'card' && $option !== 'cheque' && $option !== 'gift_card' && $option !== 'deposit' && $option !== 'paypal' && $option !== 'pesapal')
-                                        <option value="{{$option}}">{{$option}}</option>
-                                    @endif
+                                @foreach($lims_supplier_list as $supplier)
+                                    <option value="{{$supplier->id}}">{{$supplier->name}} ({{$supplier->phone_number}})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -969,7 +959,7 @@
     var payment_status = <?php echo json_encode($payment_status); ?>;
     var _location = <?php echo json_encode($location); ?>;
     var sale_type = <?php echo json_encode($sale_type); ?>;
-    var payment_method = <?php echo json_encode($payment_method); ?>;
+    var supplier_id = <?php echo json_encode($supplier_id); ?>;
     var balance = <?php echo json_encode($balance) ?>;
     var expired_date = <?php echo json_encode($expired_date) ?>;
     var current_date = <?php echo json_encode(date("Y-m-d")) ?>;
@@ -994,7 +984,7 @@
     $("#payment-status").val(payment_status);
     $("#location").val(_location);
     $("#sale-type").val(sale_type);
-    $("#payment-method").val(payment_method);
+    $("#supplier-id").val(supplier_id);
 
     $(".daterangepicker-field").daterangepicker({
       callback: function(startDate, endDate, period){
@@ -1729,7 +1719,7 @@
                 sale_type: sale_type,
                 payment_status: payment_status,
                 location : _location,
-                payment_method: payment_method,
+                supplier_id: supplier_id,
             },
             dataType: "json",
             type:"post"
@@ -1745,7 +1735,7 @@
         'language': {
             'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
              "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{trans("file.Search")}}(Order, Supplier)',
+            "search":  '{{trans("file.Search")}}',
             'paginate': {
                     'previous': '<i class="dripicons-chevron-left"></i>',
                     'next': '<i class="dripicons-chevron-right"></i>'
@@ -2042,8 +2032,8 @@
                         saleList.push(sale); // Assuming the sale ID is at index 13
                     }
                 });
-                console.log(saleList);
-                alert(`Selected ${saleList.length} sales to print waybill.`);
+                // console.log(saleList);
+                // alert(`Selected ${saleList.length} sales to print waybill.`);
                 print_waybill(saleList);
                 
             } else {

@@ -630,10 +630,10 @@ class SaleController extends Controller
             else
                 $sale_type = 0;
 
-            if ($request->input('payment_method'))
-                $payment_method = $request->input('payment_method');
+            if ($request->input('supplier_id'))
+                $supplier_id = $request->input('supplier_id');
             else
-                $payment_method = 0;
+                $supplier_id = 0;
 
             if ($request->input('starting_date')) {
                 $starting_date = $request->input('starting_date');
@@ -649,6 +649,7 @@ class SaleController extends Controller
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_account_list = Account::where('is_active', true)->get();
             $lims_courier_list = Courier::where('is_active', true)->get();
+            $lims_supplier_list = Supplier::where('is_active', true)->get();
 
             if ($lims_pos_setting_data)
                 $options = explode(',', $lims_pos_setting_data->payment_options);
@@ -664,7 +665,7 @@ class SaleController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
             $smsTemplates = SmsTemplate::all();
-            return view('backend.sale.index', compact('starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 'sale_type', 'payment_method', 'lims_gift_card_list', 'lims_pos_setting_data', 'lims_reward_point_setting_data', 'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list', 'smsTemplates'));
+            return view('backend.sale.index', compact('starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 'sale_type', 'supplier_id', 'lims_gift_card_list', 'lims_pos_setting_data', 'lims_reward_point_setting_data', 'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list', 'lims_supplier_list', 'smsTemplates'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -692,18 +693,23 @@ class SaleController extends Controller
         // Extract filters
         $filters = [
             'warehouse_id'   => $request->input('warehouse_id'),
+            'supplier_id'    => $request->input('supplier_id'),
             'sale_status'    => $request->input('sale_status'),
             'location'       => $request->input('location'),
             'sale_type'      => $request->input('sale_type'),
-            'payment_method' => $request->input('payment_method'),
             'start_date'     => $request->input('starting_date'),
             'end_date'       => $request->input('ending_date'),
         ];
+       
+        // Join related tables for searching
+        $query = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->join('billers', 'sales.biller_id', '=', 'billers.id')
+                ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
+                ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id');
 
         // Base query
-        $query = Sale::query()
-            ->whereDate('sales.created_at', '>=', $filters['start_date'])
-            ->whereDate('sales.created_at', '<=', $filters['end_date']);
+        $query = $query->whereDate('sales.created_at', '>=', $filters['start_date'])
+                        ->whereDate('sales.created_at', '<=', $filters['end_date']);
 
         // Apply user access restrictions
         if ($user->role_id > 2) {
@@ -721,10 +727,8 @@ class SaleController extends Controller
             }
         }
 
-        // Filter by payment method
-        if (!empty($filters['payment_method'])) {
-            $query->join('payments', 'sales.id', '=', 'payments.sale_id')
-                ->where('payments.paying_method', $filters['payment_method']);
+        if($filters['supplier_id'] > 0) {
+            $query->where('suppliers.id', $filters['supplier_id']);
         }
 
         // Total records before search
@@ -752,24 +756,17 @@ class SaleController extends Controller
         $searchValue = $request->input('search.value');
 
         if (!empty($searchValue)) {
-            // Join related tables for searching
-            $query->join('customers', 'sales.customer_id', '=', 'customers.id')
-                ->join('billers', 'sales.biller_id', '=', 'billers.id')
-                ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
-                ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id');
-
             // Apply search filters
             $query->where(function ($q) use ($searchValue) {
                 $q->where('sales.reference_no', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('customers.name', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('customers.phone_number', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('billers.name', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('product_sales.imei_number', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('suppliers.name', 'LIKE', "%{$searchValue}%");
+                    ->orWhere('customers.name', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('customers.phone_number', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('billers.name', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('product_sales.imei_number', 'LIKE', "%{$searchValue}%");
             });
 
             // Correctly count filtered records after joins
-            $totalFiltered = $query->distinct('sales.id')->count('sales.id');
+            $totalFiltered = $query->groupBy('sales.id')->count();
         }
 
         // Fetch paginated sales
@@ -898,7 +895,7 @@ class SaleController extends Controller
                 ' "' . $sale->order_tax . '"',
                 ' "' . $sale->order_tax_rate . '"',
                 ' "' . $sale->order_discount . '"',
-                ' "' . $sale->shipping_cost . '"',
+                ' "' . ($filters['sale_status'] != 4 ? $sale->shipping_cost : $sale->return_shipping_cost) . '"',
                 ' "' . $sale->grand_total . '"',
                 ' "' . $sale->paid_amount . '"',
                 ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->sale_note) . '"',
