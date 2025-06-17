@@ -66,11 +66,12 @@
                             <th>{{trans('file.Date')}}</th>
                             <th>{{trans('Order No.')}}</th>
                             <th>{{trans('file.Warehouse')}}</th>
-                            <th>{{trans('file.product')}} ({{trans('file.qty')}})</th>
+                            <th>{{trans('file.product')}}</th>
+                            <th>{{trans('file.Quantity')}}</th>
                             <th>{{trans('Shipping Cost')}}</th>
-                            <!-- <th>{{trans('Return Shipping Cost')}}</th> -->
                             <th>{{trans('file.Balance')}}</th>
-                            <!-- <th>{{trans('file.Status')}}</th> -->
+                            <th>{{trans('Total Balance')}}</th>
+                            <th>{{trans('Signed Time')}}</th>
                         </tr>
                     </thead>
                     <tfoot class="tfoot active">
@@ -81,41 +82,15 @@
                             <th></th>
                             <th></th>
                             <th></th>
-                            <!-- <th></th> -->
                             <th></th>
-                            <!-- <th></th> -->
+                            <th></th>
+                            <th></th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         </div>
-
-        <!-- <div role="tabpanel" class="tab-pane fade" id="supplier-payments">
-            <div class="table-responsive mb-4">
-                <table id="payment-table" class="table table-hover" style="width: 100%">
-                    <thead>
-                        <tr>
-                            <th class="not-exported-payment"></th>
-                            <th>{{trans('file.Date')}}</th>
-                            <th>{{trans('Payment Order No.')}}</th>
-                            <th>{{trans('Purchase Order No.')}}</th>
-                            <th>{{trans('file.Amount')}}</th>
-                            <th>{{trans('file.Paid Method')}}</th>
-                        </tr>
-                    </thead>
-                    <tfoot class="tfoot active">
-                        <tr>
-                            <th></th>
-                            <th>{{trans('file.Total')}}</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div> -->
 
         <div role="tabpanel" class="tab-pane fade" id="supplier-return">
             <div class="table-responsive mb-4">
@@ -128,8 +103,8 @@
                             <th>{{trans('file.Warehouse')}}</th>
                             <!-- <th>{{trans('Shipping Cost')}}</th> -->
                             <th>{{trans('Return Shipping Cost')}}</th>
-                            <!-- <th>{{trans('file.product')}} ({{trans('file.qty')}})</th> -->
                             <th>{{trans('file.grand total')}}</th>
+                            <!-- <th>{{trans('file.product')}} ({{trans('file.qty')}})</th> -->
                         </tr>
                     </thead>
 
@@ -148,43 +123,8 @@
                 </table>
             </div>
         </div>
-
-        <!-- <div role="tabpanel" class="tab-pane fade" id="supplier-quotation">
-            <div class="table-responsive mb-4">
-                <table id="quotation-table" class="table table-hover" style="width: 100%">
-                    <thead>
-                        <tr>
-                            <th class="not-exported-quotation"></th>
-                            <th>{{trans('file.Date')}}</th>
-                            <th>{{trans('file.reference')}}</th>
-                            <th>{{trans('file.Warehouse')}}</th>
-                            <th>{{trans('file.customer')}}</th>
-                            <th>{{trans('file.product')}} ({{trans('file.qty')}})</th>
-                            <th>{{trans('file.grand total')}}</th>
-                            <th>{{trans('file.Status')}}</th>
-                        </tr>
-                    </thead>
-
-                    <tfoot class="tfoot active">
-                        <tr>
-                            <th></th>
-                            <th>{{trans('file.Total')}}</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th>{{number_format(0, $general_setting->decimal, '.', '')}}</th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div> -->
     </div>
 </section>
-
-
-
 @endsection
 
 @push('scripts')
@@ -225,10 +165,11 @@
             {"data": "reference_no"},
             {"data": "warehouse"},
             {"data": "product"},
+            {"data": "qty"},
             {"data": "shipping_cost"},
-            //{"data": "return_shipping_cost"},
             {"data": "balance"},
-            //{"data": "status"}
+            {"data": "grand_total"},
+            {"data": "date"},
         ],
         'language': {
 
@@ -323,15 +264,14 @@
     function datatable_sum_sale(dt_selector, is_calling_first) {
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
-
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.cells( rows, 5, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.cells( rows, 6, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            for(var _i = 5; _i < 9; _i ++){
+                $( dt_selector.column( _i ).footer() ).html(dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            }
         }
         else {
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.column( 5, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.column( 6, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            for(var _i = 5; _i < 9; _i ++){
+                $( dt_selector.column( _i ).footer() ).html(dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
+            }
         }
     }
 

@@ -4751,7 +4751,7 @@ class ReportController extends Controller
         $start = $request->input('start');
         $order = 'purchases.'.$columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
-        $q = $q->select('purchases.id', 'purchases.reference_no', 'purchases.grand_total', 'purchases.shipping_cost', 'purchases.return_shipping_cost', 'purchases.paid_amount', 'purchases.status', 'purchases.created_at', 'warehouses.name as warehouse_name')
+        $q = $q->select('purchases.id', 'purchases.reference_no', 'purchases.grand_total', 'purchases.shipping_cost', 'purchases.return_shipping_cost', 'purchases.paid_amount', 'purchases.status', 'purchases.created_at','purchases.updated_at', 'warehouses.name as warehouse_name')
             ->offset($start)
             ->limit($limit)
             ->orderBy($order, $dir);
@@ -4794,7 +4794,7 @@ class ReportController extends Controller
             {
                 $nestedData['id'] = $purchase->id;
                 $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format'), strtotime($purchase->created_at));
+                $nestedData['date'] = date(config('date_format') . ' h:i:s', strtotime($purchase->updated_at));
                 $nestedData['reference_no'] = $purchase->reference_no;
                 $nestedData['warehouse'] = $purchase->warehouse_name;
                 $nestedData['shipping_cost'] = $purchase->shipping_cost;
@@ -4811,25 +4811,28 @@ class ReportController extends Controller
                     }
                     else
                         $unitCode = '';
-                    if($index)
-                        $nestedData['product'] .= '<br>'.$product_purchase->product_name.' ('.number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode.')';
-                    else
-                        $nestedData['product'] = $product_purchase->product_name.' ('.number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode.')';
+                    if($index){
+                        $nestedData['product'] .= '<br>'.$product_purchase->product_name;
+                        $nestedData['qty'] = number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
+                    }
+                    else{
+                        $nestedData['product'] = $product_purchase->product_name;
+                        $nestedData['qty'] = number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
+                    }
                 }
-                $nestedData['grand_total'] = number_format($purchase->grand_total - $purchase->shipping_cost - $purchase->return_shipping_cost, cache()->get('general_setting')->decimal);
                 $nestedData['paid'] = number_format($purchase->paid_amount, cache()->get('general_setting')->decimal);
                 $nestedData['balance'] = number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal);
+                $nestedData['return_total'] = DB::table('returns')->where('reference_no', $purchase->reference_no)->sum('grand_total');
+                $nestedData['grand_total'] = number_format($purchase->grand_total - $nestedData['return_total'] - $purchase->return_shipping_cost, cache()->get('general_setting')->decimal);
+                // $nestedData['grand_total'] = number_format($purchase->grand_total /*- $purchase->shipping_cost - $purchase->return_shipping_cost*/, cache()->get('general_setting')->decimal);
                 if($purchase->status == 1){
                     $nestedData['status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
-                    $status = trans('file.Completed');
                 }
                 elseif($purchase->status == 2){
                     $nestedData['status'] = '<div class="badge badge-warning">'.trans('file.Pending').'</div>';
-                    $status = trans('file.Pending');
                 }
                 else{
                     $nestedData['status'] = '<div class="badge badge-warning">'.trans('file.Draft').'</div>';
-                    $status = trans('file.Draft');
                 }
                 $data[] = $nestedData;
             }

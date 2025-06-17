@@ -179,7 +179,9 @@
                 @foreach($custom_fields as $fieldName)
                 <th></th>
                 @endforeach
-                <th style="width:100px !important;"></th>
+                <th style="width:100px !important;">
+                    <button id="print-waybill-btn" class="btn btn-danger" style="display:none;">Print Waybill</button>
+                </th>
             </tfoot>
         </table>
     </div>
@@ -194,7 +196,7 @@
 
                         {{ Form::open(['route' => 'sale.sendmail', 'method' => 'post', 'class' => 'sendmail-form'] ) }}
                             <input type="hidden" name="sale_id">
-                            <button class="btn btn-default btn-sm d-print-none"><i class="dripicons-mail"></i> {{trans('file.Email')}}</button>
+                            <button id='email-btn' class="btn btn-default btn-sm d-print-none"><i class="dripicons-mail"></i> {{trans('file.Email')}}</button>
                         {{ Form::close() }}
                     </div>
                     <div class="col-md-6 d-print-none">
@@ -211,32 +213,10 @@
                     </div>
                 </div>
             </div>
-            <div id="sale-content" class="modal-body">
+            <div id="sale-content" class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-rounded btn-md btn-success d-print-none" data-dismiss="modal" aria-label="Close" onclick=""> OK </button>
             </div>
-            <hr>
-            <!-- <table class="table table-bordered product-sale-list">
-                <thead>
-                    <th>#</th>
-                    <th>{{trans('file.product')}}</th>
-                    <th>{{trans('file.Batch No')}}</th>
-                    <th>{{trans('file.Qty')}}</th>
-                    <th>{{trans('file.Returned')}}</th>
-                    <th>{{trans('file.Unit Price')}}</th>
-                    <th>{{trans('file.Tax')}}</th>
-                    <th>{{trans('file.Discount')}}</th>
-                    <th>{{trans('file.Subtotal')}}</th>
-                    <th>{{trans('file.Delivered')}}</th>
-                </thead>
-                <tbody>
-                </tbody>
-            </table> -->
-            
-            <!-- Add this inline style to your barcode container in the modal -->
-            <div id="sale-barcode" style="margin:20px auto;text-align:center;padding:10px;background:#f8f9fa;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:inline-block;">
-                <svg id="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
-            </div>
-
-            <div id="sale-footer" class="modal-footer"></div>
         </div>
     </div>
 </div>
@@ -1016,8 +996,6 @@
     $("#sale-type").val(sale_type);
     $("#payment-method").val(payment_method);
 
-    // console.log(payment_method);
-
     $(".daterangepicker-field").daterangepicker({
       callback: function(startDate, endDate, period){
         var starting_date = startDate.format('YYYY-MM-DD');
@@ -1033,7 +1011,6 @@
     $(".card-element").hide();
     $("#cheque").hide();
     $('#view-payment').modal('hide');
-
     $('.selectpicker').selectpicker('refresh');
 
     // krishna singh - https://linktr.ee/iamsinghkrishna
@@ -1267,7 +1244,6 @@
     }
 
     $(".return_ship_btn").on("click", function(){
-
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
         var return_shipping_cost = $('input[name="return_shipping_cost"]').val();
@@ -1277,10 +1253,10 @@
             type: "POST",
             data: $(".return_ship").serializeArray(),
             success:function(data) {
-                console.log(data);
+                // console.log(data);
                 //alert(data);
-                // $('#return-ship').modal('hide');
-                // location.reload();
+                $('#return-ship').modal('hide');
+                location.reload();
             }
         });
     });
@@ -1779,7 +1755,7 @@
         'columnDefs': [
             {
                 "orderable": false,
-                'targets': [0, 3, 4, 5, 6, 7, 10, 11, 12]
+                'targets': [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]
             },
             {
                 'render': function(data, type, row, meta){
@@ -1919,143 +1895,103 @@
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
 
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.cells( rows, 6, { page: 'current' } ).data().sum().toFixed());
             $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed());
         }
         else {
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.cells( rows, 6, { page: 'current' } ).data().sum().toFixed());
             $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
         }
     }
 
+    function createBillHtml(sale){
+        var htmltext = '<strong> Order Number: </strong>'+sale[1]+'<br><strong>Name: </strong>'+sale[9]+'<br><strong>Number: </strong>'+sale[10]+'<br><strong>Location: </strong>'+sale[11]+'<br><strong>Date: </strong>'+sale[0];
+        htmltext += '<br><strong> QTY : </strong>' + sale[33] + '<br><strong>Amount: </strong>'+sale[21]+'<br><strong> Delivery fee: </strong>' + sale[20] + '<br>';
+        htmltext += `<div class="barcode-wrapper">
+            <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
+        </div>`;
+        return htmltext;
+    }
+
     function saleDetails(sale){
+        console.log(sale);
+
         $("#sale-details input[name='sale_id']").val(sale[13]);
 
-        var htmltext = '<strong>Order Number: </strong>'+sale[1]+'<br><strong>Name: </strong>'+sale[9]+'<br><strong>Number: </strong>'+sale[10]+'<br><strong>Location: </strong>'+sale[11]+'<br><strong>Date: </strong>'+sale[0];
-        $.get('sales/product_sale/' + sale[13], function(data){
-            $(".product-sale-list tbody").remove();
-            var name_code = data[0];
-            var qty = data[1];
-            var unit_code = data[2];
-            var tax = data[3];
-            var tax_rate = data[4];
-            var discount = data[5];
-            var subtotal = data[6];
-            var batch_no = data[7];
-            var return_qty = data[8];
-            var is_delivered = data[9];
-            var total_qty = 0;
-            var newBody = $("<tbody>");
-            $.each(name_code, function(index){
-                var newRow = $("<tr>");
-                var cols = '';
-                cols += '<td><strong>' + (index+1) + '</strong></td>';
-                cols += '<td>' + name_code[index] + '</td>';
-                cols += '<td>' + batch_no[index] + '</td>';
-                cols += '<td>' + qty[index] + ' ' + unit_code[index] + '</td>';
-                cols += '<td>' + return_qty[index] + '</td>';
-                cols += '<td>' + parseFloat(subtotal[index] / qty[index]).toFixed({{$general_setting->decimal}}) + '</td>';
-                cols += '<td>' + tax[index] + '(' + tax_rate[index] + '%)' + '</td>';
-                cols += '<td>' + discount[index] + '</td>';
-                cols += '<td>' + subtotal[index] + '</td>';
-                cols += '<td>' + is_delivered[index] + '</td>';
-                total_qty += parseFloat(qty[index]);
-                newRow.append(cols);
-                newBody.append(newRow);
-            });
+        var htmltext = createBillHtml(sale);
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=3><strong>{{trans("file.Total")}}:</strong></td>';
-            cols += '<td>' + total_qty + '</td>';
-            cols += '<td colspan=2></td>';
-            cols += '<td>' + sale[14] + '</td>';
-            cols += '<td>' + sale[15] + '</td>';
-            cols += '<td>' + sale[16] + '</td>';
-            cols += '<td></td>';
-            newRow.append(cols);
-            newBody.append(newRow);
+        $('#sale-details .modal-body').html(htmltext);
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.Order Tax")}}:</strong></td>';
-            cols += '<td>' + sale[17] + '(' + sale[18] + '%)' + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
+        // After generating the barcode
+        JsBarcode(`#barcode-${sale[1]}`, sale[1], {
+            height: 60,
+            displayValue: true,
+            class: "d-print-none"
+        });
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.Order Discount")}}:</strong></td>';
-            cols += '<td>' + sale[19] + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
-            if(sale[28]) {
-                var newRow = $("<tr>");
-                cols = '';
-                cols += '<td colspan=9><strong>{{trans("file.Coupon Discount")}} ['+sale[28]+']:</strong></td>';
-                cols += '<td>' + sale[29] + '</td>';
-                newRow.append(cols);
-                newBody.append(newRow);
-            }
+        $('.barcode-wrapper').css({
+            'margin' : '20px auto',
+            'text-align' : 'center',
+            'padding' : '10px',
+            'background' : '#f8f9fa',
+            'border-radius': '8px',
+            'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
+            'display' : 'inline-block'
+        });
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.Shipping Cost")}}:</strong></td>';
-            cols += '<td>' + sale[20] + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
+        $('.barcode').css({
+            'margin': '0 auto',
+            'display': 'block',
+            'width': '290px',
+            'height': '100px'
+        });
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.grand total")}}:</strong></td>';
-            cols += '<td>' + sale[21] + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
+        $('#sale-details').modal('show');
+    }
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.Paid Amount")}}:</strong></td>';
-            cols += '<td>' + sale[22] + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
+    function print_waybill(saleList){
+    
+        var htmltext = '';
+        for(let i = 0; i < saleList.length; i ++){
+            var sale = saleList[i];
+            if(i > 0) htmltext += '<hr>';
+            htmltext += '<div>' + createBillHtml(sale) + '</div>';
+        }
 
-            var newRow = $("<tr>");
-            cols = '';
-            cols += '<td colspan=9><strong>{{trans("file.Due")}}:</strong></td>';
-            cols += '<td>' + parseFloat(sale[21] - (sale[22] + sale[20])).toFixed({{$general_setting->decimal}}) + '</td>';
-            newRow.append(cols);
-            newBody.append(newRow);
-
-            // $("table.product-sale-list").append(newBody);
-
-            htmltext += '<br><strong>QTY: </strong>'+total_qty+'<br><strong>Amount: </strong>'+sale[21]+'<br><strong>Delivery fee: </strong>'+sale[20];
-            $('#sale-content').html(htmltext);
-            
-            $('#sale-barcode').show(); // Make sure the div is visible
-            // After generating the barcode
-            JsBarcode("#barcode", sale[1], {
+        $('#sale-details .modal-body').html(htmltext);
+        // salelist is a javascript array
+        saleList.forEach(function(e){
+            JsBarcode(`#barcode-${e[1]}`, e[1], {
                 format: "CODE128",
                 lineColor: "#000",
                 width: 2,
                 height: 60,
                 displayValue: true
             });
-            // Optionally, you can also set the SVG style again with jQuery:
-            $('#barcode').css({
-                'margin': '0 auto',
-                'display': 'block',
-                'width': '290px',
-                'height': '100px'
-            });
-
-            $('#sale-details').modal('show');
         });
+
+        $('.barcode-wrapper').css({
+                'margin' : '20px auto',
+                'text-align' : 'center',
+                'padding' : '10px',
+                'background' : '#f8f9fa',
+                'border-radius': '8px',
+                'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
+                'display' : 'inline-block'
+        });
+
+        $('.barcode').css({
+            'margin': '0 auto',
+            'display': 'block',
+            'width': '290px',
+            'height': '100px'
+        });
+
+        $('#email-btn').hide();
+
+        $('#sale-details').modal('show');
     }
 
     $(document).on('submit', '.payment-form', function(e) {
@@ -2071,19 +2007,19 @@
             $(".change").text(parseFloat( $('input[name="edit_paying_amount"]').val() - $('input[name="edit_amount"]').val() ).toFixed({{$general_setting->decimal}}));
             e.preventDefault();
         }
-
         $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', false);
     });
 
-    if(all_permission.indexOf("sales-delete") == -1)
+    if(all_permission.indexOf("sales-delete") == -1){
         $('.buttons-delete').addClass('d-none');
+    }
 
-        function confirmDelete() {
-            if (confirm("Are you sure want to delete?")) {
-                return true;
-            }
-            return false;
+    function confirmDelete() {
+        if (confirm("Are you sure want to delete?")) {
+            return true;
         }
+        return false;
+    }
 
     function confirmPaymentDelete() {
         if (confirm("Are you sure want to delete? If you delete this money will be refunded.")) {
@@ -2093,6 +2029,38 @@
     }
 
     $(document).ready(function() {
+        // Hide button initially
+        $('#print-waybill-btn').hide();
+
+        $('#print-waybill-btn').click(function(){
+            var selectedCheckboxes = $('#sale-table input[type="checkbox"]:checked');
+            if (selectedCheckboxes.length > 0) {
+                var saleList = [];
+                selectedCheckboxes.each(function() {
+                    var sale = $(this).closest('tr').data('sale');
+                    if (sale) {
+                        saleList.push(sale); // Assuming the sale ID is at index 13
+                    }
+                });
+                console.log(saleList);
+                alert(`Selected ${saleList.length} sales to print waybill.`);
+                print_waybill(saleList);
+                
+            } else {
+                alert('Please select at least one sale to print the waybill.');
+            }
+        });
+
+        // Listen for checkbox changes in the DataTable
+        $('#sale-table').on('change', 'input[type="checkbox"]', function() {
+            // Check if any checkbox is checked
+            if(sale_status != 7) return 0;
+            if ($('#sale-table input[type="checkbox"]:checked').length > 0) {
+                $('#print-waybill-btn').show();
+            } else {
+                $('#print-waybill-btn').hide();
+            }
+        });
         $(document).on('click', '.send-sms', function(){
             $("#send-sms input[name='customer_id']").val($(this).data('customer_id'));
             $("#send-sms input[name='reference_no']").val($(this).data('reference_no'));
