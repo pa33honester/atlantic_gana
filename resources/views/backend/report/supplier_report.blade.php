@@ -51,9 +51,9 @@
       <li class="nav-item">
         <a class="nav-link" href="#supplier-return" role="tab" data-toggle="tab">{{trans('file.Return')}}</a>
       </li>
-      <!-- <li class="nav-item">
-        <a class="nav-link" href="#supplier-quotation" role="tab" data-toggle="tab">{{trans('file.Quotation')}}</a>
-      </li> -->
+      <li class="nav-item">
+        <a class="nav-link" href="#supplier-quotation" role="tab" data-toggle="tab">{{trans('Total Balance')}}</a>
+      </li>
     </ul>
 
     <div class="tab-content">
@@ -69,8 +69,8 @@
                             <th>{{trans('file.product')}}</th>
                             <th>{{trans('file.Quantity')}}</th>
                             <th>{{trans('Shipping Cost')}}</th>
+                            <th>{{trans('file.Amount')}}</th>
                             <th>{{trans('file.Balance')}}</th>
-                            <th>{{trans('Total Balance')}}</th>
                             <th>{{trans('Signed Time')}}</th>
                         </tr>
                     </thead>
@@ -101,10 +101,12 @@
                             <th>{{trans('file.Date')}}</th>
                             <th>{{trans('Order No.')}}</th>
                             <th>{{trans('file.Warehouse')}}</th>
-                            <!-- <th>{{trans('Shipping Cost')}}</th> -->
+                            <th>{{ trans('file.Product') }}</th>
+                            <th>{{ trans('file.Quantity') }}</th>
+                            <th>{{trans('Shipping Cost')}}</th>
                             <th>{{trans('Return Shipping Cost')}}</th>
                             <th>{{trans('file.grand total')}}</th>
-                            <!-- <th>{{trans('file.product')}} ({{trans('file.qty')}})</th> -->
+                            <th>{{trans('Return Time')}}</th>
                         </tr>
                     </thead>
 
@@ -113,13 +115,36 @@
                             <th></th>
                             <th>{{trans('file.Total')}}</th>
                             <th></th>
-                            <!-- <th></th> -->
                             <th></th>
-                            <!-- <th></th> -->
                             <th></th>
-                            <th>{{number_format(0, $general_setting->decimal, '.', '')}}</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
                         </tr>
                     </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div role="tabpanel" class="tab-pane fade" id="supplier-quotation">
+            <div class="table-responsive m-2">
+                <table id="return-quotation" class="table table-hover" style="width: 100%">
+                    <thead>
+                        <tr>
+                            <th>Purchase</th>
+                            <th>Return</th>
+                            <th>Total Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -136,6 +161,8 @@
     var start_date = <?php echo json_encode($start_date); ?>;
     var end_date = <?php echo json_encode($end_date); ?>;
     var supplier_id = <?php echo json_encode($supplier_id); ?>;
+    var total_purchase = 0;
+    var total_return = 0;
 
     $.ajaxSetup({
         headers: {
@@ -167,8 +194,8 @@
             {"data": "product"},
             {"data": "qty"},
             {"data": "shipping_cost"},
-            {"data": "balance"},
             {"data": "grand_total"},
+            {"data": "balance"},
             {"data": "date"},
         ],
         'language': {
@@ -267,11 +294,13 @@
             for(var _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             }
+            total_purchase = dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}});
         }
         else {
             for(var _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
             }
+            total_purchase = dt_selector.column( 8 , {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}});
         }
     }
 
@@ -415,10 +444,12 @@
             {"data": "date"},
             {"data": "reference_no"},
             {"data": "warehouse"},
-            //{"data": "shipping_cost"},
+            {"data": "product"},
+            {"data": "qty"},
+            {"data": "shipping_cost"},
             {"data": "return_shipping_cost"},
-            //{"data": "product"},
-            {"data": "grand_total"}
+            {"data": "grand_total"},
+            {"data": "return_time"}
         ],
         'language': {
 
@@ -514,151 +545,34 @@
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
 
-            $( dt_selector.column( 4 ).footer() ).html(dt_selector.cells( rows, 4, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.cells( rows, 5, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-           // $( dt_selector.column( 6 ).footer() ).html(dt_selector.cells( rows, 6, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            for(let _i = 5; _i < 9; _i ++){
+                $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            }
         }
         else {
-            $( dt_selector.column( 4 ).footer() ).html(dt_selector.column( 4, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.column( 5, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
-            //$( dt_selector.column( 6 ).footer() ).html(dt_selector.column( 6, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
+            for(let _i = 5; _i < 9; _i ++){
+                $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
+            }
         }
     }
 
-    $('#quotation-table').DataTable({
-        "processing": true,
-        "serverSide": true,
-        "ajax":{
-            url:"supplier-quotation-data",
-            data:{
-                start_date: start_date,
-                end_date: end_date,
-                supplier_id: supplier_id
-            },
-            dataType: "json",
-            type:"post"
-        },
-        "columns": [
-            {"data": "key"},
-            {"data": "date"},
-            {"data": "reference_no"},
-            {"data": "warehouse"},
-            {"data": "customer"},
-            {"data": "product"},
-            {"data": "grand_total"},
-            {"data": "status"}
-        ],
-        'language': {
-
-            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-             "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{trans("file.Search")}}',
-            'paginate': {
-                    'previous': '<i class="dripicons-chevron-left"></i>',
-                    'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        },
-        order:[['1', 'desc']],
-        'columnDefs': [
-            {
-                "orderable": false,
-                'targets': [0, 3, 4, 5, 6, 7]
-            },
-            {
-                'render': function(data, type, row, meta){
-                    if(type === 'display'){
-                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
-                    }
-
-                   return data;
-                },
-                'checkboxes': {
-                   'selectRow': true,
-                   'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
-                },
-                'targets': [0]
-            }
-        ],
-        'select': { style: 'multi',  selector: 'td:first-child'},
-        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        dom: '<"row"lfB>rtip',
-        rowId: 'ObjectID',
-        buttons: [
-            {
-                extend: 'pdf',
-                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-quotation)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_quotation(dt, true);
-                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum_quotation(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'csv',
-                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-quotation)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_quotation(dt, true);
-                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum_quotation(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'print',
-                text: '<i title="print" class="fa fa-print"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-quotation)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_quotation(dt, true);
-                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
-                    datatable_sum_quotation(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'colvis',
-                text: '<i title="column visibility" class="fa fa-eye"></i>',
-                columns: ':gt(0)'
-            },
-        ],
-        drawCallback: function () {
-            var api = this.api();
-            datatable_sum_quotation(api, false);
-        }
+    $(document).ready(function(){
+        setTimeout(function(){
+            $('#return-quotation tbody tr td:nth-child(1)').html(total_purchase);
+            $('#return-quotation tbody tr td:nth-child(2)').html(total_return);
+            $('#return-quotation tbody tr td:nth-child(3)').html((total_purchase - total_return).toFixed({{$general_setting->decimal}}));
+        }, 2000);
     });
 
-    function datatable_sum_quotation(dt_selector, is_calling_first) {
-        if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
-            var rows = dt_selector.rows( '.selected' ).indexes();
-
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.cells( rows, 6, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-        }
-        else {
-            $( dt_selector.column( 6 ).footer() ).html(dt_selector.column( 6, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
-        }
+    $(".daterangepicker-field").daterangepicker({
+    callback: function(startDate, endDate, period){
+        var start_date = startDate.format('YYYY-MM-DD');
+        var end_date = endDate.format('YYYY-MM-DD');
+        var title = start_date + ' to ' + end_date;
+        $(this).val(title);
+        $('input[name="start_date"]').val(start_date);
+        $('input[name="end_date"]').val(end_date);
     }
-
-$(".daterangepicker-field").daterangepicker({
-  callback: function(startDate, endDate, period){
-    var start_date = startDate.format('YYYY-MM-DD');
-    var end_date = endDate.format('YYYY-MM-DD');
-    var title = start_date + ' to ' + end_date;
-    $(this).val(title);
-    $('input[name="start_date"]').val(start_date);
-    $('input[name="end_date"]').val(end_date);
-  }
-});
-
+    });
 </script>
 @endpush

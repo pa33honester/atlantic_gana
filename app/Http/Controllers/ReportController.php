@@ -4823,8 +4823,8 @@ class ReportController extends Controller
                 $nestedData['paid'] = number_format($purchase->paid_amount, cache()->get('general_setting')->decimal);
                 $nestedData['balance'] = number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal);
                 $nestedData['return_total'] = DB::table('returns')->where('reference_no', $purchase->reference_no)->sum('grand_total');
-                $nestedData['grand_total'] = number_format($purchase->grand_total - $nestedData['return_total'] - $purchase->return_shipping_cost, cache()->get('general_setting')->decimal);
-                // $nestedData['grand_total'] = number_format($purchase->grand_total /*- $purchase->shipping_cost - $purchase->return_shipping_cost*/, cache()->get('general_setting')->decimal);
+                $nestedData['grand_total'] = number_format($purchase->grand_total /*- $purchase->shipping_cost - $purchase->return_shipping_cost*/, cache()->get('general_setting')->decimal);
+                // $nestedData['grand_total'] = number_format($purchase->grand_total - $nestedData['return_total'] - $purchase->return_shipping_cost, cache()->get('general_setting')->decimal);
                 if($purchase->status == 1){
                     $nestedData['status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
                 }
@@ -4955,7 +4955,7 @@ class ReportController extends Controller
         $start = $request->input('start');
         $order = 'return_purchases.'.$columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
-        $q = $q->select('return_purchases.id', 'return_purchases.reference_no', 'return_purchases.shipping_cost', 'return_purchases.return_shipping_cost', 'return_purchases.grand_total', 'return_purchases.created_at', 'warehouses.name as warehouse_name')
+        $q = $q->select('return_purchases.id', 'return_purchases.reference_no', 'return_purchases.shipping_cost', 'return_purchases.return_shipping_cost', 'return_purchases.grand_total', 'return_purchases.created_at', 'return_purchases.updated_at','warehouses.name as warehouse_name')
             ->offset($start)
             ->limit($limit)
             ->orderBy($order, $dir);
@@ -4999,15 +4999,32 @@ class ReportController extends Controller
                 $nestedData['id'] = $return->id;
                 $nestedData['key'] = $key;
                 $nestedData['date'] = date(config('date_format'), strtotime($return->created_at));
+                $nestedData['return_time'] = date(config('date_format').' h:i:s', strtotime($return->updated_at));
                 $nestedData['reference_no'] = $return->reference_no;
                 $nestedData['warehouse'] = $return->warehouse_name;
                 $nestedData['shipping_cost'] = $return->shipping_cost;
                 $nestedData['return_shipping_cost'] = $return->return_shipping_cost;
-                $product_return_data = DB::table('return_purchases')->join('purchase_product_return', 'return_purchases.id', '=', 'purchase_product_return.return_id')
-                                    ->join('products', 'purchase_product_return.product_id', '=', 'products.id')
-                                    ->where('return_purchases.id', $return->id)
-                                    ->select('products.name as product_name', 'purchase_product_return.qty', 'purchase_product_return.purchase_unit_id')
-                                    ->get();
+                // $product_return_data = DB::table('return_purchases')
+                //     ->join('purchase_product_return', 'return_purchases.id', '=', 'purchase_product_return.return_id')
+                //     ->join('products', 'purchase_product_return.product_id', '=', 'products.id')
+                //     ->where('return_purchases.id', $return->id)
+                //     ->select(
+                // 'products.name as product_name',
+                //         'purchase_product_return.qty',
+                //         'purchase_product_return.purchase_unit_id'
+                //     )
+                //     ->get();
+                $product_return_data = DB::table('return_purchases')
+                    ->join('product_purchases', 'product_purchases.purchase_id', '=', 'return_purchases.purchase_id')
+                    ->join('products', 'product_purchases.product_id', '=', 'products.id')
+                    ->where('return_purchases.id', $return->id)
+                    ->select(
+                'products.name as product_name',
+                         'product_purchases.qty as qty', // this might be changed
+                         'product_purchases.purchase_unit_id' 
+                    )->get();
+                $nestedData['product'] = '';
+                $nestedData['qty'] = '';
                 foreach ($product_return_data as $index => $product_return) {
                     if($product_return->purchase_unit_id) {
                         $unit_data = DB::table('units')->select('unit_code')->find($product_return->purchase_unit_id);
@@ -5015,12 +5032,14 @@ class ReportController extends Controller
                     }
                     else
                         $unitCode = '';
-                    if($index)
-                        $nestedData['product'] .= '<br>'.$product_return->product_name.' ('.number_format($product_return->qty, cache()->get('general_setting')->decimal).' '.$unitCode.')';
-                    else
-                        $nestedData['product'] = $product_return->product_name.' ('.number_format($product_return->qty, cache()->get('general_setting')->decimal).' '.$unitCode.')';
+                    if($index){
+                        $nestedData['product'] .= '<br>';
+                        $nestedData['qty'] .= '<br>';
+                    }
+                    $nestedData['product'] .= $product_return->product_name;
+                    $nestedData['qty'] .= number_format($product_return->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
                 }
-                $nestedData['grand_total'] = number_format($return->grand_total - $return->shipping_cost - $return->return_shipping_cost, cache()->get('general_setting')->decimal);
+                $nestedData['grand_total'] = number_format($return->shipping_cost + $return->return_shipping_cost, cache()->get('general_setting')->decimal);
                 $data[] = $nestedData;
             }
         }

@@ -505,7 +505,11 @@ class SaleController extends Controller
         switch ($orderType) {
             case "delivery":
                 $sale_details["sale_status"] = 12;
-                break;
+                Sale::whereIn('id', $sale_id)->update($sale_details);
+                return response()->json([
+                    "code"  => 200,
+                    "msg"   => "success"
+                ]);
 
             case "shipped":
                 $sale_details["sale_status"] = 8;
@@ -596,7 +600,6 @@ class SaleController extends Controller
     // krishna singh - https://linktr.ee/iamsinghkrishna
     public function index(Request $request)
     {
-
         $role = Role::find(Auth::user()->role_id);
         if ($role->hasPermissionTo('sales-index')) {
             $permissions = Role::findByName($role->name)->permissions;
@@ -766,7 +769,7 @@ class SaleController extends Controller
             });
 
             // Correctly count filtered records after joins
-            $totalFiltered = $query->groupBy('sales.id')->count();
+            $totalFiltered = $query->distinct('sales.id')->count();
         }
 
         // Fetch paginated sales
@@ -775,9 +778,9 @@ class SaleController extends Controller
             ->offset($start)
             ->limit($limit)
             ->orderBy('sales.' . $orderColumn, $orderDir)
+            ->distinct('sales.id')
             ->get();
-       
-
+      
         $data = [];
         foreach ($sales as $key => $sale) {
             $product_names = DB::table('product_sales')
@@ -816,6 +819,24 @@ class SaleController extends Controller
                 'due' => number_format($sale->grand_total - $sale->paid_amount, config('decimal')),
             ];
 
+            $statusMap = [
+                1  => ['info',      'Fulfilled'],
+                2  => ['danger',    'file.Pending'],
+                3  => ['warning',   'file.Draft'],
+                4  => ['warning',   'file.Returned'],
+                5  => ['info',      'file.Processing'],
+                6  => ['warning',   'Unpaid'],
+                7  => ['success',   'Confirmed'],
+                8  => ['primary',   'Shipped'],
+                9  => ['info',      'Signed'],
+                10 => ['warning',   'Refunded'],
+                11 => ['danger',    'Cancelled'],
+                12 => ['info',      'Receiving'],
+            ];
+
+            list($badgeClass, $statusText) = $statusMap[$sale->sale_status] ?? ['secondary', 'Unknown'];
+            $nestedData['sale_status'] = '<div class="badge badge-' . $badgeClass . '">' . trans($statusText) . '</div>';
+
             foreach ($fieldNames as $fieldName) {
                 $nestedData[$fieldName] = $sale->$fieldName;
             }
@@ -850,7 +871,7 @@ class SaleController extends Controller
                 </div>';
             } 
             else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
-                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark" onclick="update_status_filters(' . $sale->id . ')"> Print Waybill </button>';
+                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark print-waybill"> Print Waybill </button>';
             } 
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';

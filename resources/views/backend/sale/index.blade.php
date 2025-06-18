@@ -25,31 +25,6 @@
                             <input type="hidden" name="ending_date" value="{{$ending_date}}" />
                         </div>
                     </div>
-                    <!-- <div class="col-md-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
-                        <div class="form-group">
-                            <label><strong>{{trans('file.Warehouse')}}</strong></label>
-                            <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
-                                <option value="0">{{trans('file.All Warehouse')}}</option>
-                                @foreach($lims_warehouse_list as $warehouse)
-                                    <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div> -->                    
-                    <!-- <div class="col-md-3 hidden">
-                        <div class="form-group">
-                            <label><strong>{{trans('file.Order Status')}}</strong></label>
-                            <select id="sale-status" class="form-control" name="sale_status">
-                                <option value="0">{{trans('file.All')}}</option>
-                                <option value="6">{{trans('Unpaid')}}</option>
-                                <option value="7">{{trans('Confirmed')}}</option>
-                                <option value="8">{{trans('Shipped')}}</option>
-                                <option value="1">{{trans('Fulfilled')}}</option>
-                                <option value="4">{{trans('file.Returned')}}</option>
-                                <option value="11">{{trans('Cancelled')}}</option>                            
-                            </select>
-                        </div>
-                    </div> -->
                     <div class="col-md-2">
                         <div class="form-group">
                             <label><strong>{{trans('Location')}}</strong></label>
@@ -72,7 +47,6 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="col-md-2 @if(!in_array('ecommerce',explode(',',$general_setting->modules))) d-none @endif">
                         <div class="form-group">
                             <label><strong>{{trans('file.Sale Type')}}</strong></label>
@@ -176,13 +150,14 @@
         </table>
     </div>
 </section>
+
 <div id="sale-details" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
     <div role="document" class="modal-dialog">
         <div class="modal-content">
             <div class="container mt-3 pb-2 border-bottom">
                 <div class="row">
                     <div class="col-md-6 d-print-none">
-                        <button id="print-btn" type="button" class="btn btn-default btn-sm"><i class="dripicons-print"></i> {{trans('file.Print')}}</button>
+                        <button type="button" class="btn btn-default btn-sm btn-print" data-print-target="#sale-details"><i class="dripicons-print"></i> {{trans('file.Print')}}</button>
 
                         {{ Form::open(['route' => 'sale.sendmail', 'method' => 'post', 'class' => 'sendmail-form'] ) }}
                             <input type="hidden" name="sale_id">
@@ -206,6 +181,37 @@
             <div id="sale-content" class="modal-body"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-rounded btn-md btn-success d-print-none" data-dismiss="modal" aria-label="Close" onclick=""> OK </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="confirm-print" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="container mt-3 pb-2 border-bottom">
+                <div class="row">
+                    <div class="col-md-6 d-print-none">
+                        <button type="button" class="btn btn-default btn-sm btn-print" data-print-target="#confirm-print"><i class="dripicons-print"></i> {{trans('file.Print')}}</button>
+                    </div>
+                    <div class="col-md-6 d-print-none">
+                        <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+                    </div>
+                    <div class="col-md-4 text-left">
+                        <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
+                    </div>
+                    <div class="col-md-4 text-right">
+                        <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="order_type">
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button id="btn-delivery" type="submit" class="btn btn-rounded btn-md btn-success d-print-none"> Deliver </button>
             </div>
         </div>
     </div>
@@ -1180,6 +1186,28 @@
         });
     });
 
+    $("#btn-delivery").on("click", function(){
+        var sale_ids = $('input[name="sale_id[]"]').map(function() {
+            return this.value;
+        }).get();
+        var order_type = $('input[name="order_type"]').val();
+
+        $.ajax({
+            url: '../../sales/updatestatusfilters',
+            type: "POST",
+            data: {
+                "sale_id" : sale_ids,
+                "order_type" : order_type,
+                "_token" : $('meta[name="csrf-token"]').attr('content')
+            },
+            success:function(data) {
+                console.log(data);
+                $('#confirm-print').modal('hide');
+                location.reload();
+            }
+        });
+    });
+
     function update_shipping_fee(id, shipping_cost){
         $.get('delivery/create/'+id, function(data) {
             // console.log(data);
@@ -1397,8 +1425,8 @@
         $(".packing-slip-submit-btn").prop("disabled", true);
     });
 
-    $(document).on("click", "#print-btn", function() {
-        var divContents = document.getElementById("sale-details").innerHTML;
+    function printDocument(selector) {
+        var divContents = document.querySelector(selector).innerHTML;
         var a = window.open('');
         a.document.write('<html>');
         a.document.write('<body>');
@@ -1408,8 +1436,11 @@
         a.document.close();
         a.print();
         setTimeout(function(){a.close();},10);
-        //setTimeout(function(){a.print();},20);
-        //a.print();
+    }
+
+    $(document).on("click", ".btn-print", function() {
+        var selector = $(this).data('print-target');
+        printDocument(selector);
     });
 
     $(document).on("click", "table.sale-list tbody .add-payment", function() {
@@ -1902,13 +1933,12 @@
         htmltext += `<div class="barcode-wrapper">
             <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
         </div>`;
+        htmltext += `<input type="hidden" name="sale_id[]" value="${sale[13]}">`;
         return htmltext;
     }
 
     function saleDetails(sale){
         console.log(sale);
-
-        $("#sale-details input[name='sale_id']").val(sale[13]);
 
         var htmltext = createBillHtml(sale);
 
@@ -1950,7 +1980,10 @@
             htmltext += '<div>' + createBillHtml(sale) + '</div>';
         }
 
-        $('#sale-details .modal-body').html(htmltext);
+        $('#confirm-print .modal-body').html(htmltext);
+        $('#confirm-print .modal-content .modal-body').css({
+            'margin-left': '33%'
+        });
         // salelist is a javascript array
         saleList.forEach(function(e){
             JsBarcode(`#barcode-${e[1]}`, e[1], {
@@ -1978,10 +2011,8 @@
             'width': '290px',
             'height': '100px'
         });
-
-        $('#email-btn').hide();
-
-        $('#sale-details').modal('show');
+        $('#confirm-print input[name=order_type]').val('delivery');
+        $('#confirm-print').modal('show');
     }
 
     $(document).on('submit', '.payment-form', function(e) {
@@ -2032,25 +2063,29 @@
                         saleList.push(sale); // Assuming the sale ID is at index 13
                     }
                 });
-                // console.log(saleList);
-                // alert(`Selected ${saleList.length} sales to print waybill.`);
                 print_waybill(saleList);
-                
             } else {
                 alert('Please select at least one sale to print the waybill.');
             }
         });
 
-        // Listen for checkbox changes in the DataTable
-        $('#sale-table').on('change', 'input[type="checkbox"]', function() {
-            // Check if any checkbox is checked
-            if(sale_status != 7) return 0;
-            if ($('#sale-table input[type="checkbox"]:checked').length > 0) {
-                $('#print-waybill-btn').show();
-            } else {
-                $('#print-waybill-btn').hide();
-            }
-        });
+        setTimeout(function(){
+            $('.update-status.print-waybill').click(function(){
+                var sale = $(this).closest('tr').data('sale');
+                print_waybill([sale]);
+            }),
+            // Listen for checkbox changes in the DataTable
+            $('#sale-table').on('change', 'input[type="checkbox"]', function() {
+                // Check if any checkbox is checked
+                if(sale_status != 7) return 0;
+                if ($('#sale-table input[type="checkbox"]:checked').length > 0) {
+                    $('#print-waybill-btn').show();
+                } else {
+                    $('#print-waybill-btn').hide();
+                }
+            });
+        }, 2000);
+
         $(document).on('click', '.send-sms', function(){
             $("#send-sms input[name='customer_id']").val($(this).data('customer_id'));
             $("#send-sms input[name='reference_no']").val($(this).data('reference_no'));
