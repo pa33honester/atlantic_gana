@@ -1330,11 +1330,11 @@
       }
     });
 
-    $('.date').datepicker({
-      format: "dd-mm-yyyy",
-      autoclose: true,
-      todayHighlight: true
-    });
+  $('.date').datepicker({
+    format: "dd-mm-yyyy",
+    autoclose: true,
+    todayHighlight: true
+  });
 
     $('.selectpicker').selectpicker({
       style: 'btn-link',
