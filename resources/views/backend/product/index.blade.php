@@ -299,7 +299,7 @@
             htmltext = '<p><strong>{{trans("file.Type")}}: </strong> ' +product[0 ] +'</p><p><strong>{{trans("file.name")}}: </strong> ' +product[1 ] +'</p><p><strong>{{trans("file.Code")}}: </strong> ' +product[2 ]+ '</p><p><strong>{{trans("file.Quantity")}}: </strong> ' +product[17 ] +'</p><p><strong>{{trans("file.Unit")}}: </strong> ' +product[5 ] +'</p><p><strong>{{trans("file.Cost")}}: </strong> ' +product[6 ] +'</p><p><strong>{{trans("file.Price")}}: </strong> ' +product[7 ] +'</p><p><strong>{{trans("file.Tax")}}: </strong> ' +product[8 ] +'</p><p><strong>{{trans("file.Tax Method")}} : </strong> ' +product[9 ] +'</p><p><strong>{{trans("file.Alert Quantity")}} : </strong> ' +product[10 ] +'</p><p><strong>{{trans("file.Product Details")}}: </strong></p> ' +product[11];
             // alert(product[20]);
             if (product[20]) {
-                var product_image = product[20].split(",");
+                var product_image = product[21].split(",");
                 if (product_image.length > 1) {
                     slidertext = '<div id="product-img-slider" class="carousel slide" data-ride="carousel"><div class="carousel-inner">';
                     for (var i = 0; i < product_image.length; i++) {
@@ -311,7 +311,7 @@
                     slidertext += '</div><a class="carousel-control-prev" href="#product-img-slider" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#product-img-slider" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>';
                 }
                 else {
-                    slidertext = '<img src="images/product/' + product[20] + '" height="300" width="100%">';
+                    slidertext = '<img src="images/product/' + product[21] + '" height="300" width="100%">';
                 }
             }
             else {
