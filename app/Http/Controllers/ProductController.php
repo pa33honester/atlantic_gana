@@ -29,6 +29,7 @@ use App\Models\ProductVariant;
 use App\Models\Barcode;
 use App\Models\Purchase;
 use App\Models\ProductPurchase;
+use App\Models\Product_Sale;
 use App\Models\Payment;
 use App\Traits\TenantInfo;
 use App\Traits\CacheForget;
@@ -219,6 +220,10 @@ class ProductController extends Controller
                 } else
                     $nestedData['qty'] = $product->qty;
 
+                // @dorian - 6.20
+                $nestedData['sold_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 9)->where('product_id', $product->id)->sum('qty');
+                $nestedData['delivery_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $product->id)->sum('qty');
+                
                 if ($product->unit_id)
                     $nestedData['unit'] = $product->unit->unit_name;
                 else
@@ -231,7 +236,7 @@ class ProductController extends Controller
                 if ($volume == 0) {
                     $nestedData['volume'] = "N/A";
                 } else {
-                    $nestedData['volume'] = $volume . " cm<sup>3</sup>";
+                    $nestedData['volume'] = $volume . " m";
                 }
 
                 $nestedData['supplier_id'] = $product->supplier_id;

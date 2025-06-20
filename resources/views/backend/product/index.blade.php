@@ -72,6 +72,8 @@
                         <th>{{trans('file.Image')}}</th>
                         <th>{{trans('file.name')}}</th>
                         <th>{{trans('file.Code')}}</th>
+                        <th>{{trans('Delivery Qty')}}</th>
+                        <th>{{trans('file.Sold Qty')}}</th>
                         <th>{{trans('file.Quantity')}}</th>
                         <th>{{trans('Volume')}}</th>
                         <th>{{trans('file.Price')}}</th>
@@ -216,14 +218,26 @@
             });
         @endif
 
-            function confirmDelete() {
-                if (confirm("Are you sure want to delete?")) {
-                    return true;
-                }
-                return false;
+        function confirmDelete() {
+            if (confirm("Are you sure want to delete?")) {
+                return true;
             }
+            return false;
+        }
 
-        var columns = [{ "data": "key" }, { "data": "image" }, { "data": "name" }, { "data": "code" }, { "data": "qty" }, { "data": "volume" }, { "data": "price" }, { "data": "supplier_name" }, { "data": "stock_worth" }];
+        var columns = [
+            { "data": "key" }, 
+            { "data": "image" }, 
+            { "data": "name" }, 
+            { "data": "code" }, 
+            { "data" : "delivery_qty"}, // added 6.20
+            { "data" : "sold_qty"}, // added 6.20
+            { "data": "qty" }, 
+            { "data": "volume" }, 
+            { "data": "price" }, 
+            { "data": "supplier_name" }, 
+            { "data": "stock_worth" }
+        ];
         var field_name = <?php echo json_encode($field_name) ?>;
         for (i = 0; i < field_name.length; i++) {
             columns.push({ "data": field_name[i] });
