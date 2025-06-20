@@ -19,6 +19,11 @@ class Product extends Model
     {
     	return $this->belongsTo('App\Models\Brand');
     }
+    // @dorian - 6-20
+    public function supplier()
+    {
+        return $this->belongsTo('App\Models\Supplier', 'supplier_id');
+    }
 
     public function unit()
     {

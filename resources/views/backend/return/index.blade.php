@@ -13,42 +13,30 @@
                 <h3 class="text-center">{{trans('Order Return List')}}</h3>
             </div>
             {!! Form::open(['route' => 'return-sale.index', 'method' => 'get']) !!}
-            <div class="row mb-3">
-                <div class="col-md-6 offset-md-2 mt-3">
-                    <div class="d-flex">
-                        <label class="">{{trans('file.Date')}} &nbsp;</label>
-                        <div class="">
-                            <div class="input-group">
-                                <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} To {{$ending_date}}" required />
-                                <input type="hidden" name="starting_date" value="{{$starting_date}}" />
-                                <input type="hidden" name="ending_date" value="{{$ending_date}}" />
-                            </div>
-                        </div>
+
+            <div class="row m-2 align-items-end">
+                <div class="col-lg-3 col-md-4 mb-2">
+                    <label for="date-range" class="font-weight-bold">{{ trans('file.Date') }}:</label>
+                    <div class="input-group">
+                        <input id="date-range" type="text" class="daterangepicker-field form-control" value="{{ $starting_date }} To {{ $ending_date }}" required />
+                        <input type="hidden" name="starting_date" value="{{ $starting_date }}" />
+                        <input type="hidden" name="ending_date" value="{{ $ending_date }}" />
                     </div>
                 </div>
-                <!-- <div class="col-md-4 mt-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
-                    <div class="d-flex">
-                        <label class="">{{trans('file.Warehouse')}} &nbsp;</label>
-                        <div class="">
-                            <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
-                                <option value="0">{{trans('file.All Warehouse')}}</option>
-                                @foreach($lims_warehouse_list as $warehouse)
-                                    @if($warehouse->id == $warehouse_id)
-                                        <option selected value="{{$warehouse->id}}">{{$warehouse->name}}</option>
-                                    @else
-                                        <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div> -->
-                <div class="col-md-2 mt-3">
-                    <div class="form-group">
-                        <button class="btn btn-primary" id="filter-btn" type="submit">{{trans('file.submit')}}</button>
-                    </div>
+                <div class="col-lg-3 col-md-4 mb-2">
+                    <label for="supplier-id" class="font-weight-bold">{{ trans('file.Supplier') }}:</label>
+                    <select id="supplier-id" class="form-control selectpicker" name="supplier_id" data-live-search="true">
+                        <option value="0">{{ trans('All') }}</option>
+                        @foreach($lims_supplier_list as $supplier)
+                            <option value="{{ $supplier->id }}">{{ $supplier->name }} ({{ $supplier->phone_number }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-lg-2 col-lg-offset-4 col-md-4 mb-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" id="filter-btn" type="submit">{{ trans('file.submit') }}</button>
                 </div>
             </div>
+
             {!! Form::close() !!}
         </div> 
         @if(in_array("returns-add", $all_permission))
@@ -65,14 +53,12 @@
                     <th>{{trans('Reporting Time')}}</th>      
                     <th>{{trans('file.Product Name')}}</th>
                     <th>{{trans('Product Number')}}</th>     
+                    <th>{{trans('file.Supplier')}}</th>
                     <th>{{trans('Order Time')}}</th>  
                     <th>{{trans('Product Quantity')}}</th>                         
                     <th>{{trans('Total Product Price')}}</th>              
-                    <!-- <th>{{trans('file.Warehouse')}}</th> -->
-                    <!-- <th>{{trans('file.Biller')}}</th> -->
                     <th>{{trans('Customer Information')}}</th>    
                     <th>{{trans('Customer Address')}}</th>      
-                    <!-- <th>{{trans('file.grand total')}}</th> -->
                     <th class="not-exported">{{trans('file.action')}}</th>
                 </tr>
             </thead>
@@ -87,11 +73,9 @@
                 <th></th>
                 <th></th>
                 <th></th>
-                <!-- <th></th> -->
-                <!-- <th></th> -->
                 <th></th>
                 <th></th>
-                <!-- <th></th> -->
+                <th></th>
                 <th></th>
             </tfoot>
         </table>
@@ -300,6 +284,10 @@
     var all_permission = <?php echo json_encode($all_permission) ?>;
     var return_id = [];
     var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
+    var starting_date = <?php echo json_encode($starting_date); ?>;
+    var ending_date = <?php echo json_encode($ending_date); ?>;
+    var supplier_id = <?php echo json_encode($supplier_id); ?>;
+    var warehouse_id = <?php echo json_encode($warehouse_id); ?>;
 
     $.ajaxSetup({
         headers: {
@@ -337,9 +325,7 @@
         a.print();
     });
 
-    var starting_date = $("input[name=starting_date]").val();
-    var ending_date = $("input[name=ending_date]").val();
-    var warehouse_id = $("#warehouse_id").val();
+    $("#supplier-id").val(supplier_id);
 
     $('#return-table').DataTable( {
         "processing": true,
@@ -350,7 +336,8 @@
                 all_permission: all_permission,
                 starting_date: starting_date,
                 ending_date: ending_date,
-                warehouse_id: warehouse_id
+                warehouse_id: warehouse_id,
+                supplier_id : supplier_id
             },
             dataType: "json",
             type:"post"
@@ -367,14 +354,12 @@
             {"data": "date"},
             {"data": "product_name"}, 
             {"data": "product_code"},
+            {"data": "supplier"},
             {"data": "order_date"},
             {"data": "item"}, 
             {"data": "grand_total"},
-            //{"data": "warehouse"},
-            //{"data": "biller"},
             {"data": "customer"},
             {"data": "customer_address"},
-            //{"data": "grand_total"},
             {"data": "options"},
         ],
         'language': {
@@ -518,12 +503,12 @@
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
 
-            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
         }
         else {
-            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+            $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
         }
     }
 

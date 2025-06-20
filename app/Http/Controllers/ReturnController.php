@@ -21,6 +21,7 @@ use App\Models\Variant;
 use App\Models\CashRegister;
 use App\Models\Sale;
 use App\Models\Product_Sale;
+use App\Models\Supplier;
 use App\Models\Currency;
 use Auth;
 use Spatie\Permission\Models\Role;
@@ -61,8 +62,15 @@ class ReturnController extends Controller
                 $ending_date = date("Y-m-d");
             }
 
+            if ($request->input('supplier_id'))
+                $supplier_id = $request->input('supplier_id');
+            else
+                $supplier_id = 0;
+
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
-            return view('backend.return.index', compact('starting_date', 'ending_date', 'warehouse_id', 'all_permission', 'lims_warehouse_list'));
+            $lims_supplier_list = Supplier::where('is_active', true)->get();
+
+            return view('backend.return.index', compact('starting_date', 'ending_date', 'warehouse_id', 'supplier_id', 'all_permission', 'lims_warehouse_list', 'lims_supplier_list'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -75,152 +83,56 @@ class ReturnController extends Controller
         );
 
         $warehouse_id = $request->input('warehouse_id');
+        $supplier_id = $request->input('supplier_id') ?? 0;
+        $start = $request->input('start', 0);
+        $limit = $request->input('length', 10);
+        $order = 'returns.' . ($columns[$request->input('order.0.column')] ?? 'created_at');
+        $dir = $request->input('order.0.dir', 'desc');
+        $search = $request->input('search.value');
 
-        if (Auth::user()->role_id > 2 && config('staff_access') == 'own')
-            $totalData = Returns::where('user_id', Auth::id())
-                ->whereDate('created_at', '>=', $request->input('starting_date'))
-                ->whereDate('created_at', '<=', $request->input('ending_date'))
-                ->count();
-        elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
-            $totalData = Returns::where('warehouse_id', Auth::user()->warehouse_id)
-                ->whereDate('created_at', '>=', $request->input('starting_date'))
-                ->whereDate('created_at', '<=', $request->input('ending_date'))
-                ->count();
-        elseif ($warehouse_id != 0)
-            $totalData = Returns::where('warehouse_id', $warehouse_id)
-                ->whereDate('created_at', '>=', $request->input('starting_date'))
-                ->whereDate('created_at', '<=', $request->input('ending_date'))
-                ->count();
-        else
-            $totalData = Returns::whereDate('created_at', '>=', $request->input('starting_date'))
-                ->whereDate('created_at', '<=', $request->input('ending_date'))
-                ->count();
-
-
-        $totalFiltered = $totalData;
-        if ($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
-        $start = $request->input('start');
-        $order = 'returns.' . $columns[$request->input('order.0.column')];
-        $dir = $request->input('order.0.dir');
-        if (empty($request->input('search.value'))) {
-            $q = Returns::with('biller', 'customer', 'warehouse', 'user')
-                ->whereDate('created_at', '>=', $request->input('starting_date'))
-                ->whereDate('created_at', '<=', $request->input('ending_date'))
-                ->offset($start)
-                ->limit($limit)
-                ->orderBy($order, $dir);
-            if (Auth::user()->role_id > 2 && config('staff_access') == 'own')
-                $q = $q->where('user_id', Auth::id());
-            elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+        $baseQuery = Returns::with(['biller', 'customer', 'warehouse', 'user' , 'products'])
+            ->whereDate('created_at', '>=', $request->input('starting_date'))
+            ->whereDate('created_at', '<=', $request->input('ending_date'))
+            ->when(Auth::user()->role_id > 2 && config('staff_access') == 'own', function ($q) {
+                $q->where('user_id', Auth::id());
+            })
+            ->when(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse', function ($q) {
                 $q->where('warehouse_id', Auth::user()->warehouse_id);
-            elseif ($warehouse_id != 0)
-                $q = $q->where('warehouse_id', $warehouse_id);
-            $returnss = $q->get();
-        } else {
-            $search = $request->input('search.value');
-            $q = Returns::join('customers', 'returns.customer_id', '=', 'customers.id')
-                ->join('billers', 'returns.biller_id', '=', 'billers.id')
-                ->whereDate('returns.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
-                ->offset($start)
-                ->limit($limit)
-                ->orderBy($order, $dir);
-            if (Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $returnss = $q->select('returns.*')
-                    ->with('biller', 'customer', 'warehouse', 'user')
-                    ->where('returns.user_id', Auth::id())
-                    ->orwhere([
-                        ['returns.reference_no', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])->get();
-
-                $totalFiltered = $q->where('returns.user_id', Auth::id())
-                    ->orwhere([
-                        ['returns.reference_no', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['returns.user_id', Auth::id()]
-                    ])
-                    ->count();
-            } elseif (Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
-                $returnss = $q->select('returns.*')
-                    ->with('biller', 'customer', 'warehouse', 'user')
-                    ->where('returns.user_id', Auth::id())
-                    ->orwhere([
-                        ['returns.reference_no', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])->get();
-
-                $totalFiltered = $q->where('returns.user_id', Auth::id())
-                    ->orwhere([
-                        ['returns.reference_no', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.name', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['customers.phone_number', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->orwhere([
-                        ['billers.name', 'LIKE', "%{$search}%"],
-                        ['returns.warehouse_id', Auth::user()->warehouse_id]
-                    ])
-                    ->count();
-            } else {
-                $returnss = $q->select('returns.*')
-                    ->with('biller', 'customer', 'warehouse', 'user')
-                    ->orwhere('returns.reference_no', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.name', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.phone_number', 'LIKE', "%{$search}%")
-                    ->orwhere('billers.name', 'LIKE', "%{$search}%")
-                    ->get();
-
-                $totalFiltered = $q->orwhere('returns.reference_no', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.name', 'LIKE', "%{$search}%")
-                    ->orwhere('customers.phone_number', 'LIKE', "%{$search}%")
-                    ->orwhere('billers.name', 'LIKE', "%{$search}%")
-                    ->count();
-            }
+            })
+            ->when($warehouse_id != 0, function ($q) use ($warehouse_id) {
+                $q->where('warehouse_id', $warehouse_id);
+            });
+        
+        if ($supplier_id > 0) {
+            $baseQuery->whereHas('products', function($q) use ($supplier_id) {
+                $q->where('supplier_id', $supplier_id);
+            });
         }
+                
+        $totalData = $baseQuery->count();
+
+        $filteredQuery = clone $baseQuery;
+
+        if ($search) {
+            $filteredQuery = $filteredQuery->where(function ($q) use ($search) {
+                $q->where('reference_no', 'LIKE', "%{$search}%")
+                    ->orWhereHas('customer', function ($q2) use ($search) {
+                        $q2->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('phone_number', 'LIKE', "%{$search}%");
+                    })
+                    ->orWhereHas('biller', function ($q2) use ($search) {
+                        $q2->where('name', 'LIKE', "%{$search}%");
+                    });
+            });
+        }
+
+        $totalFiltered = $filteredQuery->count();
+
+        $returnss = $filteredQuery
+                    ->orderBy($order, $dir)
+                    ->offset($start)
+                    ->limit($limit)
+                    ->get();
 
         $data = array();
         if (!empty($returnss)) {
@@ -241,22 +153,13 @@ class ReturnController extends Controller
                 $nestedData['biller'] = $returns->biller->name;
                 $nestedData['customer'] = $returns->customer->name;
 
-                $product_names = DB::table('returns')
-                    ->join('product_returns', 'returns.id', '=', 'product_returns.return_id')
-                    ->join('products', 'products.id', '=', 'product_returns.product_id')
-                    ->where('returns.id', $returns->id)
-                    ->pluck('products.name')
-                    ->toArray();
+                $product_names = $returns->products->pluck('name')->toArray();
+                $product_codes = $returns->products->pluck('code')->toArray();
+                $suppliers = $returns->products->pluck('supplier.name')->filter()->unique()->values()->toArray();
 
-                $product_codes = DB::table('returns')
-                    ->join('product_returns', 'returns.id', '=', 'product_returns.return_id')
-                    ->join('products', 'products.id', '=', 'product_returns.product_id')
-                    ->where('returns.id', $returns->id)
-                    ->pluck('products.code')
-                    ->toArray();
-
-                $nestedData['product_name'] = implode(",", $product_names);
-                $nestedData['product_code'] = implode(",", $product_codes);
+                $nestedData['supplier'] = implode(', ', $suppliers);
+                $nestedData['product_name'] = implode(',', $product_names);
+                $nestedData['product_code'] = implode(',', $product_codes);
 
                 $sales_data = Sale::select('created_at')->find($returns->sale_id);
                 $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($sales_data->created_at));

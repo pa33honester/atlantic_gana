@@ -704,15 +704,16 @@ class SaleController extends Controller
             'end_date'       => $request->input('ending_date'),
         ];
        
-        // Join related tables for searching
-        $query = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
-                ->join('billers', 'sales.biller_id', '=', 'billers.id')
-                ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
-                ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id');
-
-        // Base query
-        $query = $query->whereDate('sales.created_at', '>=', $filters['start_date'])
-                        ->whereDate('sales.created_at', '<=', $filters['end_date']);
+        // Use Eloquent relationships and eager loading
+        $query = Sale::with([
+            'customer',
+            'biller',
+            'warehouse',
+            'user',
+            'products.supplier'
+        ])
+        ->whereDate('created_at', '>=', $filters['start_date'])
+        ->whereDate('created_at', '<=', $filters['end_date']);
 
         // Apply user access restrictions
         if ($user->role_id > 2) {
@@ -730,8 +731,11 @@ class SaleController extends Controller
             }
         }
 
-        if($filters['supplier_id'] > 0) {
-            $query->where('suppliers.id', $filters['supplier_id']);
+        // Filter by supplier if needed
+        if ($filters['supplier_id'] > 0) {
+            $query->whereHas('products.supplier', function($q) use ($filters) {
+                $q->where('suppliers.id', $filters['supplier_id']);
+            });
         }
 
         // Total records before search
@@ -761,43 +765,43 @@ class SaleController extends Controller
         if (!empty($searchValue)) {
             // Apply search filters
             $query->where(function ($q) use ($searchValue) {
-                $q->where('sales.reference_no', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('customers.name', 'LIKE', "%{$searchValue}%");
-                    // ->orWhere('customers.phone_number', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('billers.name', 'LIKE', "%{$searchValue}%")
-                    // ->orWhere('product_sales.imei_number', 'LIKE', "%{$searchValue}%");
+                $q->where('reference_no', 'LIKE', "%{$searchValue}%")
+                    ->orWhereHas('customer', function($q2) use ($searchValue) {
+                        $q2->where('name', 'LIKE', "%{$searchValue}%");
+                    });
+                    // ->orWhereHas('biller', function($q2) use ($searchValue) {
+                    //     $q2->where('name', 'LIKE', "%{$searchValue}%");
+                    // })
+                    // ->orWhereHas('products', function($q2) use ($searchValue) {
+                    //     $q2->where('imei_number', 'LIKE', "%{$searchValue}%");
+                    // });
             });
 
-            // Correctly count filtered records after joins
-            $totalFiltered = $query->distinct('sales.id')->count();
+            $totalFiltered = $query->count();
         }
 
         // Fetch paginated sales
-        $sales = $query->select('sales.*', 'suppliers.name as supplier_name')
-            ->with('biller', 'customer', 'warehouse', 'user')
+        $sales = $query
             ->offset($start)
             ->limit($limit)
-            ->orderBy('sales.' . $orderColumn, $orderDir)
-            ->distinct('sales.id')
+            ->orderBy($orderColumn, $orderDir)
             ->get();
       
         $data = [];
         foreach ($sales as $key => $sale) {
-            $product_names = DB::table('product_sales')
-                ->join('products', 'products.id', '=', 'product_sales.product_id')
-                ->where('product_sales.sale_id', $sale->id)
-                ->pluck('products.name')->toArray();
-            $product_codes = DB::table('product_sales')
-                ->join('products', 'products.id', '=', 'product_sales.product_id')
-                ->where('product_sales.sale_id', $sale->id)
-                ->pluck('products.code')->toArray();
+            // Get product names and codes from the related products
+            $product_names = $sale->products->pluck('name')->toArray();
+            $product_codes = $sale->products->pluck('code')->toArray();
+
+            // If you want supplier names as well:
+            $supplier_names = $sale->products->pluck('supplier.name')->filter()->unique()->toArray();
 
             $nestedData = [
                 'id' => $sale->id,
                 'key'  => $sale->id,
                 'product_name' => implode(",", $product_names),
                 'product_code' => implode(",", $product_codes),
-                'supplier' => $sale->supplier_name,
+                'supplier' => $supplier_names,
                 'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
                 'reference_no' => $sale->reference_no,
