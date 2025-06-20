@@ -762,10 +762,10 @@ class SaleController extends Controller
             // Apply search filters
             $query->where(function ($q) use ($searchValue) {
                 $q->where('sales.reference_no', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('customers.name', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('customers.phone_number', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('billers.name', 'LIKE', "%{$searchValue}%")
-                    ->orWhere('product_sales.imei_number', 'LIKE', "%{$searchValue}%");
+                    ->orWhere('customers.name', 'LIKE', "%{$searchValue}%");
+                    // ->orWhere('customers.phone_number', 'LIKE', "%{$searchValue}%")
+                    // ->orWhere('billers.name', 'LIKE', "%{$searchValue}%")
+                    // ->orWhere('product_sales.imei_number', 'LIKE', "%{$searchValue}%");
             });
 
             // Correctly count filtered records after joins
@@ -773,7 +773,7 @@ class SaleController extends Controller
         }
 
         // Fetch paginated sales
-        $sales = $query->select('sales.*')
+        $sales = $query->select('sales.*', 'suppliers.name as supplier_name')
             ->with('biller', 'customer', 'warehouse', 'user')
             ->offset($start)
             ->limit($limit)
@@ -791,17 +791,13 @@ class SaleController extends Controller
                 ->join('products', 'products.id', '=', 'product_sales.product_id')
                 ->where('product_sales.sale_id', $sale->id)
                 ->pluck('products.code')->toArray();
-            $product_suppliers = DB::table('product_sales')
-                ->join('suppliers', 'suppliers.id', '=', 'product_sales.supplier_id')
-                ->where('product_sales.sale_id', $sale->id)
-                ->pluck('suppliers.name')->toArray();
 
             $nestedData = [
                 'id' => $sale->id,
                 'key'  => $sale->id,
                 'product_name' => implode(",", $product_names),
                 'product_code' => implode(",", $product_codes),
-                'supplier' => implode(",", $product_suppliers),
+                'supplier' => $sale->supplier_name,
                 'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
                 'reference_no' => $sale->reference_no,
