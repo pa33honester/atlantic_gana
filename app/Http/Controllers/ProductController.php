@@ -236,7 +236,7 @@ class ProductController extends Controller
                 if ($volume == 0) {
                     $nestedData['volume'] = "N/A";
                 } else {
-                    $nestedData['volume'] = $volume . " m";
+                    $nestedData['volume'] = $volume . " m<sup>3</sup>";
                 }
 
                 $nestedData['supplier_id'] = $product->supplier_id;

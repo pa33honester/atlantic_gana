@@ -637,12 +637,16 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12"><p class="ajax-status"></p></div>
+                    <div class="col-md-12"><p class="ajax-status">Shipping Cost</p></div>
                     <div class="col-md-6 form-group text-left">
                         <input type="hidden" name="reference_no">
                         <input type="hidden" name="sale_id">
                         <input type="hidden" name="order_type">
-                        <input type="number" name="shipping_cost" class="form-control" placeholder="Please enter shipping cost">
+                        <select name="shipping_cost" class="form-control">
+                            <option value="20">20</option>
+                            <option value="40">40</option>
+                            <option value="60">60</option>
+                        </select>
                     </div>
                     <div class="col-md-6 form-group text-left">
                         <button type="button" class="btn btn-info update_shipping_fee_btn">{{trans('file.submit')}}</button>
@@ -682,13 +686,15 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12"><p class="ajax-status"></p></div>
+                    <div class="col-md-12"><p class="ajax-status">Return Shipping Cost</p></div>
                     <div class="col-md-8 form-group text-left">
                         <input type="hidden" name="reference_no">
                         <input type="hidden" name="sale_id">
                         <input type="hidden" name="order_type">
-                        <input type="number" name="return_shipping_cost" class="form-control" placeholder="Please enter return shipping cost">
-                        <!-- <h5 id="updateShippingLabel">Please check shipping fee before return delivery ?</h5> -->
+                        <select name="return_shipping_cost" class="form-control">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                        </select>
                     </div>
                     <div class="col-md-4 form-group text-left">
                         <button type="button" class="btn btn-info return_ship_btn">{{trans('file.submit')}}</button>
