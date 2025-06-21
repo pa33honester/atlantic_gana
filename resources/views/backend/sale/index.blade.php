@@ -496,19 +496,27 @@
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status', 'method' => 'post', 'files' => true, 'class' => 'update_status']) !!}
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
+                    <div class="col-md-12 form-group">
+                        <label>{{trans('Order Number')}}</label>
+                        <p class="order_number"></p>
                     </div>
                     <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
+                        <label>{{trans('Order Time')}}</label>
+                        <p class="order_time"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Product Amount')}}</label>
+                        <p class="product_amount"></p>
                     </div>
                     <div class="col-md-6 form-group">
                         <label>{{trans('Customer Name')}}</label>
                         <p class="customer_name"></p>
                     </div>
                     <div class="col-md-6 form-group">
+                        <label>{{trans('Phone Number')}}</label>
+                        <p class="customer_phone"></p>
+                    </div>
+                    <div class="col-md-12 form-group">
                         <label>{{trans('Customer Address')}}</label>
                         <p class="customer_address"></p>
                     </div>
@@ -1080,28 +1088,19 @@
             }  
     }
     
-    function update_status(id, location = 0){
-        //var id = $(this).data('id').toString();
-        $.get('delivery/create/'+id, function(data) {
-            $('.dr_num').text(data[0]);
-            $('.sr_num').text(data[1]);
-            $('.customer_name').text(data[5]);
-            $('.customer_address').text(data[6]);
-            
-            $('select[name="status"]').val(data[2]);
-            $('.selectpicker').selectpicker('refresh');
-            $('input[name="delivered_by"]').val(data[3]);
-            $('input[name="recieved_by"]').val(data[4]);
-            $('#customer').text(data[5]);
-            $('textarea[name="address"]').val(data[6]);
-            $('textarea[name="note"]').val(data[7]);
-            $('select[name="courier_id"]').val(data[8]);
-            $('select[name=location]').val(location); // $$$dorian$$$
-            $('input[name="reference_no"]').val(data[0]);
-            $('input[name="sale_id"]').val(id);
-            $('.selectpicker').selectpicker('refresh');
-            //$('#add-delivery').modal('show');
-        });
+    function update_status(el){
+        var data = JSON.parse(el.getAttribute('data-confirm'));
+        // console.log(data);
+        $('#update-status .order_number').text(data['order_number']);
+        $('#update-status .order_time').text(data['order_time']);
+        $('#update-status .product_amount').text(data['product_amount']);
+        $('#update-status .customer_name').text(data['customer_name']);
+        $('#update-status .customer_phone').text(data['customer_phone']);
+        $('#update-status .customer_address').text(data['customer_address']);
+        $('#update-status select[name=location]').val(data['location']); // @dorian
+        $('#update-status input[name="reference_no"]').val(data['order_number']);
+        $('#update-status input[name="sale_id"]').val(data['id']);
+        $('#update-status .selectpicker').selectpicker('refresh');
         $('#update-status').modal('show');
     }
 

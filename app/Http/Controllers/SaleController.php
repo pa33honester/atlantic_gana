@@ -851,24 +851,48 @@ class SaleController extends Controller
                 $nestedData['options'] = ' ';
             }
             else if ($sale->sale_status == 6 && $role->hasPermissionTo('unpaid')) {
+                $confirm_data = [
+                    'id'                => $sale->id,
+                    'order_number'      => $sale->reference_no,
+                    'order_time'        => $sale->created_at,
+                    'customer_id'       => $sale->customer->id,
+                    'customer_name'     => $sale->customer->name,
+                    'customer_phone'    => $sale->customer->phone_number,
+                    'customer_address'  => $sale->customer->address,
+                    'location'          => $sale->location,
+                    'product_amount'    => 0,
+                ];
+                foreach($sale->products as $product){
+                    $confirm_data['products'] [] = [
+                        'id'            => $product->id,
+                        'product_sale_id'=> $product->pivot->id,
+                        'product_name'  => $product->name,
+                        'img'           => $product->img,
+                        'price'         => $product->price,
+                        'qty'           => $product->pivot->qty - $product->pivot->return_qty,
+                        'amount'        => $product->pivot->total
+                    ];
+                    $confirm_data['product_amount'] += $product->pivot->total;
+                }
+                $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
                 $nestedData['options'] = 
-                '<div class="btn-group">
-                    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                        <span class="caret"></span>
-                        <span class="sr-only">Toggle Dropdown</span>
-                    </button>
-                    <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                        <li>
-                            <a href="#" class="btn btn-link view text-info" onclick="editx(' . $sale->id . ')">edit</a>
-                        </li>
-                        <li>
-                            <a href="#" class="update-status btn btn-link text-success" onclick="update_status(' . $sale->id . ', '. $sale->location.')">confirm</a>
-                        </li>
-                        <li>
-                            <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</a>
-                        </li>
-                    </ul>
-                </div>';
+                    '<div class="btn-group">
+                        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
+                            <span class="caret"></span>
+                            <span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
+                            <li>
+                                <a href="#" class="btn btn-link view text-info" onclick="editx(' . $sale->id . ')">edit</a>
+                            </li>
+                            <li>
+                                <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '" onclick="update_status(this)">confirm</a>
+                            </li>
+                            <li>
+                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</a>
+                            </li>
+                        </ul>
+                    </div>';
             } 
             else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark print-waybill"> Print Waybill </button>';

@@ -13,7 +13,8 @@ class Sale extends Model
 
     public function products()
     {
-        return $this->belongsToMany('App\Models\Product', 'product_sales');
+        return $this->belongsToMany('App\Models\Product', 'product_sales')
+        ->withPivot('id', 'qty', 'return_qty', 'total');
     }
 
     public function biller()
