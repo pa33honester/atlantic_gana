@@ -4713,6 +4713,7 @@ class ReportController extends Controller
 
     public function supplierReport(Request $request)
     {
+        $user = Auth::user();
         $supplier_id = $request->input('supplier_id');
         if($request->input('start_date')) {
             $start_date = $request->input('start_date');
@@ -4722,7 +4723,13 @@ class ReportController extends Controller
             $start_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d') )))));
             $end_date = date("Y-m-d");
         }
-        $lims_supplier_list = Supplier::where('is_active', true)->get();
+
+        if($user->supplier_id){
+            $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select('id', 'name', 'phone_number')->get();
+        }
+        else {
+            $lims_supplier_list = Supplier::where('is_active', true)->get();
+        }
         return view('backend.report.supplier_report',compact('start_date', 'end_date', 'supplier_id', 'lims_supplier_list'));
     }
 

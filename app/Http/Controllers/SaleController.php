@@ -600,7 +600,8 @@ class SaleController extends Controller
     // krishna singh - https://linktr.ee/iamsinghkrishna
     public function index(Request $request)
     {
-        $role = Role::find(Auth::user()->role_id);
+        $user = Auth::user();
+        $role = Role::find($user->role_id);
         if ($role->hasPermissionTo('sales-index')) {
             $permissions = Role::findByName($role->name)->permissions;
             foreach ($permissions as $permission)
@@ -646,13 +647,20 @@ class SaleController extends Controller
                 $ending_date = date("Y-m-d");
             }
 
+
+            if($user->supplier_id) {
+                $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
+            }
+            else {
+                $lims_supplier_list = Supplier::where('is_active', true)->get();
+            }
+
             $lims_gift_card_list = GiftCard::where("is_active", true)->get();
             $lims_pos_setting_data = PosSetting::latest()->first();
             $lims_reward_point_setting_data = RewardPointSetting::latest()->first();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_account_list = Account::where('is_active', true)->get();
             $lims_courier_list = Courier::where('is_active', true)->get();
-            $lims_supplier_list = Supplier::where('is_active', true)->get();
             $lims_general_setting_data = GeneralSetting::latest()->select('shipping_cost_list', 'return_shipping_cost_list')->first();
             $lims_shipping_cost_list = explode(',', $lims_general_setting_data->shipping_cost_list);
             $lims_return_shipping_cost_list = explode(',', $lims_general_setting_data->return_shipping_cost_list);
@@ -676,7 +684,11 @@ class SaleController extends Controller
                 'sale_type', 'supplier_id', 'lims_gift_card_list', 
                 'lims_pos_setting_data', 'lims_reward_point_setting_data', 
                 'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 
-                'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list', 'lims_supplier_list', 
+                'numberOfInvoice', 
+                'custom_fields', 
+                'field_name', 
+                'lims_courier_list', 
+                'lims_supplier_list', 
                 'lims_shipping_cost_list', 
                 'lims_return_shipping_cost_list', 
                 'smsTemplates'));
@@ -735,18 +747,26 @@ class SaleController extends Controller
             }
         }
 
-        // Apply additional filters
-        foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
-            if (!empty($filters[$field])) {
-                $query->where($field, $filters[$field]);
-            }
+        if($user->role_id == 8){
+            $query->whereHas('products.supplier', function($q) use ($user) {
+                $q->where('suppliers.id', $user->supplier_id);
+            });
         }
 
-        // Filter by supplier if needed
-        if ($filters['supplier_id'] > 0) {
-            $query->whereHas('products.supplier', function($q) use ($filters) {
-                $q->where('suppliers.id', $filters['supplier_id']);
-            });
+        if($user->role_id == 1){
+            // Apply additional filters
+            foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
+                if (!empty($filters[$field])) {
+                    $query->where($field, $filters[$field]);
+                }
+            }
+    
+            // Filter by supplier if needed
+            if ($filters['supplier_id'] > 0) {
+                $query->whereHas('products.supplier', function($q) use ($filters) {
+                    $q->where('suppliers.id', $filters['supplier_id']);
+                });
+            }
         }
 
         // Total records before search
@@ -975,7 +995,8 @@ class SaleController extends Controller
             "draw" => intval($request->input('draw')),
             "recordsTotal" => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
-            "data" => $data
+            "data" => $data,
+            "role" => config('staff_access'),
         ];
 
         // Handle special case for search and status update

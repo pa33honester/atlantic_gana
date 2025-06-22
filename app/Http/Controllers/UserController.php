@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Roles;
@@ -45,10 +46,21 @@ class UserController extends Controller
         if($role->hasPermissionTo('users-add')){
             $lims_role_list = Roles::where('is_active', true)->get();
             $lims_biller_list = Biller::where('is_active', true)->get();
+            $lims_supplier_list = Supplier::where('is_active', true)->get();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_customer_group_list = CustomerGroup::where('is_active', true)->get();
             $numberOfUserAccount = User::where('is_active', true)->count();
-            return view('backend.user.create', compact('lims_role_list', 'lims_biller_list', 'lims_warehouse_list', 'lims_customer_group_list', 'numberOfUserAccount'));
+            return 
+            view('backend.user.create',
+             compact(
+                'lims_role_list',
+                'lims_biller_list', 
+                        'lims_supplier_list',
+                        'lims_warehouse_list', 
+                        'lims_customer_group_list', 
+                        'numberOfUserAccount'
+                    )
+            );
         }
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -88,6 +100,10 @@ class UserController extends Controller
                 ],
             ]);
         }
+        else if($request->role_id == 8) { // supplier
+
+        }
+
         $data = $request->all();
         $message = 'User created successfully';
         $mail_setting = MailSetting::latest()->first();
@@ -106,6 +122,7 @@ class UserController extends Controller
         $data['password'] = bcrypt($data['password']);
         $data['phone'] = $data['phone_number'];
         $user_data = User::create($data);
+        
         if($data['role_id'] == 5) {
             $data['user_id'] = $user_data->id;
             $data['name'] = $data['customer_name'];

@@ -126,6 +126,14 @@
                                           @endforeach
                                         </select>
                                     </div>
+                                    <div class="form-group" id="supplier-id">
+                                        <label><strong>{{trans('file.Supplier')}} *</strong></label>
+                                        <select name="supplier_id" required class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Supplier...">
+                                          @foreach($lims_supplier_list as $supplier)
+                                              <option value="{{$supplier->id}}">{{$supplier->name}}</option>
+                                          @endforeach
+                                        </select>
+                                    </div>
                                     <div class="form-group" id="warehouseId">
                                         <label><strong>{{trans('file.Warehouse')}} *</strong></label>
                                         <select name="warehouse_id" required class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Warehouse...">
@@ -156,6 +164,7 @@
 
     $('#warehouseId').hide();
     $('#biller-id').hide();
+    $('#supplier-id').hide();
     $('.customer-section').hide();
 
     $('.selectpicker').selectpicker({
@@ -184,13 +193,29 @@
     });
 
     $('select[name="role_id"]').on('change', function() {
-        if($(this).val() == 5) {
+        if($(this).val() == 5) { // customer service
             $('#biller-id').hide(300);
             $('#warehouseId').hide(300);
             $('.customer-section').show(300);
             $('.customer-input').prop('required',true);
             $('select[name="warehouse_id"]').prop('required',false);
             $('select[name="biller_id"]').prop('required',false);
+
+            $('#supplier-id').hide(300);
+            $('select[name="supplier_id"]').prop('required',false);
+        }
+        else if($(this).val() == 8) { // supplier
+            $('#warehouseId').show(300);
+            $('select[name="warehouse_id"]').prop('required',true);
+            
+            $('#supplier-id').show(300);
+            $('select[name="supplier_id"]').prop('required',true);
+
+            $('#biller-id').hide(300);
+            $('select[name="biller_id"]').prop('required',false);
+
+            $('.customer-section').hide(300);
+            $('.customer-input').prop('required',false);
         }
         else if($(this).val() > 2 && $(this).val() != 5) {
             $('select[name="warehouse_id"]').prop('required',true);
@@ -199,14 +224,21 @@
             $('#warehouseId').show(300);
             $('.customer-section').hide(300);
             $('.customer-input').prop('required',false);
+
+            $('#supplier-id').hide(300);
+            $('select[name="supplier_id"]').prop('required',false);
         }
         else {
             $('select[name="warehouse_id"]').prop('required',false);
             $('select[name="biller_id"]').prop('required',false);
             $('#biller-id').hide(300);
             $('#warehouseId').hide(300);
+
             $('.customer-section').hide(300);
             $('.customer-input').prop('required',false);
+
+            $('#supplier-id').hide(300);
+            $('select[name="supplier_id"]').prop('required',false);
         }
     });
 </script>
