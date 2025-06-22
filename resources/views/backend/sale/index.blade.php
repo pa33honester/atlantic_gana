@@ -705,9 +705,9 @@
                         <input type="hidden" name="sale_id">
                         <input type="hidden" name="order_type">
                         <select name="shipping_cost" class="form-control">
-                            <option value="20">20</option>
-                            <option value="40">40</option>
-                            <option value="60">60</option>
+                            @foreach($lims_shipping_cost_list as $opt)
+                            <option value="{{ $opt }}">{{ $opt }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-6 form-group text-left">
@@ -754,8 +754,9 @@
                         <input type="hidden" name="sale_id">
                         <input type="hidden" name="order_type">
                         <select name="return_shipping_cost" class="form-control">
-                            <option value="10">10</option>
-                            <option value="20">20</option>
+                            @foreach($lims_return_shipping_cost_list as $opt)
+                            <option value="{{ $opt }}"> {{ $opt }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-4 form-group text-left">

@@ -653,6 +653,9 @@ class SaleController extends Controller
             $lims_account_list = Account::where('is_active', true)->get();
             $lims_courier_list = Courier::where('is_active', true)->get();
             $lims_supplier_list = Supplier::where('is_active', true)->get();
+            $lims_general_setting_data = GeneralSetting::latest()->select('shipping_cost_list', 'return_shipping_cost_list')->first();
+            $lims_shipping_cost_list = explode(',', $lims_general_setting_data->shipping_cost_list);
+            $lims_return_shipping_cost_list = explode(',', $lims_general_setting_data->return_shipping_cost_list);
 
             if ($lims_pos_setting_data)
                 $options = explode(',', $lims_pos_setting_data->payment_options);
@@ -668,7 +671,15 @@ class SaleController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
             $smsTemplates = SmsTemplate::all();
-            return view('backend.sale.index', compact('starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 'sale_type', 'supplier_id', 'lims_gift_card_list', 'lims_pos_setting_data', 'lims_reward_point_setting_data', 'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list', 'lims_supplier_list', 'smsTemplates'));
+            return view('backend.sale.index', compact(
+                'starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 
+                'sale_type', 'supplier_id', 'lims_gift_card_list', 
+                'lims_pos_setting_data', 'lims_reward_point_setting_data', 
+                'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 
+                'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list', 'lims_supplier_list', 
+                'lims_shipping_cost_list', 
+                'lims_return_shipping_cost_list', 
+                'smsTemplates'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -767,7 +778,8 @@ class SaleController extends Controller
             $query->where(function ($q) use ($searchValue) {
                 $q->where('reference_no', 'LIKE', "%{$searchValue}%")
                     ->orWhereHas('customer', function($q2) use ($searchValue) {
-                        $q2->where('name', 'LIKE', "%{$searchValue}%");
+                        $q2->where('name', 'LIKE', "%{$searchValue}%")
+                            ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
                     });
                     // ->orWhereHas('biller', function($q2) use ($searchValue) {
                     //     $q2->where('name', 'LIKE', "%{$searchValue}%");

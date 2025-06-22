@@ -133,6 +133,8 @@ class SettingController extends Controller
         $general_setting->state = $data['state'];
         $general_setting->expiry_type = $data['expiry_type'];
         $general_setting->expiry_value = $data['expiry_value'];
+        $general_setting->shipping_cost_list = $data['shipping_cost_list'];
+        $general_setting->return_shipping_cost_list = $data['return_shipping_cost_list'];
         $logo = $request->site_logo;
         if ($logo) {
             $this->fileDelete('logo/', $general_setting->site_logo);

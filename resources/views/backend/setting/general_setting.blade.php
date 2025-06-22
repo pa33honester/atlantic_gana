@@ -255,6 +255,18 @@
                                         <input type="number" class="form-control" name="expiry_value" value="{{ $lims_general_setting_data->expiry_value ?? '0' }}">
                                     </div>
                                 </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>{{trans('Shipping Cost Setting')}}</label>
+                                        <input class="form-control" name="shipping_cost_list" value="{{ $lims_general_setting_data->shipping_cost_list }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>{{trans('Return Shipping Cost Setting')}}</label>
+                                        <input class="form-control" name="return_shipping_cost_list" value="{{ $lims_general_setting_data->return_shipping_cost_list }}">
+                                    </div>
+                                </div>
                                 @if(config('database.connections.saleprosaas_landlord'))
                                     <br>
                                     <div class="col-md-2">
