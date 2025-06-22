@@ -867,7 +867,7 @@ class SaleController extends Controller
                         'id'            => $product->id,
                         'product_sale_id'=> $product->pivot->id,
                         'product_name'  => $product->name,
-                        'img'           => $product->img,
+                        'img'           => explode(',', $product->image),
                         'price'         => $product->price,
                         'qty'           => $product->pivot->qty - $product->pivot->return_qty,
                         'amount'        => $product->pivot->total

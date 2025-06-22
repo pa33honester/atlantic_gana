@@ -6,6 +6,8 @@
 @if(session()->has('not_permitted'))
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css" />
+
 <section>
     <div class="container-fluid"><?php //echo $sale_status; ?>
         @if(in_array("sales-add", $all_permission))
@@ -486,6 +488,39 @@
     </div>
 </div>
 
+<!-- Image Preview Modal (Stacked) -->
+<div id="imageModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Image</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" class="img-fluid" src="">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style id="img-pop-up-style">
+    #imageModal {
+        z-index: 1060 !important; /* Higher than the original modal */
+    }
+
+    /* Adjust backdrop to appear between modals */
+    #imageModal + .modal-backdrop {
+        z-index: 1055 !important;
+    }
+
+    /* Original modal backdrop (optional, if needed) */
+    #update-status + .modal-backdrop {
+        z-index: 1040 !important;
+    }
+</style>
+
 <div id="update-status" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
     <div role="document" class="modal-dialog">
         <div class="modal-content">
@@ -519,6 +554,21 @@
                     <div class="col-md-12 form-group">
                         <label>{{trans('Customer Address')}}</label>
                         <p class="customer_address"></p>
+                    </div>
+                    <div class="col-md-12">
+                        <table id="confirm-product-list" class="table table-responsive">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Product Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="col-md-12 form-group">
                          <label>{{trans('Location')}} *</label>
@@ -563,6 +613,10 @@
                         <label>{{trans('Remark')}}</label>
                         <textarea rows="3" name="res_info" class="form-control" onclick="reset_validation('textarea', 'res_info');"></textarea>
                     </div>
+                </div>
+                <div id="product-image-modal" class="modal">
+                    <span class="close">&times;</span>
+                    <img class="modal-content" id="modal-confirm-product-image">
                 </div>
                 <input type="hidden" name="reference_no">
                 <input type="hidden" name="sale_id">
@@ -1085,12 +1139,12 @@
             if(field_type == "textarea"){
                 $('textarea[name="'+field_name+'"]').css("border","1px solid #e4e6fc");
                 return false;
-            }  
+            }
     }
     
     function update_status(el){
         var data = JSON.parse(el.getAttribute('data-confirm'));
-        // console.log(data);
+
         $('#update-status .order_number').text(data['order_number']);
         $('#update-status .order_time').text(data['order_time']);
         $('#update-status .product_amount').text(data['product_amount']);
@@ -1100,6 +1154,32 @@
         $('#update-status select[name=location]').val(data['location']); // @dorian
         $('#update-status input[name="reference_no"]').val(data['order_number']);
         $('#update-status input[name="sale_id"]').val(data['id']);
+        var html_product_list = "";
+        data['products'].forEach(function(e){
+            html_product_list += `
+                <tr>
+                    <td>
+                          <img src="images/product/${e.img[0]}" 
+                            class="img-responsive product-thumbnail" 
+                            width="50" 
+                            height="50"
+                            data-full-image="images/product/${e.img[0]}"
+                            style="cursor: pointer;">
+                    </td>
+                    <td>${e.product_name}</td>
+                    <td>${e.price}</td>
+                    <td>${e.qty}</td>
+                    <td>${e.amount}</td>
+                </tr>
+            `;
+        });
+        $('#confirm-product-list tbody').html(html_product_list);
+        // Handle click on thumbnails to open stacked modal
+        $(document).on('click', '.product-thumbnail', function() {
+            const fullImageUrl = $(this).data('full-image');
+            $('#modalImage').attr('src', fullImageUrl);
+            $('#imageModal').modal('show');
+        });
         $('#update-status .selectpicker').selectpicker('refresh');
         $('#update-status').modal('show');
     }
