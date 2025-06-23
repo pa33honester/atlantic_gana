@@ -41,7 +41,8 @@ class ReturnController extends Controller
 
     public function index(Request $request)
     {
-        $role = Role::find(Auth::user()->role_id);
+        $user = Auth::user();
+        $role = Role::find($user->role_id);
         if ($role->hasPermissionTo('returns-index')) {
             $permissions = Role::findByName($role->name)->permissions;
             foreach ($permissions as $permission)
@@ -68,7 +69,13 @@ class ReturnController extends Controller
                 $supplier_id = 0;
 
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
-            $lims_supplier_list = Supplier::where('is_active', true)->get();
+
+            if($user->supplier_id){
+                $lims_supplier_list = Supplier::where('id', $user->supplier_id)->get();
+            }
+            else {
+                $lims_supplier_list = Supplier::where('is_active', true)->get();
+            }
 
             return view('backend.return.index', compact('starting_date', 'ending_date', 'warehouse_id', 'supplier_id', 'all_permission', 'lims_warehouse_list', 'lims_supplier_list'));
         } else
@@ -77,6 +84,7 @@ class ReturnController extends Controller
 
     public function returnData(Request $request)
     {
+        $user = Auth::user();
         $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
@@ -93,17 +101,23 @@ class ReturnController extends Controller
         $baseQuery = Returns::with(['biller', 'customer', 'warehouse', 'user' , 'products'])
             ->whereDate('created_at', '>=', $request->input('starting_date'))
             ->whereDate('created_at', '<=', $request->input('ending_date'))
-            ->when(Auth::user()->role_id > 2 && config('staff_access') == 'own', function ($q) {
+            ->when($user->role_id > 2 && config('staff_access') == 'own', function ($q) {
                 $q->where('user_id', Auth::id());
             })
-            ->when(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse', function ($q) {
+            ->when($user->role_id > 2 && config('staff_access') == 'warehouse', function ($q) {
                 $q->where('warehouse_id', Auth::user()->warehouse_id);
             })
             ->when($warehouse_id != 0, function ($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             });
         
-        if ($supplier_id > 0) {
+        if($user->role_id == 8){
+            $baseQuery->whereHas('products', function($q) use ($user) {
+                $q->where('supplier_id', $user->supplier_id);
+            });
+        }
+        
+        if ($user->role_id == 1 && $supplier_id > 0) {
             $baseQuery->whereHas('products', function($q) use ($supplier_id) {
                 $q->where('supplier_id', $supplier_id);
             });
