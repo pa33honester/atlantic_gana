@@ -73,12 +73,12 @@
                                           @endforeach
                                         </select>
                                     </div>
-                                    <div class="form-group" id="biller-id">
-                                        <label><strong>{{trans('file.Biller')}} *</strong></label>
-                                        <input type="hidden" name="biller_id_hidden" value="{{$lims_user_data->biller_id}}">
-                                        <select name="biller_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Biller...">
-                                          @foreach($lims_biller_list as $biller)
-                                              <option value="{{$biller->id}}">{{$biller->name}}</option>
+                                    <div class="form-group" id="supplier-id">
+                                        <label><strong>{{trans('file.Supplier')}} *</strong></label>
+                                        <input type="hidden" name="supplier_id_hidden" value="{{$lims_user_data->supplier_id}}">
+                                        <select name="supplier_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Supplier...">
+                                          @foreach($lims_supplier_list as $supplier)
+                                              <option value="{{$supplier->id}}">{{$supplier->name}}</option>
                                           @endforeach
                                         </select>
                                     </div>
@@ -100,38 +100,35 @@
         </div>
     </div>
 </section>
-
 @endsection
 
 @push('scripts')
 <script type="text/javascript">
     $("ul#people").siblings('a').attr('aria-expanded','true');
     $("ul#people").addClass("show");
-    $('#biller-id').hide();
+    $('#supplier-id').hide();
     $('#warehouseId').hide();
-
-
 
     $('select[name=role_id]').val($("input[name='role_id_hidden']").val());
     if($('select[name=role_id]').val() > 2){
         $('#warehouseId').show();
         $('select[name=warehouse_id]').val($("input[name='warehouse_id_hidden']").val());
-        $('#biller-id').show();
-        $('select[name=biller_id]').val($("input[name='biller_id_hidden']").val());
+        $('#supplier-id').show();
+        $('select[name=supplier_id]').val($("input[name='supplier_id_hidden']").val());
     }
     $('.selectpicker').selectpicker('refresh');
 
     $('select[name="role_id"]').on('change', function() {
         if($(this).val() > 2){
             $('select[name="warehouse_id"]').prop('required',true);
-            $('select[name="biller_id"]').prop('required',true);
-            $('#biller-id').show();
+            $('select[name="supplier_id"]').prop('required',true);
+            $('#supplier-id').show();
             $('#warehouseId').show();
         }
         else{
             $('select[name="warehouse_id"]').prop('required',false);
-            $('select[name="biller_id"]').prop('required',false);
-            $('#biller-id').hide();
+            $('select[name="supplier_id"]').prop('required',false);
+            $('#supplier-id').hide();
             $('#warehouseId').hide();
         }
     });

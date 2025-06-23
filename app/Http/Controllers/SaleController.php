@@ -895,16 +895,17 @@ class SaleController extends Controller
                     'product_amount'    => 0,
                 ];
                 foreach($sale->products as $product){
-                    $confirm_data['products'] [] = [
+                     $temp = [
                         'id'            => $product->id,
                         'product_sale_id'=> $product->pivot->id,
                         'product_name'  => $product->name,
                         'img'           => explode(',', $product->image),
                         'price'         => $product->price,
                         'qty'           => $product->pivot->qty - $product->pivot->return_qty,
-                        'amount'        => $product->pivot->total
+                        'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
                     ];
-                    $confirm_data['product_amount'] += $product->pivot->total;
+                    $confirm_data['products'] []= $temp;
+                    $confirm_data['product_amount'] += $temp['amount'];
                 }
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
                 $nestedData['options'] = 
@@ -2347,9 +2348,9 @@ class SaleController extends Controller
 
             if (($discount->applicable_for == 'All' || in_array($lims_product_data->id, $product_list)) && ($todayDate >= $discount->valid_from && $todayDate <= $discount->valid_till && in_array(date('D'), $days) && $qty >= $discount->minimum_qty && $qty <= $discount->maximum_qty)) {
                 if ($discount->type == 'flat') {
-                    $product[] = $lims_product_data->price - $discount->value;
+                    $product[] = $lims_product_data->price - $discount->value; //@dorian
                 } elseif ($discount->type == 'percentage') {
-                    $product[] = $lims_product_data->price - ($lims_product_data->price * ($discount->value / 100));
+                    $product[] = $lims_product_data->price - ($lims_product_data->price * ($discount->value / 100)); //@dorian
                 }
                 $no_discount = 0;
                 break;

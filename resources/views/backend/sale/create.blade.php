@@ -160,7 +160,7 @@
                                                         <th width="7%">{{trans('file.Quantity')}}</th>
                                                         <th width="10%">{{trans('file.Batch No')}}</th>
                                                         <th>{{trans('file.Expired Date')}}</th>
-                                                        <th>{{trans('file.Net Unit Price')}}</th>
+                                                        <th>{{trans('file.Price')}}</th>
                                                         <th>{{trans('file.Discount')}}</th>
                                                         <th>{{trans('file.Tax')}}</th>
                                                         <th>{{trans('file.Subtotal')}}</th>
@@ -647,7 +647,6 @@
 
 @push('scripts')
 <script type="text/javascript">
-
     $("ul#sale").siblings('a').attr('aria-expanded','true');
     $("ul#sale").addClass("show");
     $("ul#sale #sale-create-menu").addClass("active");
@@ -1003,140 +1002,130 @@ function isCashRegisterAvailable(warehouse_id) {
 }
 
 function productSearch(data) {
+    // Parse product info
     var product_info = data.split("|");
     var code = product_info[0];
+    var imeiOrSerial = product_info[2];
     var pre_qty = 0;
-    var flag = true;
+    var foundRow = -1;
+    var allowAdd = true;
 
+    // Check for duplicate product (and IMEI/serial if present)
     $(".product-code").each(function(i) {
         if ($(this).val() == code) {
-            rowindex = i;
-            if(product_info[2] != 'null') {
-                imeiNumbers = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .imei-number').val();
-                imeiNumbersArray = imeiNumbers.split(",");
-                // console.log('arra '+ rowindex);
-
-                if(imeiNumbersArray.includes(product_info[2])) {
+            foundRow = i;
+            if (imeiOrSerial && imeiOrSerial !== 'null') {
+                var imeiNumbers = $('table.order-list tbody tr').eq(i).find('.imei-number').val() || '';
+                var imeiNumbersArray = imeiNumbers.split(",");
+                if (imeiNumbersArray.includes(imeiOrSerial)) {
                     alert('Same imei or serial number is not allowed!');
-                    flag = false;
+                    allowAdd = false;
                     $('#lims_productcodeSearch').val('');
                 }
             }
-            pre_qty = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val();
+            pre_qty = $('table.order-list tbody tr').eq(i).find('.qty').val() || 0;
         }
     });
-    if(flag)
-    {
-        data += '?'+$('#customer_id').val()+'?'+(parseFloat(pre_qty) + 1);
-        $.ajax({
-            type: 'GET',
-            url: 'lims_product_search',
-            data: {
-                data: data
-            },
-            success: function(data) {
-                console.log(data);
-                var flag = 1;
-                if (pre_qty > 0) {
-                    var qty = data[15];
-                    $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(qty);
-                    pos = product_code.indexOf(data[1]);
-                    if(!data[11] && product_warehouse_price[pos]) {
-                        product_price[rowindex] = parseFloat(product_warehouse_price[pos] * currency['exchange_rate']) + parseFloat(product_warehouse_price[pos] * currency['exchange_rate'] * customer_group_rate);
-                    }
-                    else{
-                        product_price[rowindex] = parseFloat(data[2] * currency['exchange_rate']) + parseFloat(data[2] * currency['exchange_rate'] * customer_group_rate);
-                    }
-                    flag = 0;
-                    checkQuantity(String(qty), true);
-                    flag = 0;
-                }
-                $("input[name='product_code_name']").val('');
-                if(flag){
-                    var newRow = $("<tr>");
-                    var cols = '';
-                    pos = product_code.indexOf(data[1]);
-                    temp_unit_name = (data[6]).split(',');
-                    product_name = data[0];
-                        if(product_name.length>25){
-                            product_name = product_name.substring(0, 25);
-                            product_name = product_name + "..";
-                        }
-                    cols += '<td>' + product_name + '</td>';
-                    cols += '<td>' + data[1] + '</td>';
-                    cols += '<td><input type="text" class="form-control qty" readonly name="qty[]" value="'+data[15]+'" required/></td>';
-                    if(data[12]) {
-                        cols += '<td><input type="text" class="form-control batch-no" value="'+batch_no[pos]+'" required/> <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="'+product_batch_id[pos]+'"/> </td>';
-                        cols += '<td class="expired-date">'+expired_date[pos]+'</td>';
-                    }
-                    else {
-                        cols += '<td><input type="text" class="form-control batch-no" disabled/> <input type="hidden" class="product-batch-id" name="product_batch_id[]"/> </td>';
-                        cols += '<td class="expired-date">N/A</td>';
-                    }
+    if (!allowAdd) return;
 
-                    cols += '<td class="net_unit_price"></td>';
-                    cols += '<td class="discount">{{number_format(0, $general_setting->decimal, '.', '')}}</td>';
-                    cols += '<td class="tax"></td>';
-                    cols += '<td class="sub-total"></td>';
-                    //cols += '<td><button type="button" class="ibtnDel btn btn-md btn-danger">{{trans("file.delete")}}</button></td>';
-                    cols += '<td><button type="button" class="edit-product btn btn-info" data-toggle="modal" data-target="#editModal"> <i class="dripicons-document-edit"></i></button> <button type="button" class="ibtnDel btn btn-md btn-danger"><i class="dripicons-trash"></i></button></td>';
-                    cols += '<input type="hidden" class="product-code" name="product_code[]" value="' + data[1] + '"/>';
-                    cols += '<input type="hidden" class="product-id" name="product_id[]" value="' + data[9] + '"/>';
-                    cols += '<input type="hidden" class="supplier-id" name="supplier_id[]" value="' + data[19] + '"/>';
-                    cols += '<input type="hidden" class="price" name="price[]" value="' + data[2] + '"/>';
-                    cols += '<input type="hidden" class="price" name="sale_unit[]" value="' + temp_unit_name[0] + '"/>';
-                    cols += '<input type="hidden" class="net_unit_price" name="net_unit_price[]" value="' + data[2] + '"/>';
-                    cols += '<input type="hidden" class="discount-value" name="discount[]"  value="0"/>';
-                    cols += '<input type="hidden" class="tax-rate" name="tax_rate[]" value="' + data[3] + '"/>';
-                    cols += '<input type="hidden" class="tax-value" name="tax[]" />';
-                    cols += '<input type="hidden" class="subtotal-value" name="subtotal[]" value="'+data[2]+'" />';
-                    if(data[18])
-                        cols += '<input type="hidden" class="imei-number" name="imei_number[]" value="'+data[18]+'" />';
-                    else
-                        cols += '<input type="hidden" class="imei-number" name="imei_number[]" value="" />';
+    // Prepare AJAX data
+    var customerId = $('#customer_id').val();
+    var qtyToAdd = parseFloat(pre_qty) + 1;
+    var ajaxData = data + '?' + customerId + '?' + qtyToAdd;
 
-                    newRow.append(cols);
-                    $("table.order-list tbody").prepend(newRow);
-                    rowindex = newRow.index();
+    $.ajax({
+        type: 'GET',
+        url: 'lims_product_search',
+        data: { data: ajaxData },
+        success: function(response) {
+            console.info(">>> Product Info: ", response);
+            var isNewRow = (pre_qty == 0 || foundRow == -1);
+            $("input[name='product_code_name']").val('');
+            var pos = product_code.indexOf(response[1]);
+            if (isNewRow) {
+                // Build new row HTML
+                var temp_unit_name = (response[6] || '').split(',');
+                var product_name = response[0] || '';
+                if (product_name.length > 25) product_name = product_name.substring(0, 25) + "..";
+                var cols = `
+                    <td>${product_name}</td>
+                    <td>${response[1]}</td>
+                    <td><input type="text" class="form-control qty" readonly name="qty[]" value="${response[15]}" required/></td>
+                    ${response[12] ? `
+                        <td><input type="text" class="form-control batch-no" value="${batch_no[pos]}" required/>
+                            <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="${product_batch_id[pos]}"/>
+                        </td>
+                        <td class="expired-date">${expired_date[pos]}</td>
+                    ` : `
+                        <td><input type="text" class="form-control batch-no" disabled/>
+                            <input type="hidden" class="product-batch-id" name="product_batch_id[]"/>
+                        </td>
+                        <td class="expired-date">N/A</td>
+                    `}
+                    <td class="net_unit_price">${response[2]}</td>
+                    <td class="discount">{{number_format(0, $general_setting->decimal, '.', '')}}</td>
+                    <td class="tax"></td>
+                    <td class="sub-total">${response[2]}</td>
+                    <td>
+                        <button type="button" class="edit-product btn btn-info" data-toggle="modal" data-target="#editModal"><i class="dripicons-document-edit"></i></button>
+                        <button type="button" class="ibtnDel btn btn-md btn-danger"><i class="dripicons-trash"></i></button>
+                    </td>
+                    <input type="hidden" class="product-code" name="product_code[]" value="${response[1]}"/>
+                    <input type="hidden" class="product-id" name="product_id[]" value="${response[9]}"/>
+                    <input type="hidden" class="supplier-id" name="supplier_id[]" value="${response[19]}"/>
+                    <input type="hidden" class="price" name="price[]" value="${response[2]}"/>
+                    <input type="hidden" class="price" name="sale_unit[]" value="${temp_unit_name[0]}"/>
+                    <input type="hidden" class="net_unit_price" name="net_unit_price[]" value="${response[2]}"/>
+                    <input type="hidden" class="discount-value" name="discount[]" value="0"/>
+                    <input type="hidden" class="tax-rate" name="tax_rate[]" value="${response[3]}"/>
+                    <input type="hidden" class="tax-value" name="tax[]"/>
+                    <input type="hidden" class="subtotal-value" name="subtotal[]" value="${response[2]}"/>
+                    <input type="hidden" class="imei-number" name="imei_number[]" value="${response[18] || ''}"/>
+                `;
+                var newRow = $("<tr>").append(cols);
+                $("table.order-list tbody").prepend(newRow);
+                var rowindex = newRow.index();
 
-                    if(!data[11] && product_warehouse_price[pos]) {
-                        product_price.splice(rowindex, 0, parseFloat(product_warehouse_price[pos] * currency['exchange_rate']) + parseFloat(product_warehouse_price[pos] * currency['exchange_rate'] * customer_group_rate));
-                    }
-                    else {
-                        product_price.splice(rowindex, 0, parseFloat(data[2] * currency['exchange_rate']) + parseFloat(data[2] * currency['exchange_rate'] * customer_group_rate));
-                    }
-                    if(data[16])
-                        wholesale_price.splice(rowindex, 0, parseFloat(data[16] * currency['exchange_rate']) + parseFloat(data[16] * currency['exchange_rate'] * customer_group_rate));
-                    else
-                        wholesale_price.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
-                    cost.splice(rowindex, 0, parseFloat(data[17] * currency['exchange_rate']));
-                    product_discount.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
-                    tax_rate.splice(rowindex, 0, parseFloat(data[3]));
-                    tax_name.splice(rowindex, 0, data[4]);
-                    tax_method.splice(rowindex, 0, data[5]);
-                    unit_name.splice(rowindex, 0, data[6]);
-                    unit_operator.splice(rowindex, 0, data[7]);
-                    unit_operation_value.splice(rowindex, 0, data[8]);
-                    is_imei.splice(rowindex, 0, data[13]);
-                    is_variant.splice(rowindex, 0, data[14]);
-                    checkQuantity(data[15], true);
-                    // if(data[13]) {
-                    //     populatePriceOption();
-                    //     $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.edit-product').click();
-                    // }
-                }
-                else if(data[18]) {
-                    var imeiNumbers = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val();
-                    if(imeiNumbers)
-                        imeiNumbers += ','+data[18];
-                    else
-                        imeiNumbers = data[18];
-                    $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val(imeiNumbers);
+                // Update JS arrays
+                var price = (!response[11] && product_warehouse_price[pos])
+                    ? parseFloat(product_warehouse_price[pos] * currency['exchange_rate']) + parseFloat(product_warehouse_price[pos] * currency['exchange_rate'] * customer_group_rate)
+                    : parseFloat(response[2] * currency['exchange_rate']) + parseFloat(response[2] * currency['exchange_rate'] * customer_group_rate);
+                product_price.splice(rowindex, 0, response[2]);
+                wholesale_price.splice(rowindex, 0, response[16]
+                    ? parseFloat(response[16] * currency['exchange_rate']) + parseFloat(response[16] * currency['exchange_rate'] * customer_group_rate)
+                    : '{{number_format(0, $general_setting->decimal, '.', '')}}');
+                cost.splice(rowindex, 0, parseFloat(response[17] * currency['exchange_rate']));
+                product_discount.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
+                tax_rate.splice(rowindex, 0, parseFloat(response[3]));
+                tax_name.splice(rowindex, 0, response[4]);
+                tax_method.splice(rowindex, 0, response[5]);
+                unit_name.splice(rowindex, 0, response[6]);
+                unit_operator.splice(rowindex, 0, response[7]);
+                unit_operation_value.splice(rowindex, 0, response[8]);
+                is_imei.splice(rowindex, 0, response[13]);
+                is_variant.splice(rowindex, 0, response[14]);
+                checkQuantity(response[15], true);
+            } else {
+                // Update existing row (qty, price, IMEI/serial)
+                var qty = response[15];
+                $('table.order-list tbody tr').eq(foundRow).find('.qty').val(qty);
+                var price = (!response[11] && product_warehouse_price[pos])
+                    ? parseFloat(product_warehouse_price[pos] * currency['exchange_rate']) + parseFloat(product_warehouse_price[pos] * currency['exchange_rate'] * customer_group_rate)
+                    : parseFloat(response[2] * currency['exchange_rate']) + parseFloat(response[2] * currency['exchange_rate'] * customer_group_rate);
+                product_price[foundRow] = price;
+                checkQuantity(String(qty), true);
+
+                // Add IMEI/serial if present
+                if (response[18]) {
+                    var imeiNumbers = $('table.order-list tbody tr').eq(foundRow).find('.imei-number').val() || '';
+                    imeiNumbers = imeiNumbers ? imeiNumbers + ',' + response[18] : response[18];
+                    $('table.order-list tbody tr').eq(foundRow).find('.imei-number').val(imeiNumbers);
                 }
             }
-        });
-    }
+        }
+    });
 }
+
 
 function populatePriceOption() {
     $('#editModal select[name=price_option]').empty();
@@ -1209,6 +1198,7 @@ function edit()
         row_product_price = product_price[rowindex];
         $("#edit_unit").hide();
     }
+    console.info("product_price", product_price);
     $('input[name="edit_unit_price"]').val(row_product_price.toFixed({{$general_setting->decimal}}));
     $('.selectpicker').selectpicker('refresh');
 }
@@ -1306,24 +1296,24 @@ function calculateRowProductData(quantity) {
         var tax = net_unit_price * quantity * (tax_rate[rowindex] / 100);
         var sub_total = (net_unit_price * quantity) + tax;
 
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}})); 
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}})); 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax').text(tax.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
     } else {
         var sub_total_unit = row_product_price - product_discount[rowindex];
         var net_unit_price = (100 / (100 + tax_rate[rowindex])) * sub_total_unit;
         var tax = (sub_total_unit - net_unit_price) * quantity;
         var sub_total = sub_total_unit * quantity;
 
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax').text(tax.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
+        // $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
     }
 
     calculateTotal();
