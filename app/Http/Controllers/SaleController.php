@@ -782,7 +782,8 @@ class SaleController extends Controller
             $numberOfInvoice = Sale::count();
             $custom_fields = CustomField::where('belongs_to', 'sale')->get();
             $lims_customer_group_all = CustomerGroup::where('is_active', true)->get();
-            return view('backend.sale.create', compact('currency_list', 'lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_tax_list', 'lims_reward_point_setting_data', 'options', 'numberOfInvoice', 'custom_fields', 'lims_customer_group_all'));
+
+            return view('backend.sale.create', compact('currency_list', 'lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_tax_list', 'lims_reward_point_setting_data', 'options', 'numberOfInvoice', 'custom_fields', 'lims_customer_group_all', 'role'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -1581,6 +1582,7 @@ class SaleController extends Controller
 
     public function getProduct($id)
     {
+        $supplier_id = Auth::user()->supplier_id;
         $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id');
         if (config('without_stock') == 'no') {
             $query = $query->where([
@@ -1605,6 +1607,10 @@ class SaleController extends Controller
         \DB::reconnect(); //important as the existing connection if any would be in strict mode
 
         $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id');
+
+        if($supplier_id){
+            $query = $query->where('products.supplier_id', '=', $supplier_id);
+        }
 
         if (config('without_stock') == 'no') {
             $query = $query->where([

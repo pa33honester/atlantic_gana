@@ -639,76 +639,75 @@
         </div>
     </div>
 </section>
-
 <section id="print-layout">
 </section>
-
 @endsection
 
 @push('scripts')
 <script type="text/javascript">
-    $("ul#sale").siblings('a').attr('aria-expanded','true');
-    $("ul#sale").addClass("show");
-    $("ul#sale #sale-create-menu").addClass("active");
 
-    @if(config('database.connections.saleprosaas_landlord'))
-        numberOfInvoice = <?php echo json_encode($numberOfInvoice)?>;
-        $.ajax({
-            type: 'GET',
-            async: false,
-            url: '{{route("package.fetchData", $general_setting->package_id)}}',
-            success: function(data) {
-                if(data['number_of_invoice'] > 0 && data['number_of_invoice'] <= numberOfInvoice) {
-                    localStorage.setItem("message", "You don't have permission to create another invoice as you already exceed the limit! Subscribe to another package if you wants more!");
-                    location.href = "{{route('sales.index')}}";
-                }
+$("ul#sale").siblings('a').attr('aria-expanded','true');
+$("ul#sale").addClass("show");
+$("ul#sale #sale-create-menu").addClass("active");
+
+@if(config('database.connections.saleprosaas_landlord'))
+    numberOfInvoice = <?php echo json_encode($numberOfInvoice)?>;
+    $.ajax({
+        type: 'GET',
+        async: false,
+        url: '{{route("package.fetchData", $general_setting->package_id)}}',
+        success: function(data) {
+            if(data['number_of_invoice'] > 0 && data['number_of_invoice'] <= numberOfInvoice) {
+                localStorage.setItem("message", "You don't have permission to create another invoice as you already exceed the limit! Subscribe to another package if you wants more!");
+                location.href = "{{route('sales.index')}}";
             }
-        });
-    @endif
-
-    @if($lims_pos_setting_data)
-        var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
-    @endif
-    var currency = <?php echo json_encode($currency) ?>;
-    var currencyChange = false;
-    var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
-
-    $('#currency').val(currency['id']);
-
-    $('#currency').change(function(){
-        var rate = $(this).find(':selected').data('rate');
-        var currency_id = $(this).val();
-        $('#exchange_rate').val(rate);
-        currency['exchange_rate'] = rate;
-        $("table.order-list tbody .qty").each(function(index) {
-            rowindex = index;
-            currencyChange = true;
-            checkDiscount($(this).val(), true);
-        });
+        }
     });
+@endif
 
-    $('.customer-submit-btn').on("click", function() {
-        $.ajax({
-            type:'POST',
-            url:'{{route('customer.store')}}',
-            data: $("#customer-form").serialize(),
-            success:function(response) {
-                key = response['id'];
-                value = response['name']+' ['+response['phone_number']+']';
-                $('select[name="customer_id"]').append('<option value="'+ key +'">'+ value +'</option>');
-                $('select[name="customer_id"]').val(key);
-                $('.selectpicker').selectpicker('refresh');
-                $("#addCustomer").modal('hide');
-                setCustomerGroupRate(key);
-            }
-        });
+@if($lims_pos_setting_data)
+    var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
+@endif
+var currency = <?php echo json_encode($currency) ?>;
+var currencyChange = false;
+var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
+
+$('#currency').val(currency['id']);
+
+$('#currency').change(function(){
+    var rate = $(this).find(':selected').data('rate');
+    var currency_id = $(this).val();
+    $('#exchange_rate').val(rate);
+    currency['exchange_rate'] = rate;
+    $("table.order-list tbody .qty").each(function(index) {
+        rowindex = index;
+        currencyChange = true;
+        checkDiscount($(this).val(), true);
     });
+});
 
-    function setCustomerGroupRate(id) {
-        $.get('getcustomergroup/' + id, function(data) {
-            customer_group_rate = (data / 100);
-        });
-    }
+$('.customer-submit-btn').on("click", function() {
+    $.ajax({
+        type:'POST',
+        url:'{{route('customer.store')}}',
+        data: $("#customer-form").serialize(),
+        success:function(response) {
+            key = response['id'];
+            value = response['name']+' ['+response['phone_number']+']';
+            $('select[name="customer_id"]').append('<option value="'+ key +'">'+ value +'</option>');
+            $('select[name="customer_id"]').val(key);
+            $('.selectpicker').selectpicker('refresh');
+            $("#addCustomer").modal('hide');
+            setCustomerGroupRate(key);
+        }
+    });
+});
+
+function setCustomerGroupRate(id) {
+    $.get('getcustomergroup/' + id, function(data) {
+        customer_group_rate = (data / 100);
+    });
+}
 
 $("#payment").hide();
 $(".card-element").hide();
@@ -716,6 +715,7 @@ $("#gift-card").hide();
 $("#cheque").hide();
 
 // array data depend on warehouse
+var user_role = <?= json_encode($role); ?>;
 var lims_product_array = [];
 var product_code = [];
 var product_name = [];
@@ -1455,28 +1455,6 @@ $('select[name="order_tax_rate"]').on("change", function() {
     calculateGrandTotal();
 });
 
-// $('select[name="payment_status"]').on("change", function() {
-    // var payment_status = $(this).val();
-    // if (payment_status == 3 || payment_status == 4) {
-    //     $("#paid-amount").prop('disabled',false);
-    //     $("#payment").show();
-    //     $("#paying-amount").prop('required',true);
-    //     $("#paid-amount").prop('required',true);
-    //     if(payment_status == 4){
-    //         $("#paid-amount").prop('disabled',true);
-    //         $('input[name="paying_amount[]"]').val($('input[name="grand_total"]').val());
-    //         $('input[name="paid_amount[]"]').val($('input[name="grand_total"]').val());
-    //     }
-    // }
-    // else{
-        // $("#paying-amount").prop('required',false);
-        // $("#paid-amount").prop('required',false);
-        // $('input[name="paying_amount[]"]').val('');
-        // $('input[name="paid_amount[]"]').val('');
-        // $("#payment").hide();
-    // }
-// });
-
 $('select[name="paid_by_id[]"]').on("change", function() {
     var id = $(this).val();
     $(".payment-form").off("submit");
@@ -1601,6 +1579,7 @@ $("#submit-button").on("click", function() {
 });
 
 $(document).on('submit', '.payment-form', function(e) {
+    var user_role = 1;
     var rownumber = $('table.order-list tbody tr:last').index();
     $("table.order-list tbody .qty").each(function(index) {
         if ($(this).val() == '') {
@@ -1624,7 +1603,7 @@ $(document).on('submit', '.payment-form', function(e) {
     //     alert('Paying amount equals to grand total! Please change payment status.');
     //     e.preventDefault();
     // }
-    else if(!$('#biller_id').val()) {
+    else if(!$('#biller_id').val() && user_role["name"] == 'Admin') {
         alert('Please select a biller');
         e.preventDefault();
     }
