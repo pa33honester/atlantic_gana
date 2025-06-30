@@ -121,6 +121,7 @@
                     <th>{{trans('Customer Information')}}</th>    
                     <th>{{trans('Customer Address')}}</th>                
                     <th>{{trans('Update Time')}}</th>   
+                    <th>{{trans('Location')}}</th>                
                     @foreach($custom_fields as $fieldName)
                     <th>{{$fieldName}}</th>
                     @endforeach
@@ -131,6 +132,7 @@
             <tfoot class="tfoot active">
                 <th></th>
                 <th>{{trans('file.Total')}}</th>
+                <th></th>
                 <th></th>
                 <th></th>
                 <th></th>
@@ -1011,7 +1013,7 @@
         });
     @endif
 
-    var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"},{"data" : "supplier"}, {"data": "date"}, {"data": "sale_status"},{"data": "item"}, {"data": "grand_total"},{"data": "shipping"},{"data": "customer"},{"data": "customer_address"},{"data": "updated_date"}];
+    var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"},{"data" : "supplier"}, {"data": "date"}, {"data": "sale_status"},{"data": "item"}, {"data": "grand_total"},{"data": "shipping"},{"data": "customer"},{"data": "customer_address"},{"data": "updated_date"}, {"data" : "location"}];
     var field_name = <?php echo json_encode($field_name) ?>;
     for(i = 0; i < field_name.length; i++) {
         columns.push({"data": field_name[i]});
@@ -2014,8 +2016,12 @@
     }
 
     function createBillHtml(sale){
-        var htmltext = '<strong> Order Number: </strong>'+sale[1]+'<br><strong>Name: </strong>'+sale[9]+'<br><strong>Number: </strong>'+sale[10]+'<br><strong>Location: </strong>'+sale[11]+'<br><strong>Date: </strong>'+sale[0];
-        htmltext += '<br><strong> QTY : </strong>' + sale[33] + '<br><strong>Amount: </strong>'+sale[21]+'<br><strong> Delivery fee: </strong>' + sale[20] + '<br>';
+        var htmltext = '<strong> Order Number: </strong>'+sale[1]+'<br><strong>Name: </strong>'+sale[9]+'<br><strong>Number: </strong>'
+            +sale[10]+'<br><strong> Address: </strong>'+sale[11]+'<br><strong>Date: </strong>'+sale[0];
+            
+        htmltext += '<br><strong> QTY : </strong>' + sale[33] + '<br><strong>Amount: </strong>'+sale[21]
+                +'<br><strong> Delivery fee: </strong>' + sale[20]
+                + '<br><strong>Location : </strong>' + sale[34] + '<br>';
         htmltext += `<div class="barcode-wrapper">
             <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
         </div>`;

@@ -166,6 +166,8 @@ class ReturnController extends Controller
                 //$nestedData['warehouse'] = $returns->warehouse->name;
                 $nestedData['biller'] = $returns->biller->name;
                 $nestedData['customer'] = $returns->customer->name;
+                $nestedData['call_on'] = $returns->call_on;
+                $nestedData['report_times'] = $returns->report_times ?? 0;
 
                 $product_names = $returns->products->pluck('name')->toArray();
                 $product_codes = $returns->products->pluck('code')->toArray();
@@ -185,6 +187,41 @@ class ReturnController extends Controller
                 $nestedData['return_note'] = $returns->return_note;
 
                 $nestedData['grand_total'] = number_format($returns->grand_total, config('decimal'));
+                // added 6.28 @dorian
+                {
+                    $sale = Sale::with([
+                        'customer',
+                        'warehouse',
+                        'user',
+                        'products.supplier'
+                    ])->find($returns->sale_id);
+                        
+                    $confirm_data = [
+                        'id'                => $sale->id,
+                        'order_number'      => $sale->reference_no,
+                        'order_time'        => $sale->created_at,
+                        'customer_id'       => $sale->customer->id,
+                        'customer_name'     => $sale->customer->name,
+                        'customer_phone'    => $sale->customer->phone_number,
+                        'customer_address'  => $sale->customer->address,
+                        'location'          => $sale->location,
+                        'product_amount'    => 0,
+                    ];
+                    foreach($sale->products as $product){
+                        $temp = [
+                            'id'            => $product->id,
+                            'product_sale_id'=> $product->pivot->id,
+                            'product_name'  => $product->name,
+                            'img'           => explode(',', $product->image),
+                            'price'         => $product->price,
+                            'qty'           => $product->pivot->qty - $product->pivot->return_qty,
+                            'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
+                        ];
+                        $confirm_data['products'] []= $temp;
+                        $confirm_data['product_amount'] += $temp['amount'];
+                    }
+                    $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
+                }
                 $nestedData['options'] = 
                     '<div class="btn-group">
                         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
@@ -193,7 +230,7 @@ class ReturnController extends Controller
                         </button>
                         <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">                
                             <li>
-                                <a href="#" class="update-status btn btn-link text-success" onclick="update_status(' . $returns->sale_id . ', '. $sale_data->location.')"><i class="dripicons-checkmark "></i> confirm</a>
+                                <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
                             </li>
                             <li>
                                 <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
@@ -214,28 +251,6 @@ class ReturnController extends Controller
                 else {
                     $nestedData['options'] .= '</ul></div>';
                 }
-
-                // $nestedData['options'] = '<div class="btn-group">
-                //             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                //               <span class="caret"></span>
-                //               <span class="sr-only">Toggle Dropdown</span>
-                //             </button>
-                //             <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                //                 <li>
-                //                     <button type="button" class="btn btn-link view"><i class="fa fa-eye"></i> ' . trans('file.View') . '</button>
-                //                 </li>';
-                // if (in_array("returns-edit", $request['all_permission'])) {
-                //     $nestedData['options'] .= '<li>
-                //         <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
-                //         </li>';
-                // }
-                // if (in_array("returns-delete", $request['all_permission']))
-                //     $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
-                //             <li>
-                //               <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
-                //             </li>' . \Form::close() . '
-                //         </ul>
-                //     </div>';
 
                 if ($returns->currency_id)
                     $currency_code = Currency::select('code')->find($returns->currency_id)->code;
@@ -472,11 +487,10 @@ class ReturnController extends Controller
         $data = $request->except('document');
         $data['reference_no'] = 'rr-' . date("Ymd") . '-' . date("his");
         $data['user_id'] = Auth::id();
-        $lims_sale_data = Sale::select('id', 'warehouse_id', 'customer_id', 'biller_id', 'currency_id', 'exchange_rate', 'sale_status')->find($data['sale_id']);
+        $lims_sale_data = Sale::select('id', 'warehouse_id', 'customer_id', 'currency_id', 'exchange_rate', 'sale_status')->find($data['sale_id']);
         $data['user_id'] = Auth::id();
         $data['customer_id'] = $lims_sale_data->customer_id;
         $data['warehouse_id'] = $lims_sale_data->warehouse_id;
-        $data['biller_id'] = $lims_sale_data->biller_id;
         $data['currency_id'] = $lims_sale_data->currency_id;
         $data['exchange_rate'] = $lims_sale_data->exchange_rate;
         $cash_register_data = CashRegister::where([
@@ -514,15 +528,6 @@ class ReturnController extends Controller
         }
 
         $lims_return_data = Returns::create($data);
-        $lims_customer_data = Customer::find($data['customer_id']);
-        //collecting male data
-        $mail_data['email'] = $lims_customer_data->email;
-        $mail_data['reference_no'] = $lims_return_data->reference_no;
-        $mail_data['total_qty'] = $lims_return_data->total_qty;
-        $mail_data['total_price'] = $lims_return_data->total_price;
-        $mail_data['order_tax'] = $lims_return_data->order_tax;
-        $mail_data['order_tax_rate'] = $lims_return_data->order_tax_rate;
-        $mail_data['grand_total'] = $lims_return_data->grand_total;
 
         $product_sale_ids = $data['is_return'];
         $imei_number = $data['imei_number'];
@@ -585,7 +590,6 @@ class ReturnController extends Controller
                     else
                         $variant_list = [];
                     $qty_list = explode(",", $lims_product_data->qty_list);
-                    $price_list = explode(",", $lims_product_data->price_list);
                     foreach ($product_list as $index => $child_id) {
                         $child_data = Product::find($child_id);
                         if (count($variant_list) && $variant_list[$index]) {
@@ -626,18 +630,7 @@ class ReturnController extends Controller
                     $lims_product_warehouse_data->imei_number = $imei_number[$key];
                 $lims_product_warehouse_data->save();
             }
-            if ($lims_product_data->is_variant)
-                $mail_data['products'][$key] = $lims_product_data->name . ' [' . $variant_data->name . ']';
-            else
-                $mail_data['products'][$key] = $lims_product_data->name;
 
-            if ($sale_unit_id)
-                $mail_data['unit'][$key] = $lims_sale_unit_data->unit_code;
-            else
-                $mail_data['unit'][$key] = '';
-
-            $mail_data['qty'][$key] = $qty[$key];
-            $mail_data['total'][$key] = $total[$key];
             ProductReturn::insert(
                 ['return_id' => $lims_return_data->id, 'product_id' => $pro_id, 'product_batch_id' => $product_batch_id[$key], 'variant_id' => $variant_id, 'imei_number' => $imei_number[$key], 'qty' => $qty[$key], 'sale_unit_id' => $sale_unit_id, 'net_unit_price' => $net_unit_price[$key], 'discount' => $discount[$key], 'tax_rate' => $tax_rate[$key], 'tax' => $tax[$key], 'total' => $total[$key], 'created_at' => \Carbon\Carbon::now(), 'updated_at' => \Carbon\Carbon::now()]
             );
@@ -647,28 +640,11 @@ class ReturnController extends Controller
             ])->select('id', 'return_qty')->first();
             $product_sale_data->return_qty += $qty[$key];
             $product_sale_data->save();
-
-            // $product_warehouse_data = Product_Warehouse::where([
-            //         ['product_id', $pro_id],
-            //         ['warehouse_id', $data['warehouse_id']]
-            // ])->select('id', 'qty')->first();
-            
-            // $product_warehouse_data->qty += $qty[$key];
-            // $product_warehouse_data->save();
         }
         
         $message = 'Return created successfully';
         if ($data['change_sale_status'])
             $lims_sale_data->update(['sale_status' => 4]);
-        $mail_setting = MailSetting::latest()->first();
-        if ($mail_data['email'] && $mail_setting) {
-            $this->setMailInfo($mail_setting);
-            try {
-                Mail::to($mail_data['email'])->send(new ReturnDetails($mail_data));
-            } catch (\Exception $e) {
-                $message = 'Return created successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
-            }
-        }
         return redirect('return-sale')->with('message', $message);
     }
 

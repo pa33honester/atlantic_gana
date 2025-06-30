@@ -98,11 +98,16 @@ class SaleController extends Controller
     public function updateStatus(Request $request)
     {
         $data = $request->input();
+        $reasons = [
+            "1" => "No Answer",
+            "2"=> "Switched Off",
+            "3"=> "Call On"
+        ];
+
         $saleId = $data['sale_id'];
         $resType = $data['res_type'];
         $location = $data['location'];
-        $resReason1 = $data['res_reason_1'];
-        $resReason2 = $data['res_reason_2'];
+        $resReason = $reasons[$data['res_reason_2']];
         $resInfo = $data['res_info'];
 
         // Prepare sale details for update
@@ -113,7 +118,7 @@ class SaleController extends Controller
         ];
 
         // Check if a return record exists for this sale
-        $returnData = Returns::where('sale_id', $saleId)->select('id')->first();
+        $returnData = Returns::where('sale_id', $saleId)->select('id', 'call_on', 'report_times')->first();
 
         // Handle each response type
         switch ($resType) {
@@ -122,10 +127,29 @@ class SaleController extends Controller
                 if ($returnData) {
                     (new ReturnController())->destroy($returnData->id);
                 }
+                else {
+                    // deduct product quantity
+                    $sale_data = Sale::with([
+                        'products'
+                    ])->find($saleId);
+
+                    foreach($sale_data->products as $prod) {
+                        $product_warehouse_data = Product_Warehouse::where([
+                            ['product_id', $prod->id],
+                            ['warehouse_id', $sale_data->warehouse_id]
+                        ])
+                        ->select('id', 'qty')
+                        ->first();
+
+                        $qty = $prod->pivot->qty - $prod->pivot->return_qty;
+                        $product_warehouse_data->qty -= $qty;
+                        $product_warehouse_data->save();
+                    }
+                }
                 break;
 
             case 'cancel':
-                $saleDetails['res_reason'] = $resReason1;
+                $saleDetails['res_reason'] = $resReason;
                 $saleDetails['sale_status'] = 11;
                 if ($returnData) {
                     (new ReturnController())->destroy($returnData->id);
@@ -133,11 +157,15 @@ class SaleController extends Controller
                 break;
 
             case 'report':
-                $saleDetails['res_reason'] = $resReason2;
+                $saleDetails['res_reason'] = $resReason;
                 $saleDetails['sale_status'] = 4;
 
+                
                 if ($returnData) {
-                    // If a return already exists, do nothing further
+                    // If a return already exists, do nothing further, but update call-on-date & report-times
+                    $returnData['call_on'] = $data['call_on_date'] ?? date('Y-m-d');
+                    $returnData['report_times'] = ($returnData->report_times ?? 0) + 1; 
+                    $returnData->save();
                     break;
                 }
 
@@ -152,8 +180,8 @@ class SaleController extends Controller
                     'order_tax' => 0,
                     'grand_total' => 0,
                     'change_sale_status' => '1',
-                    'return_note' => $resReason1,
-                    'staff_note' => $resInfo,
+                    'return_note' => $resReason,
+                    'staff_note' => $resInfo
                 ];
 
                 $productSales = Product_Sale::where('sale_id', $saleId)->get();
@@ -213,7 +241,7 @@ class SaleController extends Controller
 
                 // Store the return
                 (new ReturnController())->store(new Request($requestData));
-                break;
+            default: break;
         }
 
         // Update the sale record
@@ -446,7 +474,7 @@ class SaleController extends Controller
         ];
 
         $user = Auth::user();
-
+        
         // Extract filters
         $filters = [
             'warehouse_id'   => $request->input('warehouse_id'),
@@ -461,7 +489,6 @@ class SaleController extends Controller
         // Use Eloquent relationships and eager loading
         $query = Sale::with([
             'customer',
-            'biller',
             'warehouse',
             'user',
             'products.supplier'
@@ -532,12 +559,6 @@ class SaleController extends Controller
                         $q2->where('name', 'LIKE', "%{$searchValue}%")
                             ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
                     });
-                    // ->orWhereHas('biller', function($q2) use ($searchValue) {
-                    //     $q2->where('name', 'LIKE', "%{$searchValue}%");
-                    // })
-                    // ->orWhereHas('products', function($q2) use ($searchValue) {
-                    //     $q2->where('imei_number', 'LIKE', "%{$searchValue}%");
-                    // });
             });
 
             $totalFiltered = $query->count();
@@ -572,7 +593,6 @@ class SaleController extends Controller
                 'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
                 'reference_no' => $sale->reference_no,
-                'biller' => $sale->biller->name ?? '',
                 'customer' => $sale->customer->name . '<br>' . $sale->customer->phone_number,
                 'customer_address' => $sale->customer->address . '<br>' . $sale->customer->city,
                 'payment_method' => implode(",", Payment::where('sale_id', $sale->id)->pluck('paying_method')->toArray()),
@@ -585,6 +605,13 @@ class SaleController extends Controller
                 'shipping' => ($filters['sale_status'] != 4 ? $sale->shipping_cost : $sale->return_shipping_cost),
                 'due' => number_format($sale->grand_total - $sale->paid_amount, config('decimal')),
             ];
+
+            switch($sale->location){
+                case '1': $nestedData['location'] = "Inside Accra"; break;
+                case '2': $nestedData['location'] = "Outside Accra"; break;
+                case "3": $nestedData["location"] = "Kumasi"; break;
+                default: $nestedData['location'] = "Other";
+            }
 
             $statusMap = [
                 1  => ['info',      'Fulfilled'],
@@ -690,12 +717,12 @@ class SaleController extends Controller
                 '[ "' . date(config('date_format'), strtotime($sale->created_at->toDateString())) . '"',
                 ' "' . $sale->reference_no . '"',
                 ' "' . $sale_status . '"',
-                ' "' . $sale->biller->name . '"',
-                ' "' . $sale->biller->company_name . '"',
-                ' "' . $sale->biller->email . '"',
-                ' "' . $sale->biller->phone_number . '"',
-                ' "' . $sale->biller->address . '"',
-                ' "' . $sale->biller->city . '"',
+                ' "" ',
+                ' "" ',
+                ' "" ',
+                ' "" ',
+                ' "" ',
+                ' "" ',
                 ' "' . $sale->customer->name . '"',
                 ' "' . $sale->customer->phone_number . '"',
                 ' "' . $sale->customer->address . '"',
@@ -720,7 +747,8 @@ class SaleController extends Controller
                 ' "' . $sale->document . '"',
                 ' "' . $currency_code . '"',
                 ' "' . $sale->exchange_rate . '"',
-                ' "' . $sale->total_qty . '"]'
+                ' "' . $sale->total_qty . '"',
+                ' "' . $nestedData['location'] . '"]'
             ];
 
             $data[] = $nestedData;
@@ -791,7 +819,9 @@ class SaleController extends Controller
      public function store(Request $request)
     {
         $data = $request->all();
-
+        if(!isset($data["customer_id"])) { // @dorian 6-28
+            $data["customer_id"] = 1;
+        }
         if (isset($request->reference_no)) {
             $this->validate($request, [
                 'reference_no' => [
@@ -976,16 +1006,6 @@ class SaleController extends Controller
             $product_sale['variant_id'] = null;
             $product_sale['supplier_id'] = $lims_product_data->supplier_id;
             $product_sale['product_batch_id'] = null;
-            // deduct product quantity
-            {
-                $product_warehouse_data = Product_Warehouse::where([
-                        ['product_id', $id],
-                        ['warehouse_id', $data['warehouse_id']]
-                ])->select('id', 'qty')->first();
-                
-                $product_warehouse_data->qty -= $qty[$i];
-                $product_warehouse_data->save();
-            }
 
             if ($lims_product_data->type == 'combo' && $data['sale_status'] == 1) {
                 if (!in_array('manufacturing', explode(',', config('addons')))) {
@@ -1283,7 +1303,6 @@ class SaleController extends Controller
                 }
             }
         }
-    
 
         //sms send start
         $smsData = [];

@@ -51,14 +51,16 @@
                     <th>{{trans('Order ID')}}</th>
                     <th>{{trans('Reporting Reason')}}</th>      
                     <th>{{trans('Reporting Time')}}</th>      
+                    <th>{{trans('Expected Call On')}}</th>      
                     <th>{{trans('file.Product Name')}}</th>
                     <th>{{trans('Product Number')}}</th>     
                     <th>{{trans('file.Supplier')}}</th>
                     <th>{{trans('Order Time')}}</th>  
                     <th>{{trans('Product Quantity')}}</th>                         
-                    <th>{{trans('Total Product Price')}}</th>              
+                    <th>{{trans('Total Product Price')}}</th>
                     <th>{{trans('Customer Information')}}</th>    
                     <th>{{trans('Customer Address')}}</th>      
+                    <th>{{trans('Report Times')}}</th>      
                     <th class="not-exported">{{trans('file.action')}}</th>
                 </tr>
             </thead>
@@ -66,6 +68,8 @@
             <tfoot class="tfoot active">
                 <th></th>
                 <th>{{trans('file.Total')}}</th>
+                <th></th>
+                <th></th>
                 <th></th>
                 <th></th>
                 <th></th>
@@ -137,21 +141,44 @@
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status', 'method' => 'post', 'files' => true, 'class' => 'update_status']) !!}
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
+                    <div class="col-md-12 form-group">
+                        <label>{{trans('Order Number')}}</label>
+                        <p class="order_number"></p>
                     </div>
                     <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
+                        <label>{{trans('Order Time')}}</label>
+                        <p class="order_time"></p>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>{{trans('Product Amount')}}</label>
+                        <p class="product_amount"></p>
                     </div>
                     <div class="col-md-6 form-group">
                         <label>{{trans('Customer Name')}}</label>
                         <p class="customer_name"></p>
                     </div>
                     <div class="col-md-6 form-group">
+                        <label>{{trans('Phone Number')}}</label>
+                        <p class="customer_phone"></p>
+                    </div>
+                    <div class="col-md-12 form-group">
                         <label>{{trans('Customer Address')}}</label>
                         <p class="customer_address"></p>
+                    </div>
+                    <div class="col-md-12">
+                        <table id="confirm-product-list" class="table table-responsive">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Product Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="col-md-12 form-group">
                          <label>{{trans('Location')}} *</label>
@@ -175,27 +202,36 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-12 form-group" id="res_reason_1">
-                        <label>{{trans('Reason for Cancellation')}} *</label>
-                        <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
-                            <option value="Rejected">{{trans('Rejected')}}</option>
-                            <option value="Other">{{trans('Other Reason')}}</option>
-                        </select>
-                    </div>
                     <div class="col-md-12 form-group" id="res_reason_2">
-                        <label>{{trans('Reason for Cancellation')}} *</label>
-                        <select name="res_reason_2" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_2');">
-                            <option value="Rejected">{{trans('Rejected')}}</option>
-                            <option value="Delayed">{{trans('Delayed Delivery')}}</option>
-                            <option value="Insufficient">{{trans('Insufficient Invantory')}}</option>
-                            <option value="Other">{{trans('Other Reason')}}</option>
-                        </select>
-                    </div>                    
+                        <label>{{trans('Reporting Reason')}} *</label>
+                        <div class="d-flex flex-row gap-3" style="gap: 2rem;">
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center; margin-right: 2rem;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_no_answer" value="1" required onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').addClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_no_answer" style="margin-left: 0.5rem;">{{trans('No Answer')}}</label>
+                            </div>
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center; margin-right: 2rem;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_switched_off" value="2" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').addClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_switched_off" style="margin-left: 0.5rem;">{{trans('Switched Off')}}</label>
+                            </div>
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_call_on" value="3" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').removeClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_call_on" style="margin-left: 0.5rem;">{{trans('Call On')}}</label>
+                            </div>
+                        </div>
+                        <div id="call_on_date_picker" class="mt-2 d-none">
+                            <label for="call_on_date">{{ trans('Select Call On Date') }}</label>
+                            <input type="date" name="call_on_date" id="call_on_date" class="form-control" />
+                        </div>
+                    </div>
                     
                     <div class="col-md-12 form-group">
                         <label>{{trans('Remark')}}</label>
                         <textarea rows="3" name="res_info" class="form-control" onclick="reset_validation('textarea', 'res_info');"></textarea>
                     </div>
+                </div>
+                <div id="product-image-modal" class="modal">
+                    <span class="close">&times;</span>
+                    <img class="modal-content" id="modal-confirm-product-image">
                 </div>
                 <input type="hidden" name="reference_no">
                 <input type="hidden" name="sale_id">
@@ -233,9 +269,9 @@
                         <p class="customer_address"></p>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason">
-                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <label>{{trans('Reporting Reason')}} *</label>
                         <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
-                            <option value="Rejected">{{trans('Rejected')}}</option>
+                            <option value="Rejected">{{trans('No Answer')}}</option>
                             <option value="Other">{{trans('Other Reason')}}</option>
                         </select>
                     </div>                    
@@ -352,6 +388,7 @@
             {"data": "sale_reference"},
             {"data": "return_note"},
             {"data": "date"},
+            {"data": "call_on"},
             {"data": "product_name"}, 
             {"data": "product_code"},
             {"data": "supplier"},
@@ -360,6 +397,7 @@
             {"data": "grand_total"},
             {"data": "customer"},
             {"data": "customer_address"},
+            {"data": "report_times"},
             {"data": "options"},
         ],
         'language': {
@@ -586,13 +624,13 @@
     function order_reason(id){
         if(id == "all"){
             $("#res_reason_1").addClass("hidden");
-            $("#res_reason_2").addClass("hidden");    
+            $("#res_reason_2").addClass("hidden");  
         } else if(id == "confirm"){
             $("#res_reason_1").addClass("hidden");
             $("#res_reason_2").addClass("hidden"); 
         } else if(id == "cancel"){
             $("#res_reason_1").removeClass("hidden");
-            $("#res_reason_2").addClass("hidden"); 
+            $("#res_reason_2").addClass("hidden");
         } else if(id == "report"){
             $("#res_reason_1").addClass("hidden");
             $("#res_reason_2").removeClass("hidden");
@@ -632,28 +670,45 @@
         }
     }
 
-    function update_status(id, location = 0){
-        //var id = $(this).data('id').toString();
-        $.get('delivery/create/'+id, function(data) {
-            $('.dr_num').text(data[0]);
-            $('.sr_num').text(data[1]);
-            $('.customer_name').text(data[5]);
-            $('.customer_address').text(data[6]);
-            
-            $('select[name="status"]').val(data[2]);
-            $('.selectpicker').selectpicker('refresh');
-            $('input[name="delivered_by"]').val(data[3]);
-            $('input[name="recieved_by"]').val(data[4]);
-            $('#customer').text(data[5]);
-            $('textarea[name="address"]').val(data[6]);
-            $('textarea[name="note"]').val(data[7]);
-            $('select[name="courier_id"]').val(data[8]);
-            $('select[name=location]').val(location); // $$$dorian$$$
-            $('input[name="reference_no"]').val(data[0]);
-            $('input[name="sale_id"]').val(id);
-            $('.selectpicker').selectpicker('refresh');
-            //$('#add-delivery').modal('show');
+    function update_status(el){
+        var data = JSON.parse(el.getAttribute('data-confirm'));
+
+        $('#update-status .order_number').text(data['order_number']);
+        $('#update-status .order_time').text(data['order_time']);
+        $('#update-status .product_amount').text(data['product_amount']);
+        $('#update-status .customer_name').text(data['customer_name']);
+        $('#update-status .customer_phone').text(data['customer_phone']);
+        $('#update-status .customer_address').text(data['customer_address']);
+        $('#update-status select[name=location]').val(data['location']); // @dorian
+        $('#update-status input[name="reference_no"]').val(data['order_number']);
+        $('#update-status input[name="sale_id"]').val(data['id']);
+        var html_product_list = "";
+        data['products'].forEach(function(e){
+            html_product_list += `
+                <tr>
+                    <td>
+                        <img src="images/product/${e.img[0]}" 
+                            class="img-responsive product-thumbnail" 
+                            width="50" 
+                            height="50"
+                            data-full-image="images/product/${e.img[0]}"
+                            style="cursor: pointer;">
+                    </td>
+                    <td>${e.product_name}</td>
+                    <td>${e.price}</td>
+                    <td>${e.qty}</td>
+                    <td>${e.amount}</td>
+                </tr>
+            `;
         });
+        $('#confirm-product-list tbody').html(html_product_list);
+        // Handle click on thumbnails to open stacked modal
+        $(document).on('click', '.product-thumbnail', function() {
+            const fullImageUrl = $(this).data('full-image');
+            $('#modalImage').attr('src', fullImageUrl);
+            $('#imageModal').modal('show');
+        });
+        $('#update-status .selectpicker').selectpicker('refresh');
         $('#update-status').modal('show');
     }
 
@@ -675,7 +730,7 @@
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info); 
         } else if(res_type == "reject"){
-            var res_reason_2 = $('select[name="res_reason_2"]').val();
+            var res_reason_2 = $('input[name="res_reason_2"]:checked').val();
             check_validation("select", "res_reason_2", res_reason_2);
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info);

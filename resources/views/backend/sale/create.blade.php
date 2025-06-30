@@ -61,29 +61,35 @@
                                                                         ['role_id', \Auth::user()->role_id] ])
                                                                     ->first();
                                                 ?>
-                                                @if($customer_active)
-                                                <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px">
-                                                @foreach($lims_customer_list as $customer)
-                                                    @php
-                                                      $deposit[$customer->id] = $customer->deposit - $customer->expense;
+                                                @if($role->id != 8)
+                                                    @if($customer_active)
+                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px">
+                                                    @foreach($lims_customer_list as $customer)
+                                                        @php
+                                                        $deposit[$customer->id] = $customer->deposit - $customer->expense;
 
-                                                      $points[$customer->id] = $customer->points;
-                                                    @endphp
-                                                    <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
-                                                @endforeach
-                                                </select>
-                                                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
-                                                @else
-                                                <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer...">
-                                                @foreach($lims_customer_list as $customer)
-                                                    @php
-                                                      $deposit[$customer->id] = $customer->deposit - $customer->expense;
+                                                        $points[$customer->id] = $customer->points;
+                                                        @endphp
+                                                        <!-- <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option> -->
+                                                    @endforeach
+                                                    </select>
+                                                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
+                                                    @else
+                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer...">
+                                                    @foreach($lims_customer_list as $customer)
+                                                        @php
+                                                        $deposit[$customer->id] = $customer->deposit - $customer->expense;
 
-                                                      $points[$customer->id] = $customer->points;
-                                                    @endphp
-                                                    <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
-                                                @endforeach
-                                                </select>
+                                                        $points[$customer->id] = $customer->points;
+                                                        @endphp
+                                                        <!-- <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option> -->
+                                                    @endforeach
+                                                    </select>
+                                                    @endif
+                                                @endif
+                                                @if($role->id == 8)
+                                                  
+                                                  <button type="button" class="btn btn-default btn-sm btn-block customer-submit-btn" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
                                                 @endif
                                             </div>
                                         </div>
@@ -817,7 +823,7 @@ $('#lims_productcodeSearch').on('input', function(){
     var customer_id = $('#customer_id').val();
     var warehouse_id = $('#warehouse_id').val();
     temp_data = $('#lims_productcodeSearch').val();
-    if(!customer_id){
+    if(!customer_id && user_role["name"] == 'Admin'){
         $('#lims_productcodeSearch').val(temp_data.substring(0, temp_data.length - 1));
         alert('Please select Customer!');
     }
