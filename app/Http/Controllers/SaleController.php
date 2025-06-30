@@ -98,16 +98,11 @@ class SaleController extends Controller
     public function updateStatus(Request $request)
     {
         $data = $request->input();
-        $reasons = [
-            "1" => "No Answer",
-            "2"=> "Switched Off",
-            "3"=> "Call On"
-        ];
 
         $saleId = $data['sale_id'];
         $resType = $data['res_type'];
         $location = $data['location'];
-        $resReason = $reasons[$data['res_reason_2']];
+        $resReason = $data['res_reason_2'] ?? "";
         $resInfo = $data['res_info'];
 
         // Prepare sale details for update
@@ -159,12 +154,16 @@ class SaleController extends Controller
             case 'report':
                 $saleDetails['res_reason'] = $resReason;
                 $saleDetails['sale_status'] = 4;
-
                 
                 if ($returnData) {
                     // If a return already exists, do nothing further, but update call-on-date & report-times
-                    $returnData['call_on'] = $data['call_on_date'] ?? date('Y-m-d');
-                    $returnData['report_times'] = ($returnData->report_times ?? 0) + 1; 
+                    if(isset($data['call_on_date'])) {
+                        $returnData['call_on'] = $data['call_on_date'] ?? date('Y-m-d');
+                    }
+                    if($resReason){
+                        $returnData['return_note'] = $resReason;
+                    }
+                    $returnData['report_times'] = ($returnData->report_times ?? 0) + 1;
                     $returnData->save();
                     break;
                 }
@@ -183,6 +182,7 @@ class SaleController extends Controller
                     'return_note' => $resReason,
                     'staff_note' => $resInfo
                 ];
+
 
                 $productSales = Product_Sale::where('sale_id', $saleId)->get();
                 foreach ($productSales as $productSale) {
@@ -238,7 +238,6 @@ class SaleController extends Controller
                     $requestData['subtotal'][] = $productSale->total;
                     $requestData['imei_number'][] = '';
                 }
-
                 // Store the return
                 (new ReturnController())->store(new Request($requestData));
             default: break;
@@ -781,9 +780,15 @@ class SaleController extends Controller
 
     public function create()
     {
-        $role = Role::find(Auth::user()->role_id);
+        $user = Auth::user();
+        $role = Role::find($user->role_id);
+        \Log::info("User Role Supplier ID : ". $user->supplier_id );
         if ($role->hasPermissionTo('sales-add')) {
-            $lims_customer_list = Customer::where('is_active', true)->get();
+            $lims_customer_list = Customer::where('is_active', true)
+            ->when($user->supplier_id, function($q) use ($user) {
+                return $q->where('supplier_id', '=', $user->supplier_id);
+            })
+            ->get();
             if (Auth::user()->role_id > 2) {
                 $lims_warehouse_list = Warehouse::where([
                     ['is_active', true],
@@ -811,17 +816,14 @@ class SaleController extends Controller
             $custom_fields = CustomField::where('belongs_to', 'sale')->get();
             $lims_customer_group_all = CustomerGroup::where('is_active', true)->get();
 
-            return view('backend.sale.create', compact('currency_list', 'lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_tax_list', 'lims_reward_point_setting_data', 'options', 'numberOfInvoice', 'custom_fields', 'lims_customer_group_all', 'role'));
+            return view('backend.sale.create', compact('currency_list', 'lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_tax_list', 'lims_reward_point_setting_data', 'options', 'numberOfInvoice', 'custom_fields', 'lims_customer_group_all'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
 
-     public function store(Request $request)
+    public function store(Request $request)
     {
         $data = $request->all();
-        if(!isset($data["customer_id"])) { // @dorian 6-28
-            $data["customer_id"] = 1;
-        }
         if (isset($request->reference_no)) {
             $this->validate($request, [
                 'reference_no' => [
@@ -1602,7 +1604,10 @@ class SaleController extends Controller
     public function getProduct($id)
     {
         $supplier_id = Auth::user()->supplier_id;
-        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id');
+        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
+                ->when($supplier_id, function($q) use ($supplier_id) {
+                    return $q->where('products.supplier_id', $supplier_id);
+                });
         if (config('without_stock') == 'no') {
             $query = $query->where([
                 ['products.is_active', true],
@@ -1621,15 +1626,14 @@ class SaleController extends Controller
             ->whereNull('product_warehouse.product_batch_id')
             ->select('product_warehouse.*', 'products.name', 'products.code', 'products.type', 'products.product_list', 'products.qty_list', 'products.is_embeded')
             ->get();
-        //return $lims_product_warehouse_data;
+
         config()->set('database.connections.mysql.strict', false);
         \DB::reconnect(); //important as the existing connection if any would be in strict mode
 
-        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id');
-
-        if($supplier_id){
-            $query = $query->where('products.supplier_id', '=', $supplier_id);
-        }
+        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
+                ->when($supplier_id, function($q) use ($supplier_id) {
+                    return $q->where('products.supplier_id', $supplier_id);
+                });
 
         if (config('without_stock') == 'no') {
             $query = $query->where([
@@ -1654,7 +1658,10 @@ class SaleController extends Controller
         config()->set('database.connections.mysql.strict', true);
         \DB::reconnect();
 
-        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id');
+        $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
+                ->when($supplier_id, function($q) use ($supplier_id) {
+                    return $q->where('products.supplier_id', $supplier_id);
+                });
         if (config('without_stock') == 'no') {
             $query = $query->where([
                 ['products.is_active', true],
@@ -1678,6 +1685,9 @@ class SaleController extends Controller
                 ['product_warehouse.warehouse_id', $id],
                 ['product_warehouse.qty', '>', 0]
             ])
+            ->when($supplier_id, function($q) use ($supplier_id) {
+                return $q->where('products.supplier_id', $supplier_id);
+            })
             ->whereNull('product_warehouse.variant_id')
             ->whereNotNull('product_warehouse.imei_number')
             ->select('product_warehouse.*', 'products.is_embeded')
@@ -1785,7 +1795,12 @@ class SaleController extends Controller
         }
 
         //retrieve product with type of digital and service
-        $lims_product_data = Product::whereNotIn('type', ['standard', 'combo'])->where('is_active', true)->get();
+        $lims_product_data = Product::whereNotIn('type', ['standard', 'combo'])
+                            ->when($supplier_id, function($q) use ($supplier_id) {
+                                return $q->where('products.supplier_id', $supplier_id);
+                            })
+                            ->where('is_active', true)
+                            ->get();
         foreach ($lims_product_data as $product) {
             $product_qty[] = $product->qty;
             $product_code[] = $product->code;
@@ -1802,7 +1817,6 @@ class SaleController extends Controller
 
         }
         $product_data = [$product_code, $product_name, $product_qty, $product_type, $product_id, $product_list, $qty_list, $product_price, $batch_no, $product_batch_id, $expired_date, $is_embeded, $imei_number];
-        //return $product_id;
         return $product_data;
     }
 

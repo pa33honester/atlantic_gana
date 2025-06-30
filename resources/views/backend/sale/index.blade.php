@@ -595,19 +595,18 @@
                         </div>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_1">
-                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <label>{{trans('Reporting Reason')}} *</label>
                         <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
                             <option value="Rejected">{{trans('Rejected')}}</option>
                             <option value="Other">{{trans('Other Reason')}}</option>
                         </select>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_2">
-                        <label>{{trans('Reason for Cancellation')}} *</label>
+                        <label>{{trans('Reporting Reason')}} *</label>
                         <select name="res_reason_2" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_2');">
-                            <option value="Rejected">{{trans('Rejected')}}</option>
-                            <option value="Delayed">{{trans('Delayed Delivery')}}</option>
-                            <option value="Insufficient">{{trans('Insufficient Invantory')}}</option>
-                            <option value="Other">{{trans('Other Reason')}}</option>
+                            <option value="No-Answer">{{trans('No Answer')}}</option>
+                            <option value="Switch-Off">{{trans('Switched Off')}}</option>
+                            <option value="Call-On">{{trans('Call On')}}</option>
                         </select>
                     </div>                    
                     
@@ -1191,11 +1190,18 @@
 
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
+        var location = $('#update-status select[name=location]').val();
+
         
         var res_type = $('input[name="res_type"]:checked').val();
         check_validation("input", "res_type", res_type);
 
         if(res_type == "confirm"){
+            if(location == 0){ // unselected case
+                alert('Select Location!');
+                return;
+            }
+
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info);
         } else if(res_type == "cancel"){

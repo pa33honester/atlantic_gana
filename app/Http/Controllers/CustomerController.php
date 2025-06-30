@@ -310,7 +310,6 @@ class CustomerController extends Controller
             ]);
         }
         $customer_data = $request->all();
-        //return $customer_data;
         $customer_data['is_active'] = true;
         $prefixMessage = 'Customer';
         if(isset($request->user)) {
@@ -331,21 +330,6 @@ class CustomerController extends Controller
         $fullMessage = $prefixMessage.' created successfully!';
         $mail_setting = MailSetting::latest()->first();
         $message = $this->mailAction($customer_data, $mail_setting, $request, $fullMessage);
-
-        // if($customer_data['email'] && $mail_setting) {
-        //     $this->setMailInfo($mail_setting);
-        //     try {
-        //         Mail::to($customer_data['email'])->send(new CustomerCreate($customer_data));
-        //         if(isset($request->both))
-        //             Mail::to($customer_data['email'])->send(new SupplierCreate($customer_data));
-        //         $message .= ' created successfully!';
-        //     }
-        //     catch(\Exception $e){
-        //         $message .= ' created successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
-        //     }
-        // }
-        // else
-        //     $message .= ' created successfully!';
 
         $lims_customer_data = Customer::create($customer_data);
         //inserting data for custom fields

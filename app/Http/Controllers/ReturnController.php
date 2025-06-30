@@ -86,7 +86,7 @@ class ReturnController extends Controller
     {
         $user = Auth::user();
         $columns = array(
-            1 => 'created_at',
+            1 => 'updated_at',
             2 => 'reference_no',
         );
 
@@ -111,7 +111,7 @@ class ReturnController extends Controller
                 $q->where('warehouse_id', $warehouse_id);
             });
         
-        if($user->role_id == 8){
+        if($user->role_id == 8){ // supplier role
             $baseQuery->whereHas('products', function($q) use ($user) {
                 $q->where('supplier_id', $user->supplier_id);
             });

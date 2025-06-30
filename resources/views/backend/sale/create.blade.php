@@ -61,8 +61,7 @@
                                                                         ['role_id', \Auth::user()->role_id] ])
                                                                     ->first();
                                                 ?>
-                                                @if($role->id != 8)
-                                                    @if($customer_active)
+                                                @if($customer_active)
                                                     <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px">
                                                     @foreach($lims_customer_list as $customer)
                                                         @php
@@ -70,11 +69,11 @@
 
                                                         $points[$customer->id] = $customer->points;
                                                         @endphp
-                                                        <!-- <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option> -->
+                                                        <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
                                                     @endforeach
                                                     </select>
                                                     <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
-                                                    @else
+                                                @else
                                                     <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer...">
                                                     @foreach($lims_customer_list as $customer)
                                                         @php
@@ -82,20 +81,15 @@
 
                                                         $points[$customer->id] = $customer->points;
                                                         @endphp
-                                                        <!-- <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option> -->
+                                                        <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
                                                     @endforeach
                                                     </select>
-                                                    @endif
-                                                @endif
-                                                @if($role->id == 8)
-                                                  
-                                                  <button type="button" class="btn btn-default btn-sm btn-block customer-submit-btn" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
                                                 @endif
                                             </div>
                                         </div>
                                     </div>
                                     @if(isset(auth()->user()->warehouse_id))
-                                    <input type="hidden" name="warehouse_id" id="warehouse_id" value="{{auth()->user()->warehouse_id}}" />
+                                        <input type="hidden" name="warehouse_id" id="warehouse_id" value="{{auth()->user()->warehouse_id}}" />
                                     @else
                                     <div class="col-md-4">
                                         <div class="form-group">
@@ -109,7 +103,7 @@
                                     </div>
                                     @endif
                                     @if(isset(auth()->user()->biller_id))
-                                    <input type="hidden" name="biller_id" id="biller_id" value="{{auth()->user()->biller_id}}" />
+                                        <input type="hidden" name="biller_id" id="biller_id" value="{{auth()->user()->biller_id}}" />
                                     @else
                                     <div class="col-md-4 hidden">
                                         <div class="form-group">
@@ -604,6 +598,7 @@
                 </div>
                 <div class="form-group">
                     <input type="hidden" name="pos" value="1">
+                    <input type="hidden" name="supplier_id" value="{{ auth()->user()->supplier_id }}">
                     <button type="button" class="btn btn-primary customer-submit-btn">{{trans('file.submit')}}</button>
                 </div>
             </div>
@@ -776,6 +771,8 @@ $('select[name="customer_id"]').on('change', function() {
 
 var warehouse_id = $("#warehouse_id").val();
 if(warehouse_id.length){
+    console.log(warehouse_id);
+    console.log('get-product-function called');
     getProduct(warehouse_id);
     isCashRegisterAvailable(warehouse_id);
 }
@@ -823,7 +820,7 @@ $('#lims_productcodeSearch').on('input', function(){
     var customer_id = $('#customer_id').val();
     var warehouse_id = $('#warehouse_id').val();
     temp_data = $('#lims_productcodeSearch').val();
-    if(!customer_id && user_role["name"] == 'Admin'){
+    if(!customer_id){
         $('#lims_productcodeSearch').val(temp_data.substring(0, temp_data.length - 1));
         alert('Please select Customer!');
     }
