@@ -163,8 +163,8 @@ class ReturnController extends Controller
                         $nestedData['sale_reference'] = 'N/A';
                 } else
                     $nestedData['sale_reference'] = 'N/A';
-                //$nestedData['warehouse'] = $returns->warehouse->name;
-                $nestedData['biller'] = $returns->biller->name;
+                $nestedData['warehouse'] = $returns->warehouse->name;
+                // $nestedData['biller'] = $returns->biller->name;
                 $nestedData['customer'] = $returns->customer->name;
                 $nestedData['call_on'] = $returns->call_on;
                 $nestedData['report_times'] = $returns->report_times ?? 0;
@@ -261,12 +261,12 @@ class ReturnController extends Controller
                     '[ "' . date(config('date_format'), strtotime($returns->created_at->toDateString())) . '"',
                     ' "' . $returns->reference_no . '"',
                     ' "' . $returns->warehouse->name . '"',
-                    ' "' . $returns->biller->name . '"',
-                    ' "' . $returns->biller->company_name . '"',
-                    ' "' . $returns->biller->email . '"',
-                    ' "' . $returns->biller->phone_number . '"',
-                    ' "' . $returns->biller->address . '"',
-                    ' "' . $returns->biller->city . '"',
+                    ' ""',
+                    ' ""',
+                    ' ""',
+                    ' ""',
+                    ' ""',
+                    ' ""',
                     ' "' . $returns->customer->name . '"',
                     ' "' . $returns->customer->phone_number . '"',
                     ' "' . $returns->customer->address . '"',
