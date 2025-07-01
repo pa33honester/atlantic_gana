@@ -715,11 +715,18 @@
     
     $(".update_status_btn").on("click", function(){
 
+        var location = $('input[name=location]').val();
+        if(!location) {
+            alert('Please select location!');
+            return;
+        }
+        
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
         
         var res_type = $('input[name="res_type"]:checked').val();
         check_validation("input", "res_type", res_type);
+
 
         if(res_type == "confirm"){
             var res_info = $('textarea[name="res_info"]').val();

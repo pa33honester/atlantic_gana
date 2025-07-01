@@ -1187,20 +1187,21 @@
     }
 
     $(".update_status_btn").on("click", function(){
-
+        
+        var location = $('#update-status select[name=location]').val();
+        if(location == 0){ // unselected case
+            alert('Select Location!');
+            return;
+        }
+        
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
-        var location = $('#update-status select[name=location]').val();
 
         
         var res_type = $('input[name="res_type"]:checked').val();
         check_validation("input", "res_type", res_type);
 
         if(res_type == "confirm"){
-            if(location == 0){ // unselected case
-                alert('Select Location!');
-                return;
-            }
 
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info);
