@@ -480,7 +480,7 @@ class SaleController extends Controller
         // Extract filters
         $filters = [
             'warehouse_id'   => $request->input('warehouse_id'),
-            'supplier_id'    => $request->input('supplier_id'),
+            'supplier_id'    => $user->supplier_id ?? $request->input('supplier_id'),
             'sale_status'    => $request->input('sale_status'),
             'location'       => $request->input('location'),
             'sale_type'      => $request->input('sale_type'),
@@ -507,26 +507,18 @@ class SaleController extends Controller
             }
         }
 
-        if($user->supplier_id){ // supplier account
-            $query->whereHas('products.supplier', function($q) use ($user) {
-                $q->where('suppliers.id', $user->supplier_id);
-            });
+        // Apply additional filters
+        foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
+            if (!empty($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
         }
 
-        if($user->role_id == 1){
-            // Apply additional filters
-            foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
-                if (!empty($filters[$field])) {
-                    $query->where($field, $filters[$field]);
-                }
-            }
-    
-            // Filter by supplier if needed
-            if ($filters['supplier_id'] > 0) {
-                $query->whereHas('products.supplier', function($q) use ($filters) {
-                    $q->where('suppliers.id', $filters['supplier_id']);
-                });
-            }
+        // Filter by supplier if needed
+        if ($filters['supplier_id'] > 0) {
+            $query->whereHas('products.supplier', function($q) use ($filters) {
+                $q->where('suppliers.id', $filters['supplier_id']);
+            });
         }
 
         // Total records before search
@@ -590,6 +582,14 @@ class SaleController extends Controller
             13 => ['danger',    'Rported'],
         ];
         foreach ($sales as $key => $sale) {
+            if(!$sale->customer) {
+                $sale->customer = (object)[
+                    "name"  => "Unknown",
+                    "address"   => "",
+                    "phone_number"  => "",
+                    "city"      => ""
+                ];
+            }
             // Get product names and codes from the related products
             $product_names = $sale->products->pluck('name')->toArray();
             $product_codes = $sale->products->pluck('code')->toArray();
@@ -610,8 +610,8 @@ class SaleController extends Controller
                 'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
                 'reference_no' => $sale->reference_no,
-                'customer' => $sale->customer->name . '<br>' . $sale->customer->phone_number,
-                'customer_address' => $sale->customer->address . '<br>' . $sale->customer->city,
+                'customer' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
+                'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
                 'payment_method' => implode(",", Payment::where('sale_id', $sale->id)->pluck('paying_method')->toArray()),
                 'sale_status' => $sale->sale_status,
                 'location' => $sale->location,
