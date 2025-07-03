@@ -7,9 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class Customer extends Model
 {
     protected $fillable =[
-        "customer_group_id", "user_id", "name", "company_name",
-        "email", "phone_number", "tax_no", "address", "city",
-        "state", "postal_code", "country", "points", "deposit", "expense", "wishlist", "is_active"
+        "customer_group_id", 
+        "user_id",
+        "supplier_id", 
+        "name", 
+        "company_name",
+        "email", 
+        "phone_number", 
+        "tax_no", "address", "city",
+        "state", "postal_code", 
+        "country", "points", 
+        "deposit", "expense", 
+        "wishlist", "is_active"
     ];
 
     public function customerGroup()

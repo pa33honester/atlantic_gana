@@ -151,14 +151,19 @@ class ReturnController extends Controller
         $data = array();
         if (!empty($returnss)) {
             foreach ($returnss as $key => $returns) {
+                
                 $nestedData['id'] = $returns->id;
                 $nestedData['key'] = $key;
                 $nestedData['date'] = date(config('date_format'), strtotime($returns->created_at->toDateString()));
                 $nestedData['reference_no'] = $returns->reference_no;
+                
                 if ($returns->sale_id) {
                     $sale_data = Sale::select('reference_no', 'location')->find($returns->sale_id);
-                    if ($sale_data)
+                    if ($sale_data){
                         $nestedData['sale_reference'] = $sale_data->reference_no;
+                        $sale_data['sale_status'] = 13;
+                        $sale_data->save();
+                    }
                     else
                         $nestedData['sale_reference'] = 'N/A';
                 } else

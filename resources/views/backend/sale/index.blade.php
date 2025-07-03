@@ -603,12 +603,25 @@
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_2">
                         <label>{{trans('Reporting Reason')}} *</label>
-                        <select name="res_reason_2" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_2');">
-                            <option value="No-Answer">{{trans('No Answer')}}</option>
-                            <option value="Switch-Off">{{trans('Switched Off')}}</option>
-                            <option value="Call-On">{{trans('Call On')}}</option>
-                        </select>
-                    </div>                    
+                        <div class="d-flex flex-row gap-3" style="gap: 2rem;">
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center; margin-right: 2rem;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_no_answer" value="No-Answer" required onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').addClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_no_answer" style="margin-left: 0.5rem;">{{trans('No Answer')}}</label>
+                            </div>
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center; margin-right: 2rem;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_switched_off" value="Switch-Off" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').addClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_switched_off" style="margin-left: 0.5rem;">{{trans('Switched Off')}}</label>
+                            </div>
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_call_on" value="Call-On" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').removeClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_call_on" style="margin-left: 0.5rem;">{{trans('Call On')}}</label>
+                            </div>
+                        </div>
+                        <div id="call_on_date_picker" class="mt-2 d-none">
+                            <label for="call_on_date">{{ trans('Select Call On Date') }}</label>
+                            <input type="date" name="call_on_date" id="call_on_date" class="form-control" />
+                        </div>
+                    </div>          
                     
                     <div class="col-md-12 form-group">
                         <label>{{trans('Remark')}}</label>
@@ -1188,12 +1201,12 @@
 
     $(".update_status_btn").on("click", function(){
         
-        var location = $('#update-status select[name=location]').val();
-        if(location == 0){ // unselected case
-            alert('Select Location!');
+        var loc = $('#update-status select[name=location]').val();
+        if(loc == 0){ // unselected case
+            alert('Please select location!');
             return;
         }
-        
+
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
 
@@ -1222,7 +1235,6 @@
             type: "POST",
             data: $(".update_status").serializeArray(),
             success:function(data) {
-                //alert(data);
                 $('#update-status').modal('hide');
                 location.reload();
             }

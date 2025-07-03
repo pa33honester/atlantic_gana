@@ -61,8 +61,8 @@
                                                                         ['role_id', \Auth::user()->role_id] ])
                                                                     ->first();
                                                 ?>
-                                                @if($customer_active)
-                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px">
+                                                @if(auth()->user()->role_id == 1)
+                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px;">
                                                     @foreach($lims_customer_list as $customer)
                                                         @php
                                                         $deposit[$customer->id] = $customer->deposit - $customer->expense;
@@ -74,16 +74,16 @@
                                                     </select>
                                                     <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
                                                 @else
-                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer...">
+                                                    <select required name="customer_id" id="customer_id" class="d-none">
                                                     @foreach($lims_customer_list as $customer)
                                                         @php
                                                         $deposit[$customer->id] = $customer->deposit - $customer->expense;
-
                                                         $points[$customer->id] = $customer->points;
                                                         @endphp
                                                         <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
                                                     @endforeach
                                                     </select>
+                                                    <button type="button" class="btn btn-default btn-block btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
                                                 @endif
                                             </div>
                                         </div>
@@ -321,13 +321,6 @@
                                         <div class="form-group">
                                             <label>{{trans('Order Status')}} *</label>
                                             <select name="sale_status" class="form-control">
-                                                <!-- <option value="1">{{trans('file.Completed')}}</option>
-                                                <option value="2">{{trans('file.Pending')}}</option>
-                                                <option value="6" selected>{{trans('Unpaid')}}</option>
-                                                <option value="7">{{trans('Confirmed')}}</option>
-                                                <option value="8">{{trans('Delivered')}}</option>
-                                                <option value="9">{{trans('Signed')}}</option> -->
-                                                <!-- <option value="0">{{trans('file.All')}}</option> -->
                                                 <option value="6" selected>{{trans('Unpaid')}}</option>
                                                 <option value="7">{{trans('Confirmed')}}</option>
                                                 <option value="12">{{trans('Receiving')}}</option>
@@ -339,16 +332,6 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <!-- <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label>{{trans('Location')}} *</label>
-                                            <select name="payment_status" class="form-control">
-                                                <option value="1">{{trans('Inside Accra')}}</option>
-                                                <option value="2">{{trans('Outside Accra')}}</option>
-                                                <option value="3">{{trans('Kumasi')}}</option>
-                                            </select>
-                                        </div>
-                                    </div> -->
                                 </div>
                                 <div id="payment">
                                     <div class="row">

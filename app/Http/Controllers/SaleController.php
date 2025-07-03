@@ -153,93 +153,96 @@ class SaleController extends Controller
 
             case 'report':
                 $saleDetails['res_reason'] = $resReason;
-                $saleDetails['sale_status'] = 4;
+                $saleDetails['sale_status'] = 13; // report
                 
                 if ($returnData) {
                     // If a return already exists, do nothing further, but update call-on-date & report-times
                     if(isset($data['call_on_date'])) {
-                        $returnData['call_on'] = $data['call_on_date'] ?? date('Y-m-d');
+                        $returnData['call_on'] = $data['call_on_date'];
                     }
                     if($resReason){
                         $returnData['return_note'] = $resReason;
                     }
                     $returnData['report_times'] = ($returnData->report_times ?? 0) + 1;
                     $returnData->save();
-                    break;
+                }
+                else {
+                    // Prepare data for creating a new return
+                    $requestData = [
+                        'sale_id' => $saleId,
+                        'total_qty' => 0,
+                        'total_discount' => 0,
+                        'total_tax' => 0,
+                        'total_price' => 0,
+                        'item' => 0,
+                        'order_tax' => 0,
+                        'grand_total' => 0,
+                        'change_sale_status' => '1',
+                        'return_note' => $resReason,
+                        'staff_note' => $resInfo,
+                        "report_times"=> 1,
+                        "call_on"   => $data['call_on_date'] ?? null,
+                    ];
+    
+    
+                    $productSales = Product_Sale::where('sale_id', $saleId)->get();
+                    foreach ($productSales as $productSale) {
+                        $product = DB::table('products')->find($productSale->product_id);
+    
+                        // Get product variant if exists
+                        if ($productSale->variant_id) {
+                            $variant = ProductVariant::select('id', 'item_code')
+                                ->FindExactProduct($product->id, $productSale->variant_id)
+                                ->first();
+                            $productVariantId = $variant->id;
+                            $product->code = $variant->item_code;
+                        } else {
+                            $productVariantId = null;
+                        }
+    
+                        // Calculate product price based on tax method
+                        if ($product->tax_method == 1) {
+                            $productPrice = $productSale->net_unit_price + ($productSale->discount / $productSale->qty);
+                        } elseif ($product->tax_method == 2) {
+                            $productPrice = ($productSale->total / $productSale->qty) + ($productSale->discount / $productSale->qty);
+                        } else {
+                            $productPrice = 0;
+                        }
+    
+                        // Get unit name
+                        if ($product->type == 'standard') {
+                            $unit = DB::table('units')->select('unit_name')->find($productSale->sale_unit_id);
+                            $unitName = $unit ? $unit->unit_name : 'n/a';
+                        } else {
+                            $unitName = 'n/a';
+                        }
+    
+                        // Get product batch id
+                        $batch = ProductBatch::select('batch_no')->find($productSale->product_batch_id);
+                        $batchId = $batch ? $productSale->product_batch_id : 0;
+    
+                        // Fill request data arrays
+                        $requestData['product_batch_id'][] = $batchId;
+                        $requestData['actual_qty'][] = $productSale->qty - $productSale->return_qty;
+                        $requestData['qty'][] = $productSale->qty - $productSale->return_qty;
+                        $requestData['is_return'][] = $productSale->id;
+                        $requestData['product_code'][] = $product->code;
+                        $requestData['product_sale_id'][] = $productSale->id;
+                        $requestData['product_id'][] = $product->id;
+                        $requestData['product_variant_id'][] = $productVariantId;
+                        $requestData['product_price'][] = $productPrice;
+                        $requestData['sale_unit'][] = $unitName;
+                        $requestData['net_unit_price'][] = $productSale->net_unit_price;
+                        $requestData['discount'][] = $productSale->discount;
+                        $requestData['tax_rate'][] = $productSale->tax_rate;
+                        $requestData['tax'][] = $productSale->tax;
+                        $requestData['subtotal'][] = $productSale->total;
+                        $requestData['imei_number'][] = '';
+                    }
+                    // Store the return
+                    (new ReturnController())->store(new Request($requestData));
                 }
 
-                // Prepare data for creating a new return
-                $requestData = [
-                    'sale_id' => $saleId,
-                    'total_qty' => 0,
-                    'total_discount' => 0,
-                    'total_tax' => 0,
-                    'total_price' => 0,
-                    'item' => 0,
-                    'order_tax' => 0,
-                    'grand_total' => 0,
-                    'change_sale_status' => '1',
-                    'return_note' => $resReason,
-                    'staff_note' => $resInfo
-                ];
-
-
-                $productSales = Product_Sale::where('sale_id', $saleId)->get();
-                foreach ($productSales as $productSale) {
-                    $product = DB::table('products')->find($productSale->product_id);
-
-                    // Get product variant if exists
-                    if ($productSale->variant_id) {
-                        $variant = ProductVariant::select('id', 'item_code')
-                            ->FindExactProduct($product->id, $productSale->variant_id)
-                            ->first();
-                        $productVariantId = $variant->id;
-                        $product->code = $variant->item_code;
-                    } else {
-                        $productVariantId = null;
-                    }
-
-                    // Calculate product price based on tax method
-                    if ($product->tax_method == 1) {
-                        $productPrice = $productSale->net_unit_price + ($productSale->discount / $productSale->qty);
-                    } elseif ($product->tax_method == 2) {
-                        $productPrice = ($productSale->total / $productSale->qty) + ($productSale->discount / $productSale->qty);
-                    } else {
-                        $productPrice = 0;
-                    }
-
-                    // Get unit name
-                    if ($product->type == 'standard') {
-                        $unit = DB::table('units')->select('unit_name')->find($productSale->sale_unit_id);
-                        $unitName = $unit ? $unit->unit_name : 'n/a';
-                    } else {
-                        $unitName = 'n/a';
-                    }
-
-                    // Get product batch id
-                    $batch = ProductBatch::select('batch_no')->find($productSale->product_batch_id);
-                    $batchId = $batch ? $productSale->product_batch_id : 0;
-
-                    // Fill request data arrays
-                    $requestData['product_batch_id'][] = $batchId;
-                    $requestData['actual_qty'][] = $productSale->qty - $productSale->return_qty;
-                    $requestData['qty'][] = $productSale->qty - $productSale->return_qty;
-                    $requestData['is_return'][] = $productSale->id;
-                    $requestData['product_code'][] = $product->code;
-                    $requestData['product_sale_id'][] = $productSale->id;
-                    $requestData['product_id'][] = $product->id;
-                    $requestData['product_variant_id'][] = $productVariantId;
-                    $requestData['product_price'][] = $productPrice;
-                    $requestData['sale_unit'][] = $unitName;
-                    $requestData['net_unit_price'][] = $productSale->net_unit_price;
-                    $requestData['discount'][] = $productSale->discount;
-                    $requestData['tax_rate'][] = $productSale->tax_rate;
-                    $requestData['tax'][] = $productSale->tax;
-                    $requestData['subtotal'][] = $productSale->total;
-                    $requestData['imei_number'][] = '';
-                }
-                // Store the return
-                (new ReturnController())->store(new Request($requestData));
             default: break;
         }
 
@@ -463,6 +466,8 @@ class SaleController extends Controller
      */
     public function saleData(Request $request)
     {
+        $user = Auth::user();
+
         // Define columns for ordering
         $columns = [
             0 => 'created_at',
@@ -471,8 +476,6 @@ class SaleController extends Controller
             3 => 'grand_total',
             4 => 'paid_amount',
         ];
-
-        $user = Auth::user();
         
         // Extract filters
         $filters = [
@@ -504,7 +507,7 @@ class SaleController extends Controller
             }
         }
 
-        if($user->role_id == 8){
+        if($user->supplier_id){ // supplier account
             $query->whereHas('products.supplier', function($q) use ($user) {
                 $q->where('suppliers.id', $user->supplier_id);
             });
@@ -571,6 +574,21 @@ class SaleController extends Controller
             ->get();
       
         $data = [];
+        $statusMap = [
+                1  => ['info',      'Fulfilled'],
+            2  => ['danger',    'file.Pending'],
+            3  => ['warning',   'file.Draft'],
+            4  => ['warning',   'file.Returned'],
+            5  => ['info',      'file.Processing'],
+            6  => ['warning',   'Unpaid'],
+            7  => ['success',   'Confirmed'],
+            8  => ['primary',   'Shipped'],
+            9  => ['info',      'Signed'],
+            10 => ['warning',   'Refunded'],
+            11 => ['danger',    'Cancelled'],
+            12 => ['info',      'Receiving'],
+            13 => ['danger',    'Rported'],
+        ];
         foreach ($sales as $key => $sale) {
             // Get product names and codes from the related products
             $product_names = $sale->products->pluck('name')->toArray();
@@ -609,23 +627,8 @@ class SaleController extends Controller
                 case '1': $nestedData['location'] = "Inside Accra"; break;
                 case '2': $nestedData['location'] = "Outside Accra"; break;
                 case "3": $nestedData["location"] = "Kumasi"; break;
-                default: $nestedData['location'] = "Other";
+                default: $nestedData['location'] = "Unknown";
             }
-
-            $statusMap = [
-                1  => ['info',      'Fulfilled'],
-                2  => ['danger',    'file.Pending'],
-                3  => ['warning',   'file.Draft'],
-                4  => ['warning',   'file.Returned'],
-                5  => ['info',      'file.Processing'],
-                6  => ['warning',   'Unpaid'],
-                7  => ['success',   'Confirmed'],
-                8  => ['primary',   'Shipped'],
-                9  => ['info',      'Signed'],
-                10 => ['warning',   'Refunded'],
-                11 => ['danger',    'Cancelled'],
-                12 => ['info',      'Receiving'],
-            ];
 
             list($badgeClass, $statusText) = $statusMap[$sale->sale_status] ?? ['secondary', 'Unknown'];
             $nestedData['sale_status'] = '<div class="badge badge-' . $badgeClass . '">' . trans($statusText) . '</div>';
@@ -869,7 +872,7 @@ class SaleController extends Controller
         if (isset($data['created_at']))
             $data['created_at'] = date("Y-m-d", strtotime(str_replace("/", "-", $data['created_at']))) . ' ' . date("H:i:s");
         else
-            $data['created_at'] = date("Y-m-d H:i:s");
+            $data['created_at'] = date("Y-m-d H:i:s");
         //return dd($data);
 
         //set the paid_amount value to $new_data variable

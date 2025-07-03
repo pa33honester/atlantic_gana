@@ -266,6 +266,7 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
         $this->validate($request, [
             'phone_number' => [
                 'max:255',
@@ -309,6 +310,7 @@ class CustomerController extends Controller
                 ],
             ]);
         }
+
         $customer_data = $request->all();
         $customer_data['is_active'] = true;
         $prefixMessage = 'Customer';
@@ -322,16 +324,23 @@ class CustomerController extends Controller
             $prefixMessage .= ', User';
         }
         $customer_data['name'] = $customer_data['customer_name'];
-        if(isset($request->both)) {
-            Supplier::create($customer_data);
-            $prefixMessage .= ' and Supplier';
+
+        if($user->supplier_id) {
+            $customer_data['supplier_id'] = $user->supplier_id;
         }
+        
+        // @dorian
+        // if(isset($request->both)) {
+        //     Supplier::create($customer_data);
+        //     $prefixMessage .= ' and Supplier';
+        // }
 
         $fullMessage = $prefixMessage.' created successfully!';
         $mail_setting = MailSetting::latest()->first();
         $message = $this->mailAction($customer_data, $mail_setting, $request, $fullMessage);
 
         $lims_customer_data = Customer::create($customer_data);
+
         //inserting data for custom fields
         $custom_field_data = [];
         $custom_fields = CustomField::where('belongs_to', 'customer')->select('name', 'type')->get();

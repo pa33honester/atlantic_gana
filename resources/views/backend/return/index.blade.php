@@ -10,7 +10,7 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-header mt-2">
-                <h3 class="text-center">{{trans('Order Return List')}}</h3>
+                <h3 class="text-center">{{trans('Report Order List')}}</h3>
             </div>
             {!! Form::open(['route' => 'return-sale.index', 'method' => 'get']) !!}
 
@@ -715,18 +715,17 @@
     
     $(".update_status_btn").on("click", function(){
 
-        var location = $('input[name=location]').val();
-        if(!location) {
+        var loc = $('select[name=location]').val();
+        if(!loc) {
             alert('Please select location!');
             return;
         }
-        
+
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
         
         var res_type = $('input[name="res_type"]:checked').val();
         check_validation("input", "res_type", res_type);
-
 
         if(res_type == "confirm"){
             var res_info = $('textarea[name="res_info"]').val();
