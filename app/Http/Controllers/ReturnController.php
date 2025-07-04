@@ -1222,6 +1222,6 @@ class ReturnController extends Controller
         $lims_return_data->delete();
         $this->fileDelete(public_path('documents/sale_return/'), $lims_return_data->document);
 
-        return redirect('return-sale')->with('not_permitted', 'Data deleted successfully');
+        return redirect('return-sale');
     }
 }

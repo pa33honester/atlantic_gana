@@ -721,7 +721,7 @@
         check_validation("input", "res_type", res_type);
         
         if(res_type == "confirm"){
-            if(!loc) {
+            if(loc == 0) {
                 alert('Please select location!');
                 return;
             }
