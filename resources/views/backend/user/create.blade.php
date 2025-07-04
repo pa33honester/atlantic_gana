@@ -3,6 +3,7 @@
 @if(session()->has('not_permitted'))
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
+<h1>hi, rona</h1>
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
@@ -13,7 +14,7 @@
                     </div>
                     <div class="card-body">
                         <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
-                        {!! Form::open(['route' => 'user.store', 'method' => 'post', 'files' => true]) !!}
+                        {!! Form::open(['route' => 'user.store', 'method' => 'post', 'files' => true, 'class'=> 'user-create-form']) !!}
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -177,6 +178,21 @@
             }
         });
     @endif
+
+    $('input[type=submit]').on('click', function(e){
+        e.preventDefault();
+         $.ajax({
+            url: '../../user',
+            type: "POST",
+            data: $(".user-create-form").serializeArray(),
+            success:function(data) {
+                //alert(data);
+                console.log(data);
+                // $('#cancel-order').modal('hide');
+                // location.reload();
+            }
+        });
+    });
 
     $('#genbutton').on("click", function(){
       $.get('genpass', function(data){

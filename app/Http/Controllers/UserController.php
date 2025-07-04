@@ -74,6 +74,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+
         $this->validate($request, [
             'name' => [
                 'max:255',
@@ -90,20 +91,18 @@ class UserController extends Controller
             ],
         ]);
 
+        
         if($request->role_id == 5) {
             $this->validate($request, [
                 'phone_number' => [
                     'max:255',
-                        Rule::unique('customers')->where(function ($query) {
+                    Rule::unique('customers')->where(function ($query) {
                         return $query->where('is_active', 1);
                     }),
                 ],
             ]);
         }
-        else if($request->role_id == 8) { // supplier
-
-        }
-
+        
         $data = $request->all();
         $message = 'User created successfully';
         $mail_setting = MailSetting::latest()->first();
@@ -122,6 +121,8 @@ class UserController extends Controller
         $data['password'] = bcrypt($data['password']);
         $data['phone'] = $data['phone_number'];
         $user_data = User::create($data);
+
+        return $user_data;
         
         if($data['role_id'] == 5) {
             $data['user_id'] = $user_data->id;
@@ -130,6 +131,7 @@ class UserController extends Controller
             $data['is_active'] = true;
             Customer::create($data);
         }
+
         return redirect('user')->with('message1', $message);
     }
 

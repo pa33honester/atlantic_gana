@@ -179,17 +179,8 @@
 
                 $purchase_return_index_permission_active = $role_has_permissions_list->where('name', 'purchase-return-index')->first();
             ?>
-            @if($sale_return_index_permission_active || $purchase_return_index_permission_active)
-            <li><a href="#return" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-return"></i><span>{{trans('file.return')}}</span></a>
-            <ul id="return" class="collapse list-unstyled ">
-                @if($sale_return_index_permission_active)
-                <li id="sale-return-menu"><a href="{{route('return-sale.index')}}">{{trans('Reported Order')}}</a></li>
-                @endif
-                @if($purchase_return_index_permission_active)
-                <li id="purchase-return-menu"><a href="{{route('return-purchase.index')}}">{{trans('file.Purchase')}}</a></li>
-                @endif
-            </ul>
-            </li>
+            @if($sale_return_index_permission_active)
+                <li id="sale-return-menu"><a href="{{route('return-sale.index')}}"><i class="dripicons-return"></i><span>{{trans('Reported Order')}}</span></a></li>
             @endif
             <?php
             $index_permission_active = $role_has_permissions_list->where('name', 'account-index')->first();
@@ -415,7 +406,6 @@
                 {!! Form::close() !!}
                 </li>
                 @endif
-                <li id="challan-report-menu"><a href="{{route('report.challan')}}"> {{trans('file.Challan Report')}}</a></li>
                 @if($sale_report_chart_active)
                 <li id="sale-report-chart-menu">
                     {!! Form::open(['route' => 'report.saleChart', 'method' => 'post', 'id' => 'sale-report-chart-form']) !!}
@@ -518,21 +508,6 @@
                 @endif
             </ul>
             </li>
-            @endif
-            @if(\Auth::user()->role_id != 5)
-                @if(!config('database.connections.saleprosaas_landlord'))
-                    <li><a href="{{url('addon-list')}}" id="addon-list"> <i class="dripicons-flag"></i><span>{{trans('file.Addons')}}</span></a></li>
-                @endif
-                @if (in_array('woocommerce',explode(',',$general_setting->modules)))
-                    <li><a href="{{route('woocommerce.index')}}"> <i class="fa fa-wordpress"></i><span>WooCommerce</span></a></li>
-                @endif
-                @if(in_array('ecommerce',explode(',',$general_setting->modules)))
-                <li><a href="#ecommerce" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-shopping-bag"></i><span>eCommerce</span></a>
-                    <ul id="ecommerce" class="collapse list-unstyled ">
-                        @include('ecommerce::backend.layout.sidebar-menu')
-                    </ul>
-                </li>
-                @endif
             @endif
             <li><a href="#setting" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-gear"></i><span>{{trans('file.settings')}}</span></a>
                 <ul id="setting" class="collapse list-unstyled ">
