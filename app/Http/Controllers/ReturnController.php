@@ -132,10 +132,6 @@ class ReturnController extends Controller
                 $q->whereHas('sale', function ($q2) use ($search) {
                     $q2->where('reference_no', 'LIKE', "%{$search}%");
                 });
-                // ->orWhereHas('customer', function ($q2) use ($search) {
-                //     $q2->where('name', 'LIKE', "%{$search}%")
-                //         ->orWhere('phone_number', 'LIKE', "%{$search}%");
-                // });
             });
         }
 
@@ -215,8 +211,7 @@ class ReturnController extends Controller
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
             }
 
-            // allows only admin to action
-            if($user->role_id == 1){
+            if($user->role_id ^ 0x8){
                 $nestedData['options'] = 
                     '<div class="btn-group">
                         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
@@ -232,7 +227,7 @@ class ReturnController extends Controller
                             </li>';
                     if (in_array("returns-edit", $request['all_permission'])) {
                     $nestedData['options'] .= '<li>
-                            <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
+                            <a href="#" class="btn btn-link" onclick="editx(' . $returns->sale_id . ')"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
                         </li>';
                 }
                 if (in_array("returns-delete", $request['all_permission'])){

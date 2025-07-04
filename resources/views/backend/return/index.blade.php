@@ -295,6 +295,20 @@
     </div>
 </div>
 
+<div id="edit-sale" tabindex="-1" role="dialog" aria-labelledby="editSale" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="editSaleLabel" class="modal-title">Update Order</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+            <iframe src="" style="border:none;width:100%;height:800px;" id="editSale">
+            </iframe>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -709,6 +723,11 @@
         $('#update-status').modal('show');
     }
 
+    function editx(id){
+        //alert(id);
+        $("#editSale").attr("src","/sales/"+id+"/edit");
+        $('#edit-sale').modal('show');
+    }
     
     $(".update_status_btn").on("click", function(){
 
