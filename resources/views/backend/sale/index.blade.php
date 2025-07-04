@@ -1202,19 +1202,19 @@
     $(".update_status_btn").on("click", function(){
         
         var loc = $('#update-status select[name=location]').val();
-        if(loc == 0){ // unselected case
-            alert('Please select location!');
-            return;
-        }
-
+        
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
-
+        
         
         var res_type = $('input[name="res_type"]:checked').val();
         check_validation("input", "res_type", res_type);
-
+        
         if(res_type == "confirm"){
+            if(loc == 0){ // unselected case
+                alert('Please select location!');
+                return;
+            }
 
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info);
