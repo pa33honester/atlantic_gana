@@ -32,6 +32,11 @@ class Returns extends Model
         "report_times"
     ];
 
+    public function sale()
+    {
+        return $this->belongsTo('App\Models\Sale');
+    }
+
     public function biller()
     {
     	return $this->belongsTo('App\Models\Biller');

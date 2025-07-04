@@ -98,7 +98,7 @@ class ReturnController extends Controller
         $dir = $request->input('order.0.dir', 'desc');
         $search = $request->input('search.value');
 
-        $baseQuery = Returns::with(['biller', 'customer', 'warehouse', 'user' , 'products'])
+        $baseQuery = Returns::with(['biller', 'customer', 'warehouse', 'user' , 'products', 'sale'])
             ->whereDate('created_at', '>=', $request->input('starting_date'))
             ->whereDate('created_at', '<=', $request->input('ending_date'))
             ->when($user->role_id > 2 && config('staff_access') == 'own', function ($q) {
@@ -129,14 +129,13 @@ class ReturnController extends Controller
 
         if ($search) {
             $filteredQuery = $filteredQuery->where(function ($q) use ($search) {
-                $q->where('reference_no', 'LIKE', "%{$search}%")
-                    ->orWhereHas('customer', function ($q2) use ($search) {
-                        $q2->where('name', 'LIKE', "%{$search}%")
-                            ->orWhere('phone_number', 'LIKE', "%{$search}%");
-                    })
-                    ->orWhereHas('biller', function ($q2) use ($search) {
-                        $q2->where('name', 'LIKE', "%{$search}%");
-                    });
+                $q->whereHas('sale', function ($q2) use ($search) {
+                    $q2->where('reference_no', 'LIKE', "%{$search}%");
+                });
+                // ->orWhereHas('customer', function ($q2) use ($search) {
+                //     $q2->where('name', 'LIKE', "%{$search}%")
+                //         ->orWhere('phone_number', 'LIKE', "%{$search}%");
+                // });
             });
         }
 
@@ -149,157 +148,145 @@ class ReturnController extends Controller
                     ->get();
 
         $data = array();
-        if (!empty($returnss)) {
-            foreach ($returnss as $key => $returns) {
-                
-                $nestedData['id'] = $returns->id;
-                $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format'), strtotime($returns->created_at->toDateString()));
-                $nestedData['reference_no'] = $returns->reference_no;
-                
-                if ($returns->sale_id) {
-                    $sale_data = Sale::select('reference_no', 'location')->find($returns->sale_id);
-                    if ($sale_data){
-                        $nestedData['sale_reference'] = $sale_data->reference_no;
-                        $sale_data['sale_status'] = 13;
-                        $sale_data->save();
-                    }
-                    else
-                        $nestedData['sale_reference'] = 'N/A';
-                } else
-                    $nestedData['sale_reference'] = 'N/A';
-                $nestedData['warehouse'] = $returns->warehouse->name;
-                // $nestedData['biller'] = $returns->biller->name;
-                $nestedData['customer'] = $returns->customer->name;
-                $nestedData['call_on'] = $returns->call_on;
-                $nestedData['report_times'] = $returns->report_times ?? 0;
+        foreach ($returnss as $key => $returns) {
+            
+            $nestedData['id'] = $returns->id;
+            $nestedData['key'] = $key;
+            $nestedData['date'] = date(config('date_format'), strtotime($returns->created_at->toDateString()));
+            $nestedData['reference_no'] = $returns->reference_no;
+            
+            $nestedData['sale_reference'] = $returns->sale->reference_no ?? 'N/A';
+            $nestedData['warehouse'] = $returns->warehouse->name;
+            $nestedData['customer'] = $returns->customer->name . '<br>(' . $returns->customer->phone_number. ')';
+            $nestedData['call_on'] = $returns->call_on;
+            $nestedData['report_times'] = $returns->report_times ?? 0;
 
-                $product_names = $returns->products->pluck('name')->toArray();
-                $product_codes = $returns->products->pluck('code')->toArray();
-                $suppliers = $returns->products->pluck('supplier.name')->filter()->unique()->values()->toArray();
+            $product_names = $returns->products->pluck('name')->toArray();
+            $product_codes = $returns->products->pluck('code')->toArray();
+            $suppliers = $returns->products->pluck('supplier.name')->filter()->unique()->values()->toArray();
 
-                $nestedData['supplier'] = implode(', ', $suppliers);
-                $nestedData['product_name'] = implode(',', $product_names);
-                $nestedData['product_code'] = implode(',', $product_codes);
+            $nestedData['supplier'] = implode(', ', $suppliers);
+            $nestedData['product_name'] = implode(',', $product_names);
+            $nestedData['product_code'] = implode(',', $product_codes);
 
-                $sales_data = Sale::select('created_at')->find($returns->sale_id);
-                $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($sales_data->created_at));
+            $sales_data = Sale::select('created_at')->find($returns->sale_id);
+            $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($sales_data->created_at));
 
-                $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->updated_at));
-                $nestedData['customer_address'] = $returns->customer->address . '<br>' . $returns->customer->city;
+            $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->updated_at));
+            $nestedData['customer_address'] = $returns->customer->address . '<br>' . $returns->customer->city;
 
-                $nestedData['item'] = $returns->item;
-                $nestedData['return_note'] = $returns->return_note;
+            $nestedData['item'] = $returns->item;
+            $nestedData['return_note'] = $returns->return_note;
 
-                $nestedData['grand_total'] = number_format($returns->grand_total, config('decimal'));
-                // added 6.28 @dorian
-                {
-                    $sale = Sale::with([
-                        'customer',
-                        'warehouse',
-                        'user',
-                        'products.supplier'
-                    ])->find($returns->sale_id);
-                        
-                    $confirm_data = [
-                        'id'                => $sale->id,
-                        'order_number'      => $sale->reference_no,
-                        'order_time'        => $sale->created_at,
-                        'customer_id'       => $sale->customer->id,
-                        'customer_name'     => $sale->customer->name,
-                        'customer_phone'    => $sale->customer->phone_number,
-                        'customer_address'  => $sale->customer->address,
-                        'location'          => $sale->location,
-                        'product_amount'    => 0,
+            $nestedData['grand_total'] = number_format($returns->grand_total, config('decimal'));
+            // added 6.28 @dorian
+            {
+                $sale = Sale::with([
+                    'customer',
+                    'warehouse',
+                    'user',
+                    'products.supplier'
+                ])->find($returns->sale_id);
+                    
+                $confirm_data = [
+                    'id'                => $sale->id,
+                    'order_number'      => $sale->reference_no,
+                    'order_time'        => $sale->created_at,
+                    'customer_id'       => $sale->customer->id,
+                    'customer_name'     => $sale->customer->name,
+                    'customer_phone'    => $sale->customer->phone_number,
+                    'customer_address'  => $sale->customer->address,
+                    'location'          => $sale->location,
+                    'product_amount'    => 0,
+                ];
+                foreach($sale->products as $product){
+                    $temp = [
+                        'id'            => $product->id,
+                        'product_sale_id'=> $product->pivot->id,
+                        'product_name'  => $product->name,
+                        'img'           => explode(',', $product->image),
+                        'price'         => $product->price,
+                        'qty'           => $product->pivot->qty - $product->pivot->return_qty,
+                        'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
                     ];
-                    foreach($sale->products as $product){
-                        $temp = [
-                            'id'            => $product->id,
-                            'product_sale_id'=> $product->pivot->id,
-                            'product_name'  => $product->name,
-                            'img'           => explode(',', $product->image),
-                            'price'         => $product->price,
-                            'qty'           => $product->pivot->qty - $product->pivot->return_qty,
-                            'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
-                        ];
-                        $confirm_data['products'] []= $temp;
-                        $confirm_data['product_amount'] += $temp['amount'];
-                    }
-                    $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
+                    $confirm_data['products'] []= $temp;
+                    $confirm_data['product_amount'] += $temp['amount'];
                 }
+                $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
+            }
 
-                if($user->role_id == 1){
-                    $nestedData['options'] = 
-                        '<div class="btn-group">
-                            <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                                <span class="caret"></span>
-                                <span class="sr-only">Toggle Dropdown</span>
-                            </button>
-                            <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">                
-                                <li>
-                                    <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
-                                </li>';
-                     if (in_array("returns-edit", $request['all_permission'])) {
-                        $nestedData['options'] .= '<li>
-                                <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
+            // allows only admin to action
+            if($user->role_id == 1){
+                $nestedData['options'] = 
+                    '<div class="btn-group">
+                        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
+                            <span class="caret"></span>
+                            <span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">                
+                            <li>
+                                <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
+                            </li>
+                            <li>
+                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
                             </li>';
-                    }
-                    if (in_array("returns-delete", $request['all_permission'])){
-                        $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
-                                <li>
-                                  <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
-                                </li>' . \Form::close() . '
-                            </ul>
-                        </div>';
-                    }
-                    else {
-                        $nestedData['options'] .= '</ul></div>';
-                    }
+                    if (in_array("returns-edit", $request['all_permission'])) {
+                    $nestedData['options'] .= '<li>
+                            <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
+                        </li>';
+                }
+                if (in_array("returns-delete", $request['all_permission'])){
+                    $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
+                            <li>
+                                <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
+                            </li>' . \Form::close() . '
+                        </ul>
+                    </div>';
                 }
                 else {
-                    $nestedData['options'] = '';
+                    $nestedData['options'] .= '</ul></div>';
                 }
-
-                if ($returns->currency_id)
-                    $currency_code = Currency::select('code')->find($returns->currency_id)->code;
-                else
-                    $currency_code = 'N/A';
-
-                $nestedData['return'] = array(
-                    '[ "' . date(config('date_format'), strtotime($returns->created_at->toDateString())) . '"',
-                    ' "' . $returns->reference_no . '"',
-                    ' "' . $returns->warehouse->name . '"',
-                    ' ""',
-                    ' ""',
-                    ' ""',
-                    ' ""',
-                    ' ""',
-                    ' ""',
-                    ' "' . $returns->customer->name . '"',
-                    ' "' . $returns->customer->phone_number . '"',
-                    ' "' . $returns->customer->address . '"',
-                    ' "' . $returns->customer->city . '"',
-                    ' "' . $returns->id . '"',
-                    ' "' . $returns->total_tax . '"',
-                    ' "' . $returns->total_discount . '"',
-                    ' "' . $returns->total_price . '"',
-                    ' "' . $returns->order_tax . '"',
-                    ' "' . $returns->order_tax_rate . '"',
-                    ' "' . $returns->grand_total . '"',
-                    ' "' . preg_replace('/[\n\r]/', "<br>", $returns->return_note) . '"',
-                    ' "' . preg_replace('/[\n\r]/', "<br>", $returns->staff_note) . '"',
-                    ' "' . $returns->user->name . '"',
-                    ' "' . $returns->user->email . '"',
-                    ' "' . $nestedData['sale_reference'] . '"',
-                    ' "' . $returns->document . '"',
-                    ' "' . $currency_code . '"',
-                    ' "' . $returns->exchange_rate . '"]'
-                );
-                $data[] = $nestedData;
             }
+            else {
+                $nestedData['options'] = '';
+            }
+
+            if ($returns->currency_id)
+                $currency_code = Currency::select('code')->find($returns->currency_id)->code;
+            else
+                $currency_code = 'N/A';
+
+            $nestedData['return'] = array(
+                '[ "' . date(config('date_format'), strtotime($returns->created_at->toDateString())) . '"',
+                ' "' . $returns->reference_no . '"',
+                ' "' . $returns->warehouse->name . '"',
+                ' ""',
+                ' ""',
+                ' ""',
+                ' ""',
+                ' ""',
+                ' ""',
+                ' "' . $returns->customer->name . '"',
+                ' "' . $returns->customer->phone_number . '"',
+                ' "' . $returns->customer->address . '"',
+                ' "' . $returns->customer->city . '"',
+                ' "' . $returns->id . '"',
+                ' "' . $returns->total_tax . '"',
+                ' "' . $returns->total_discount . '"',
+                ' "' . $returns->total_price . '"',
+                ' "' . $returns->order_tax . '"',
+                ' "' . $returns->order_tax_rate . '"',
+                ' "' . $returns->grand_total . '"',
+                ' "' . preg_replace('/[\n\r]/', "<br>", $returns->return_note) . '"',
+                ' "' . preg_replace('/[\n\r]/', "<br>", $returns->staff_note) . '"',
+                ' "' . $returns->user->name . '"',
+                ' "' . $returns->user->email . '"',
+                ' "' . $nestedData['sale_reference'] . '"',
+                ' "' . $returns->document . '"',
+                ' "' . $currency_code . '"',
+                ' "' . $returns->exchange_rate . '"]'
+            );
+            $data[] = $nestedData;
         }
 
         $json_data = array(
