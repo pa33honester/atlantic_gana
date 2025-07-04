@@ -227,34 +227,40 @@ class ReturnController extends Controller
                     }
                     $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
                 }
-                $nestedData['options'] = 
-                    '<div class="btn-group">
-                        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                            <span class="caret"></span>
-                            <span class="sr-only">Toggle Dropdown</span>
-                        </button>
-                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">                
-                            <li>
-                                <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
-                            </li>
-                            <li>
-                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
+
+                if($user->role_id == 1){
+                    $nestedData['options'] = 
+                        '<div class="btn-group">
+                            <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
+                                <span class="caret"></span>
+                                <span class="sr-only">Toggle Dropdown</span>
+                            </button>
+                            <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">                
+                                <li>
+                                    <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
+                                </li>
+                                <li>
+                                    <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
+                                </li>';
+                     if (in_array("returns-edit", $request['all_permission'])) {
+                        $nestedData['options'] .= '<li>
+                                <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
                             </li>';
-                 if (in_array("returns-edit", $request['all_permission'])) {
-                    $nestedData['options'] .= '<li>
-                            <a href="' . route('return-sale.edit', $returns->id) . '" class="btn btn-link"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
-                        </li>';
-                }
-                if (in_array("returns-delete", $request['all_permission'])){
-                    $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
-                            <li>
-                              <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
-                            </li>' . \Form::close() . '
-                        </ul>
-                    </div>';
+                    }
+                    if (in_array("returns-delete", $request['all_permission'])){
+                        $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
+                                <li>
+                                  <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
+                                </li>' . \Form::close() . '
+                            </ul>
+                        </div>';
+                    }
+                    else {
+                        $nestedData['options'] .= '</ul></div>';
+                    }
                 }
                 else {
-                    $nestedData['options'] .= '</ul></div>';
+                    $nestedData['options'] = '';
                 }
 
                 if ($returns->currency_id)
@@ -647,10 +653,9 @@ class ReturnController extends Controller
             $product_sale_data->save();
         }
         
-        $message = 'Return created successfully';
         if ($data['change_sale_status'])
             $lims_sale_data->update(['sale_status' => 4]);
-        return redirect('return-sale')->with('message', $message);
+        return redirect('return-sale');
     }
 
     public function sendMail(Request $request)

@@ -38,10 +38,7 @@
             </div>
 
             {!! Form::close() !!}
-        </div> 
-        @if(in_array("returns-add", $all_permission))
-            <a href="#" data-toggle="modal" data-target="#add-sale-return" class="btn btn-info"><i class="dripicons-plus"></i> {{trans('file.Add Return')}}</a>
-        @endif
+        </div>
     </div>
     <div class="table-responsive">
         <table id="return-table" class="table return-list" style="width: 100%">
