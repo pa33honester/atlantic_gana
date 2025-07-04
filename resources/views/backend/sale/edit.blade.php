@@ -31,12 +31,11 @@
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label>{{trans('file.customer')}} *</label>
-                                            <input type="hidden" name="customer_id_hidden" value="{{ $lims_sale_data->customer_id }}" />
-                                            <select required disabled name="customer_id" class="selectpicker form-control" data-live-search="true" id="customer_id" title="Select customer...">
-                                                @foreach($lims_customer_list as $customer)
-                                                <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
-                                                @endforeach
-                                            </select>
+                                            <input type="hidden" name="customer_id_hidden" value="{{ $lims_customer_data->id }}" />
+                                            <br>
+                                            <button type="button" class="btn btn-md btn-primary" data-toggle="modal" data-target="#update-customer-modal" id="btn-customer-info">
+                                                {{ $lims_customer_data->name }} ({{ $lims_customer_data->phone_number }})
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="col-md-3 d-none">
@@ -553,6 +552,85 @@
           </div>
         </div>
     </div>
+
+     <div id="update-customer-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+        <div role="document" class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 id="exampleModalLabel" class="modal-title">{{trans('Update Customer')}}</h5>
+              <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+                <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
+                {!! Form::open(['route' => ['customer.update',$lims_customer_data->id], 'method' => 'put', 'files' => true, 'class' => 'update-customer-form']) !!}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.name')}} *</strong> </label>
+                            <input type="text" name="customer_name" value="{{$lims_customer_data->name}}" required class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.Company Name')}} </label>
+                            <input type="text" name="company_name" value="{{$lims_customer_data->company_name}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.Email')}}</label>
+                            <input type="email" name="email" value="{{$lims_customer_data->email}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.Phone Number')}} *</label>
+                            <input type="text" name="phone_number" required value="{{$lims_customer_data->phone_number}}" class="form-control">
+                            @if($errors->has('phone_number'))
+                            <span>
+                                <strong>{{ $errors->first('phone_number') }}</strong>
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.Address')}}</label>
+                            <input type="text" name="address" value="{{$lims_customer_data->address}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.City')}}</label>
+                            <input type="text" name="city" value="{{$lims_customer_data->city}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.State')}}</label>
+                            <input type="text" name="state" value="{{$lims_customer_data->state}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{trans('file.Postal Code')}}</label>
+                            <input type="text" name="postal_code" value="{{$lims_customer_data->postal_code}}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group mt-3">
+                            <input type="hidden" name="redirect" value="false" />
+                            <button type="button" class="btn btn-primary" id="btn-update-customer">
+                                {{trans('Update')}}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {!! Form::close(); !!}
+            </div>
+          </div>
+        </div>
+    </div>
 </section>
 
 @endsection
@@ -599,6 +677,7 @@
     var currencyExchangeRate = <?php echo json_encode($currency_exchange_rate) ?>;
     var role_id = <?php echo json_encode(Auth::user()->role_id)?>;
     var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
+    var lims_customer_data = <?php echo json_encode($lims_customer_data); ?>;
 
     var rownumber = $('table.order-list tbody tr:last').index();
 
@@ -629,6 +708,18 @@
     });
 
     $('[data-toggle="tooltip"]').tooltip();
+    
+    $(document).on('click', '#btn-update-customer', function(){
+        $.ajax({
+            url: "{{ route('customer.update', $lims_customer_data->id) }}",
+            type: "PUT",
+            data : $(".update-customer-form").serializeArray(),
+            success : function(data){
+                $("#update-customer-modal").modal('hide');
+                $('#btn-customer-info').html(`${data['customer_name']} (${data['phone_number']})`);
+            }
+        });
+    }) 
 
     //assigning value
     $('select[name="customer_id"]').val($('input[name="customer_id_hidden"]').val());
@@ -689,35 +780,6 @@
     });
 
     isCashRegisterAvailable(id);
-
-    $('select[name="customer_id"]').on('change', function() {
-        var id = $(this).val();
-        $.get('../getcustomergroup/' + id, function(data) {
-            customer_group_rate = (data / 100);
-        });
-    });
-
-    $('select[name="warehouse_id"]').on('change', function() {
-        var id = $(this).val();
-        $.get('../getproduct/' + id, function(data) {
-            lims_product_array = [];
-            product_code = data[0];
-            product_name = data[1];
-            product_qty = data[2];
-            product_type = data[3];
-            product_id = data[4];
-            product_list = data[5];
-            qty_list = data[6];
-            product_warehouse_price = data[7];
-            batch_no = data[8];
-            product_batch_id = data[9];
-            expired_date = data[10];
-            $.each(product_code, function(index) {
-                lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')');
-            });
-        });
-        isCashRegisterAvailable(id);
-    });
 
     var lims_productcodeSearch = $('#lims_productcodeSearch');
     lims_productcodeSearch.autocomplete({
@@ -1122,25 +1184,6 @@
                     }
                 }
             }
-            // else if(product_type[pos] == 'combo'){
-            //     child_id = product_list[pos].split(',');
-            //     child_qty = qty_list[pos].split(',');
-            //     $(child_id).each(function(index) {
-            //         var position = product_id.indexOf(parseInt(child_id[index]));
-            //         if( position == -1 || parseFloat(sale_qty * child_qty[index]) > product_qty[position] ) {
-            //             alert('Quantity exceeds stock quantity!');
-            //             if (flag) {
-            //                 sale_qty = sale_qty.substring(0, sale_qty.length - 1);
-            //                 $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty);
-            //             }
-            //             else {
-            //                 edit();
-            //                 flag = true;
-            //                 return false;
-            //             }
-            //         }
-            //     });
-            // }
         }
 
         if(!flag){

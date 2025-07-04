@@ -390,6 +390,7 @@ class CustomerController extends Controller
         ]);
 
         $input = $request->all();
+        $redirect = isset($input['redirect']) ? false : true;
         $lims_customer_data = Customer::find($id);
 
         if(isset($input['user'])) {
@@ -440,7 +441,10 @@ class CustomerController extends Controller
             DB::table('customers')->where('id', $lims_customer_data->id)->update($custom_field_data);
         $this->cacheForget('customer_list');
 
-        return redirect('customer')->with('edit_message', $message);
+        if($redirect)
+            return redirect('customer')->with('edit_message', $message);
+        else 
+            return response()->json($input);
     }
 
     public function importCustomer(Request $request)
