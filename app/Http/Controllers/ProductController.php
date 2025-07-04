@@ -153,144 +153,137 @@ class ProductController extends Controller
             ->get();
 
         $data = array();
-        if (!empty($products)) {
-            foreach ($products as $key => $product) {
-                $nestedData['id'] = $product->id;
-                $nestedData['key'] = $key;
-                $product_image = explode(",", $product->image);
-                $product_image = htmlspecialchars($product_image[0]);
-                if ($product_image && $product_image != 'zummXD2dvAtI.png') {
-                    if (file_exists("public/images/product/small/" . $product_image))
-                        $nestedData['image'] = '<img src="' . url('images/product/small', $product_image) . '" height="80" width="80">';
-                    else
-                        $nestedData['image'] = '<img src="' . url('images/product', $product_image) . '" height="80" width="80">';
-                } else
-                    $nestedData['image'] = '<img src="images/zummXD2dvAtI.png" height="80" width="80">';
-                $nestedData['name'] = $product->name;
-                $nestedData['code'] = $product->code;
-                if ($product->brand)
-                    $nestedData['brand'] = $product->brand->title;
+        foreach ($products as $key => $product) {
+            $nestedData['id'] = $product->id;
+            $nestedData['key'] = $key;
+            $product_image = explode(",", $product->image);
+            $product_image = htmlspecialchars($product_image[0]);
+            if ($product_image && $product_image != 'zummXD2dvAtI.png') {
+                if (file_exists("public/images/product/small/" . $product_image))
+                    $nestedData['image'] = '<img src="' . url('images/product/small', $product_image) . '" height="80" width="80">';
                 else
-                    $nestedData['brand'] = "N/A";
-                $nestedData['category'] = $product->category->name;
-                if ($warehouse_id > 0 && $product->type == 'standard') {
-                    $nestedData['qty'] = Product_Warehouse::where([
-                        ['product_id', $product->id],
-                        ['warehouse_id', $warehouse_id]
-                    ])->sum('qty');
-                } elseif ($product->type == 'standard') {
-                    $nestedData['qty'] = Product_Warehouse::where([
-                        ['product_id', $product->id],
-                    ])->sum('qty');
-                } else
-                    $nestedData['qty'] = $product->qty;
+                    $nestedData['image'] = '<img src="' . url('images/product', $product_image) . '" height="80" width="80">';
+            } else
+                $nestedData['image'] = '<img src="images/zummXD2dvAtI.png" height="80" width="80">';
+            $nestedData['name'] = $product->name;
+            $nestedData['code'] = $product->code;
+            if ($product->brand)
+                $nestedData['brand'] = $product->brand->title;
+            else
+                $nestedData['brand'] = "N/A";
+            $nestedData['category'] = $product->category->name;
+            if ($warehouse_id > 0 && $product->type == 'standard') {
+                $nestedData['qty'] = Product_Warehouse::where([
+                    ['product_id', $product->id],
+                    ['warehouse_id', $warehouse_id]
+                ])->sum('qty');
+            } elseif ($product->type == 'standard') {
+                $nestedData['qty'] = Product_Warehouse::where([
+                    ['product_id', $product->id],
+                ])->sum('qty');
+            } else
+                $nestedData['qty'] = $product->qty;
 
-                // @dorian - 6.20
-                $nestedData['sold_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 9)->where('product_id', $product->id)->sum('qty');
-                $nestedData['delivery_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $product->id)->sum('qty');
-                
-                if ($product->unit_id)
-                    $nestedData['unit'] = $product->unit->unit_name;
-                else
-                    $nestedData['unit'] = 'N/A';
+            // @dorian - 6.20
+            $nestedData['sold_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 9)->where('product_id', $product->id)->sum('qty');
+            $nestedData['delivery_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $product->id)->sum('qty');
+            
+            if ($product->unit_id)
+                $nestedData['unit'] = $product->unit->unit_name;
+            else
+                $nestedData['unit'] = 'N/A';
 
-                $nestedData['price'] = $product->price;
-                $nestedData['cost'] = $product->cost;
+            $nestedData['price'] = $product->price;
+            $nestedData['cost'] = $product->cost;
 
-                $volume = ($product->width * $product->length * $product->height);
-                if ($volume == 0) {
-                    $nestedData['volume'] = "N/A";
-                } else {
-                    $nestedData['volume'] = $volume . " m<sup>3</sup>";
-                }
-
-                $nestedData['supplier_id'] = $product->supplier_id;
-                $nestedData['supplier_name'] = $product->supplier_name;
-
-                if (config('currency_position') == 'prefix')
-                    $nestedData['stock_worth'] = config('currency') . ' ' . ($nestedData['qty'] * $product->price) . ' / ' . config('currency') . ' ' . ($nestedData['qty'] * $product->cost);
-                else
-                    $nestedData['stock_worth'] = ($nestedData['qty'] * $product->price) . ' ' . config('currency') . ' / ' . ($nestedData['qty'] * $product->cost) . ' ' . config('currency');
-
-                //fetching custom fields data
-                foreach ($field_names as $field_name) {
-                    $nestedData[$field_name] = $product->$field_name;
-                }
-
-                $nestedData['options'] = '<div class="btn-group">
-                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                              <span class="caret"></span>
-                              <span class="sr-only">Toggle Dropdown</span>
-                            </button>
-                            <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                            <li>
-                                <button="type" class="btn btn-link view"><i class="fa fa-eye"></i> ' . trans('file.View') . '</button>
-                            </li>';
-
-                if (in_array("products-edit", $request['all_permission']))
-                    $nestedData['options'] .= '<li>
-                            <a href="' . route('products.edit', $product->id) . '" class="btn btn-link"><i class="fa fa-edit"></i> ' . trans('file.edit') . '</a>
-                        </li>';
-                if (in_array("product_history", $request['all_permission']))
-                    $nestedData['options'] .= \Form::open(["route" => "products.history", "method" => "GET"]) . '
-                            <li>
-                                <input type="hidden" name="product_id" value="' . $product->id . '" />
-                                <button type="submit" class="btn btn-link"><i class="dripicons-checklist"></i> ' . trans("file.Product History") . '</button>
-                            </li>' . \Form::close();
-                if (in_array("print_barcode", $request['all_permission'])) {
-                    $product_info = $product->code . ' (' . $product->name . ')';
-                    $nestedData['options'] .= \Form::open(["route" => "product.printBarcode", "method" => "GET"]) . '
-                        <li>
-                            <input type="hidden" name="data" value="' . $product_info . '" />
-                            <button type="submit" class="btn btn-link"><i class="dripicons-print"></i> ' . trans("file.print_barcode") . '</button>
-                        </li>' . \Form::close();
-                }
-                if (in_array("products-delete", $request['all_permission']))
-                    $nestedData['options'] .= \Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"]) . '
-                            <li>
-                              <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="fa fa-trash"></i> ' . trans("file.delete") . '</button>
-                            </li>' . \Form::close() . '
-                        </ul>
-                    </div>';
-                // data for product details by one click
-                if ($product->tax_id)
-                    $tax = Tax::find($product->tax_id)->name;
-                else
-                    $tax = "N/A";
-
-                if ($product->tax_method == 1)
-                    $tax_method = trans('file.Exclusive');
-                else
-                    $tax_method = trans('file.Inclusive');
-
-                $nestedData['product'] = array(
-                    '[ "' . $product->type . '"',
-                    ' "' . $product->name . '"',
-                    ' "' . $product->code . '"',
-                    ' "' . $nestedData['volume'] . '"',
-                    ' "' . $product->supplier_id . '"',
-                    ' "' . $product->supplier_name . '"',
-                    ' "' . $nestedData['brand'] . '"',
-                    ' "' . $nestedData['category'] . '"',
-                    ' "' . $nestedData['unit'] . '"',
-                    ' "' . $product->cost . '"',
-                    ' "' . $product->price . '"',
-                    ' "' . $tax . '"',
-                    ' "' . $tax_method . '"',
-                    ' "' . $product->alert_quantity . '"',
-                    ' "' . preg_replace('/\s+/S', " ", $product->product_details) . '"',
-                    ' "' . $product->id . '"',
-                    ' "' . $product->product_list . '"',
-                    ' "' . $product->variant_list . '"',
-                    ' "' . $product->qty_list . '"',
-                    ' "' . $product->price_list . '"',
-                    ' "' . $nestedData['qty'] . '"',
-                    ' "' . $product->image . '"',
-                    ' "' . $product->is_variant . '"]'
-                );
-                //$nestedData['imagedata'] = DNS1D::getBarcodePNG($product->code, $product->barcode_symbology);
-                $data[] = $nestedData;
+            $volume = ($product->width * $product->length * $product->height);
+            if ($volume > 0) {
+                $nestedData['volume'] = $volume . " m<sup>3</sup>";
+            } else {
+                $nestedData['volume'] = "N/A";
             }
+
+            $nestedData['supplier_id'] = $product->supplier_id;
+            $nestedData['supplier_name'] = $product->supplier_name;
+
+            //fetching custom fields data
+            foreach ($field_names as $field_name) {
+                $nestedData[$field_name] = $product->$field_name;
+            }
+
+            $nestedData['options'] = '<div class="btn-group">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
+                            <span class="caret"></span>
+                            <span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
+                        <li>
+                            <button="type" class="btn btn-link view"><i class="fa fa-eye"></i> ' . trans('file.View') . '</button>
+                        </li>';
+
+            if (in_array("products-edit", $request['all_permission']))
+                $nestedData['options'] .= '<li>
+                        <a href="' . route('products.edit', $product->id) . '" class="btn btn-link"><i class="fa fa-edit"></i> ' . trans('file.edit') . '</a>
+                    </li>';
+            if (in_array("product_history", $request['all_permission']))
+                $nestedData['options'] .= \Form::open(["route" => "products.history", "method" => "GET"]) . '
+                        <li>
+                            <input type="hidden" name="product_id" value="' . $product->id . '" />
+                            <button type="submit" class="btn btn-link"><i class="dripicons-checklist"></i> ' . trans("file.Product History") . '</button>
+                        </li>' . \Form::close();
+            if (in_array("print_barcode", $request['all_permission'])) {
+                $product_info = $product->code . ' (' . $product->name . ')';
+                $nestedData['options'] .= \Form::open(["route" => "product.printBarcode", "method" => "GET"]) . '
+                    <li>
+                        <input type="hidden" name="data" value="' . $product_info . '" />
+                        <button type="submit" class="btn btn-link"><i class="dripicons-print"></i> ' . trans("file.print_barcode") . '</button>
+                    </li>' . \Form::close();
+            }
+            if (in_array("products-delete", $request['all_permission']))
+                $nestedData['options'] .= \Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"]) . '
+                        <li>
+                            <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="fa fa-trash"></i> ' . trans("file.delete") . '</button>
+                        </li>' . \Form::close() . '
+                    </ul>
+                </div>';
+            // data for product details by one click
+            if ($product->tax_id)
+                $tax = Tax::find($product->tax_id)->name;
+            else
+                $tax = "N/A";
+
+            if ($product->tax_method == 1)
+                $tax_method = trans('file.Exclusive');
+            else
+                $tax_method = trans('file.Inclusive');
+
+            $nestedData['product'] = array(
+                '[ "' . $product->type . '"',
+                ' "' . $product->name . '"',
+                ' "' . $product->code . '"',
+                ' "' . $nestedData['volume'] . '"',
+                ' "' . $product->supplier_id . '"',
+                ' "' . $product->supplier_name . '"',
+                ' "' . $nestedData['brand'] . '"',
+                ' "' . $nestedData['category'] . '"',
+                ' "' . $nestedData['unit'] . '"',
+                ' "' . $product->cost . '"',
+                ' "' . $product->price . '"',
+                ' "' . $tax . '"',
+                ' "' . $tax_method . '"',
+                ' "' . $product->alert_quantity . '"',
+                ' "' . preg_replace('/\s+/S', " ", $product->product_details) . '"',
+                ' "' . $product->id . '"',
+                ' "' . $product->product_list . '"',
+                ' "' . $product->variant_list . '"',
+                ' "' . $product->qty_list . '"',
+                ' "' . $product->price_list . '"',
+                ' "' . $nestedData['qty'] . '"',
+                ' "' . $product->image . '"',
+                ' "' . $product->is_variant . '"]'
+            );
+            //$nestedData['imagedata'] = DNS1D::getBarcodePNG($product->code, $product->barcode_symbology);
+            $data[] = $nestedData;
         }
         $json_data = array(
             "draw" => intval($request->input('draw')),

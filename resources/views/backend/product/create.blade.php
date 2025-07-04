@@ -191,21 +191,21 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>{{trans('Width')}} * (cm)</strong> </label>
+                                        <label>{{trans('Width')}} * (m)</strong> </label>
                                         <input type="number" required name="width" class="form-control" step="any">
                                         <span class="validation-msg"></span>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>{{trans('Length')}} * (cm)</strong> </label>
+                                        <label>{{trans('Length')}} * (m)</strong> </label>
                                         <input type="number" required name="length" class="form-control" step="any">
                                         <span class="validation-msg"></span>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>{{trans('Height')}} * (cm)</strong> </label>
+                                        <label>{{trans('Height')}} * (m)</strong> </label>
                                         <input type="number" required name="height" class="form-control" step="any">
                                         <span class="validation-msg"></span>
                                     </div>

@@ -72,13 +72,13 @@
                         <th>{{trans('file.Image')}}</th>
                         <th>{{trans('file.name')}}</th>
                         <th>{{trans('file.Code')}}</th>
-                        <th>{{trans('Delivery Qty')}}</th>
+                        <th>{{trans('Delivering Qty')}}</th>
                         <th>{{trans('file.Sold Qty')}}</th>
-                        <th>{{trans('file.Quantity')}}</th>
+                        <th>{{trans('file.Stock Quantity')}}</th>
                         <th>{{trans('Volume')}}</th>
                         <th>{{trans('file.Price')}}</th>
                         <th>{{trans('file.Supplier')}}</th>
-                        <th>{{trans('file.Stock Worth (Price/Cost)')}}</th>
+                        
                         <!-- <th>{{trans('file.Brand')}}</th>
                         <th>{{trans('file.category')}}</th> -->
                         @foreach($custom_fields as $fieldName)
@@ -236,7 +236,7 @@
             { "data": "volume" }, 
             { "data": "price" }, 
             { "data": "supplier_name" }, 
-            { "data": "stock_worth" }
+            
         ];
         var field_name = <?php echo json_encode($field_name) ?>;
         for (i = 0; i < field_name.length; i++) {

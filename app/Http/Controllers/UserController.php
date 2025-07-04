@@ -90,9 +90,8 @@ class UserController extends Controller
                 }),
             ],
         ]);
-
         
-        if($request->role_id == 5) {
+        if($request->role_id == 5) { // customer
             $this->validate($request, [
                 'phone_number' => [
                     'max:255',
@@ -103,6 +102,7 @@ class UserController extends Controller
             ]);
         }
         
+
         $data = $request->all();
         $message = 'User created successfully';
         $mail_setting = MailSetting::latest()->first();
@@ -121,10 +121,8 @@ class UserController extends Controller
         $data['password'] = bcrypt($data['password']);
         $data['phone'] = $data['phone_number'];
         $user_data = User::create($data);
-
-        return $user_data;
         
-        if($data['role_id'] == 5) {
+        if($data['role_id'] == 5) { // customer role
             $data['user_id'] = $user_data->id;
             $data['name'] = $data['customer_name'];
             $data['phone_number'] = $data['phone'];
