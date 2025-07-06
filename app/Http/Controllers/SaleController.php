@@ -2831,7 +2831,7 @@ class SaleController extends Controller
         }
         if (count($custom_field_data))
             DB::table('sales')->where('id', $lims_sale_data->id)->update($custom_field_data);
-        $lims_customer_data = Customer::find($data['customer_id']);
+        $lims_customer_data = Customer::find($data['customer_id_hidden']);
         $message = 'Sale updated successfully';
         //collecting mail data
         $mail_setting = MailSetting::latest()->first();
@@ -2855,8 +2855,6 @@ class SaleController extends Controller
                 $message = 'Sale updated successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
             }
         }
-
-        return redirect('sales/' . $id . '/edit')->with('message', $message);
     }
 
     public function printLastReciept()

@@ -213,7 +213,7 @@
                 </div>
             </div>
             <input type="hidden" name="order_type">
-            <div class="modal-body"></div>
+            <div class="modal-body" id="confirm-content"></div>
             <div class="modal-footer">
                 <button id="btn-delivery" type="submit" class="btn btn-rounded btn-md btn-success d-print-none"> Deliver </button>
             </div>
@@ -1532,22 +1532,36 @@
         $(".packing-slip-submit-btn").prop("disabled", true);
     });
 
-    function printDocument(selector) {
-        var divContents = document.querySelector(selector).innerHTML;
-        var a = window.open('');
-        a.document.write('<html>');
-        a.document.write('<body>');
-        a.document.write('<style>body{line-height: 1.15;-webkit-text-size-adjust: 100%;margin-left: 33%;}.d-print-none{display:none}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.row{width:100%;margin-right: -15px;margin-left: -15px;}.col-md-12{width:100%;display:block;padding: 5px 15px;}.col-md-6{width: 50%;float:left;padding: 5px 15px;}table{width:100%;margin-top:30px;}th{text-aligh:left}td{padding:10px}table,th,td{border: 1px solid black; border-collapse: collapse;}</style><style>@media print {.modal-dialog { max-width: 1000px;} }</style>');
-        a.document.write(divContents);
-        a.document.write('</body></html>');
-        a.document.close();
-        a.print();
-        setTimeout(function(){a.close();},10);
+    function printModalWithStyles(modalSelector) {
+        // Get modal HTML
+        var modalContent = document.querySelector(modalSelector).outerHTML;
+
+        // Collect all <link rel="stylesheet"> and <style> tags
+        var styles = '';
+        document.querySelectorAll('link[rel="stylesheet"], style').forEach(function(node) {
+            styles += node.outerHTML;
+        });
+
+        // Open new window
+        var printWindow = window.open('', '', 'height=900,width=1200');
+        printWindow.document.write('<html><head><title>Print</title>');
+        printWindow.document.write(styles); // Add styles
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(modalContent); // Add modal content
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+
+        // Wait for content to load, then print
+        printWindow.onload = function() {
+            printWindow.focus();
+            printWindow.print();
+            setTimeout(function() { printWindow.close(); }, 500);
+        };
     }
 
     $(document).on("click", ".btn-print", function() {
         var selector = $(this).data('print-target');
-        printDocument(selector);
+        printModalWithStyles(selector);
     });
 
     $(document).on("click", "table.sale-list tbody .add-payment", function() {
@@ -2092,9 +2106,6 @@
         }
 
         $('#confirm-print .modal-body').html(htmltext);
-        $('#confirm-print .modal-content .modal-body').css({
-            'margin-left': '33%'
-        });
         // salelist is a javascript array
         saleList.forEach(function(e){
             JsBarcode(`#barcode-${e[1]}`, e[1], {

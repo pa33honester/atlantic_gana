@@ -350,8 +350,8 @@
     }
 
      $(document).on("click", "tr.return-link td:not(:first-child, :last-child)", function() {
-        var returns = $(this).parent().data('return');
-        returnDetails(returns);
+        // var returns = $(this).parent().data('return');
+        // returnDetails(returns);
     });
 
     $(document).on("click", ".view", function() {

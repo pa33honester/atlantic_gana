@@ -437,7 +437,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <input type="submit" value="{{trans('file.submit')}}" class="btn btn-primary" id="submit-button">
+                                    <input type="submit" value="{{trans('file.submit')}}" class="btn btn-primary" id="submit-button" formnovalidate >
                                 </div>
                             </div>
                         </div>
@@ -1407,8 +1407,11 @@
             e.preventDefault();
         }
         else {
-            $("#submit-button").prop('disabled', true);
-            $(".batch-no").prop('disabled', false);
+            parent.$('#edit-sale').modal('hide');
+            parent.$('#sale-details').modal('hide');
+            parent.location.href = "{{ route('sales.index') }}";
+            // $("#submit-button").prop('disabled', true);
+            // $(".batch-no").prop('disabled', false);
         }
     });
     </script>
