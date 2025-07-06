@@ -2856,7 +2856,6 @@ class SaleController extends Controller
             }
         }
     }
-
     public function printLastReciept()
     {
         $sale = Sale::where('sale_status', 1)->latest()->first();

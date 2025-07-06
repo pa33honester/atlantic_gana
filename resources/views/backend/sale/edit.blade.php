@@ -1409,7 +1409,7 @@
         else {
             parent.$('#edit-sale').modal('hide');
             parent.$('#sale-details').modal('hide');
-            parent.location.href = "{{ route('sales.index') }}";
+            parent.location.reload();
             // $("#submit-button").prop('disabled', true);
             // $(".batch-no").prop('disabled', false);
         }

@@ -171,14 +171,14 @@
                     <div class="col-md-6 d-print-none">
                         <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
                     </div>
-                    <div class="col-md-4 text-left">
-                        <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
-                    </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-12 text-center">
+                        <div>
+                            <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
+                        </div>
                         <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
+                        <div>
+                            <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -201,11 +201,14 @@
                     <div class="col-md-6 d-print-none">
                         <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
                     </div>
-                    <div class="col-md-4 text-left">
-                        <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
+                    <div class="col-md-4">
+                        
                     </div>
                     <div class="col-md-4 text-center">
                         <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
+                        <div>
+                            <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
+                        </div>
                     </div>
                     <div class="col-md-4 text-right">
                         <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
@@ -1591,6 +1594,10 @@
                 max-height: 80px !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                text-align: center;
+            }
+            .modal-body .sale-details {
+                margin-left: 27%;
             }
         }
         </style>
@@ -1599,7 +1606,7 @@
     a.document.write('</body></html>');
     a.document.close();
     a.print();
-    setTimeout(function(){a.close();},10);
+    setTimeout(function(){a.close();},200);
 }
 
     $(document).on("click", ".btn-print", function() {
@@ -2063,18 +2070,28 @@
             var api = this.api();
             datatable_sum(api, false);
 
-            // Change the badge from Receiving to Shipped
-            setTimeout(function(){
-                // Find all elements with id 'pending-to-shipped' and update them
-                $("#pending-to-shipped").each(function() {
-                    $(this)
-                        .removeClass('badge-info')
-                        .addClass('badge-primary')
-                        .text('Shipped');
-                });
-            }, 4000); // Shorter delay is enough, or use 0
+            // Check if any #pending-to-shipped elements exist
+            if ($("#pending-to-shipped").length > 0) {
+                // After 1 second, update badges
+                setTimeout(function () {
+                    $("#pending-to-shipped").each(function () {
+                        $(this)
+                            .removeClass('badge-info')
+                            .addClass('badge-primary')
+                            .text('Shipped');
+                    });
+
+                    // After 3 seconds, clear search input and reset filtering
+                    setTimeout(function () {
+                        $('#sale-table_filter input').val(''); // Clear visible text
+                        const dt = $('#sale-table').DataTable();
+                        dt.search('').draw(); // Optional: reset filtering
+                    }, 1000);
+
+                }, 1000); // Delay before badge update
+            }
         }
-    } );
+    });
 
     function datatable_sum(dt_selector, is_calling_first) {
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
@@ -2092,17 +2109,23 @@
     }
 
     function createBillHtml(sale){
-        var htmltext = '<strong> Order Number: </strong>'+sale[1]+'<br><strong>Name: </strong>'+sale[9]+'<br><strong>Number: </strong>'
-            +sale[10]+'<br><strong> Address: </strong>'+sale[11]+'<br><strong>Date: </strong>'+sale[0];
-            
-        htmltext += '<br><strong> QTY : </strong>' + sale[33] + '<br><strong>Amount: </strong>'+sale[21]
-                +'<br><strong> Delivery fee: </strong>' + sale[20]
-                + '<br><strong>Location : </strong>' + sale[34] + '<br>';
-        htmltext += `<div class="barcode-wrapper">
-            <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
-        </div>`;
-        htmltext += `<input type="hidden" name="sale_id[]" value="${sale[13]}">`;
-        return htmltext;
+        return (`
+            <div class="sale-details" style="line-height: 2; font-size: 16px;">
+                <div> <strong> Order Number: </strong> ${sale[1]} </div>
+                <div> <strong> Name: </strong>${sale[9]} </div>
+                <div> <strong> Number: </strong> ${sale[10]} </div> 
+                <div> <strong> Address: </strong> ${sale[11]} </div>
+                <div> <strong> Date: </strong>${sale[0]} </div>
+                <div> <strong> QTY : </strong> ${sale[33]} </div>
+                <div> <strong> Amount : </strong> ${sale[21]} </div>
+                <div> <strong> Delivery Fee : </strong> ${sale[20]} </div>
+                <div> <strong> Location : </strong> ${sale[34]} </div>
+                <div class="barcode-wrapper">
+                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
+                </div>
+                <input type="hidden" name="sale_id[]" value="${sale[13]}">
+            </div>
+        `);
     }
 
     function saleDetails(sale){
@@ -2145,7 +2168,7 @@
         for(let i = 0; i < saleList.length; i ++){
             var sale = saleList[i];
             if(i > 0) htmltext += '<hr>';
-            htmltext += '<div>' + createBillHtml(sale) + '</div>';
+            htmltext += createBillHtml(sale);
         }
 
         $('#confirm-print .modal-body').html(htmltext);
