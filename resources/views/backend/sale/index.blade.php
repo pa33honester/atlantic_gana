@@ -1532,36 +1532,79 @@
         $(".packing-slip-submit-btn").prop("disabled", true);
     });
 
-    function printModalWithStyles(modalSelector) {
-        // Get modal HTML
-        var modalContent = document.querySelector(modalSelector).outerHTML;
-
-        // Collect all <link rel="stylesheet"> and <style> tags
-        var styles = '';
-        document.querySelectorAll('link[rel="stylesheet"], style').forEach(function(node) {
-            styles += node.outerHTML;
-        });
-
-        // Open new window
-        var printWindow = window.open('', '', 'height=900,width=1200');
-        printWindow.document.write('<html><head><title>Print</title>');
-        printWindow.document.write(styles); // Add styles
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(modalContent); // Add modal content
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-
-        // Wait for content to load, then print
-        printWindow.onload = function() {
-            printWindow.focus();
-            printWindow.print();
-            setTimeout(function() { printWindow.close(); }, 500);
-        };
-    }
+    function printDocument(selector) {
+    var divContents = document.querySelector(selector).innerHTML;
+    var a = window.open('');
+    a.document.write('<html>');
+    a.document.write('<body>');
+    a.document.write(`
+        <style>
+        body {
+            line-height: 1.15;
+            -webkit-text-size-adjust: 100%;
+            margin: 0;
+            font-size: 16px;
+        }
+        .d-print-none { display: none !important; }
+        .text-left { text-align: left !important; }
+        .text-center { text-align: center !important; }
+        .text-right { text-align: right !important; }
+        .row { width: 100%; margin-right: -15px; margin-left: -15px; }
+        .col-md-12 { width: 100%; display: block; padding: 5px 15px; }
+        .col-md-6 { width: 50%; float: left; padding: 5px 15px; }
+        table { width: 100%; margin-top: 30px; }
+        th { text-align: left; }
+        td { padding: 10px; }
+        table, th, td { border: 1px solid black; border-collapse: collapse; }
+        @media print {
+            .modal-dialog { max-width: 1000px; }
+            .modal-header, .modal-title, .modal-header .row {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                width: 100% !important;
+            }
+            .modal-header .col-md-4,
+            .modal-header .col-md-6,
+            .modal-header .col-md-12 {
+                float: none !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                width: 100% !important;
+                padding: 0 !important;
+            }
+            .modal-title {
+                width: 100% !important;
+                text-align: center !important;
+                margin: 0 auto !important;
+                font-size: 22px !important;
+                font-weight: bold !important;
+            }
+            .modal-header img {
+                display: block !important;
+                margin: 0 auto 10px auto !important;
+                max-width: 120px !important;
+                max-height: 80px !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+        }
+        </style>
+    `);
+    a.document.write(divContents);
+    a.document.write('</body></html>');
+    a.document.close();
+    a.print();
+    setTimeout(function(){a.close();},10);
+}
 
     $(document).on("click", ".btn-print", function() {
         var selector = $(this).data('print-target');
-        printModalWithStyles(selector);
+        printDocument(selector);
     });
 
     $(document).on("click", "table.sale-list tbody .add-payment", function() {

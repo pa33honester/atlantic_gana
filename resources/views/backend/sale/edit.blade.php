@@ -938,7 +938,7 @@
                     else {
                         $("#cash-register-modal .warehouse-section").addClass('d-none');
                     }
-                    $("#cash-register-modal").modal('show');
+                    // $("#cash-register-modal").modal('show');
                 }
             }
         });
