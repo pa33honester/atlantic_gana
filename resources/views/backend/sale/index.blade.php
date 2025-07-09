@@ -182,7 +182,7 @@
                     </div>
                 </div>
             </div>
-            <div id="sale-content" class="modal-body"></div>
+            <div class="modal-body"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-rounded btn-md btn-success d-print-none" data-dismiss="modal" aria-label="Close" onclick=""> OK </button>
             </div>
@@ -216,7 +216,7 @@
                 </div>
             </div>
             <input type="hidden" name="order_type">
-            <div class="modal-body" id="confirm-content"></div>
+            <div class="modal-body"></div>
             <div class="modal-footer">
                 <button id="btn-delivery" type="submit" class="btn btn-rounded btn-md btn-success d-print-none"> Deliver </button>
             </div>
@@ -1536,78 +1536,178 @@
     });
 
     function printDocument(selector) {
-    var divContents = document.querySelector(selector).innerHTML;
-    var a = window.open('');
-    a.document.write('<html>');
-    a.document.write('<body>');
-    a.document.write(`
-        <style>
-        body {
-            line-height: 1.15;
-            -webkit-text-size-adjust: 100%;
-            margin: 0;
-            font-size: 16px;
+        var divContents = document.querySelector(selector).innerHTML;
+        var a = window.open('');
+        a.document.write('<html>');
+        a.document.write('<body>');
+        a.document.write(`
+            <style>
+            body {
+                line-height: 1.15;
+                -webkit-text-size-adjust: 100%;
+                margin: 0;
+                font-size: 16px;
+            }
+            .d-print-none { display: none !important; }
+            .text-left { text-align: left !important; }
+            .text-center { text-align: center !important; }
+            .text-right { text-align: right !important; }
+            .row { width: 100%; margin-right: -15px; margin-left: -15px; }
+            .col-md-12 { width: 100%; display: block; padding: 5px 15px; }
+            .col-md-6 { width: 50%; float: left; padding: 5px 15px; }
+            table { width: 100%; margin-top: 30px; }
+            th { text-align: left; }
+            td { padding: 10px; }
+            table, th, td { border: 1px solid black; border-collapse: collapse; }
+            @media print {
+                .modal-dialog { max-width: 1000px; }
+                .modal-header, .modal-title, .modal-header .row {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    width: 100% !important;
+                }
+                .modal-header .col-md-4,
+                .modal-header .col-md-6,
+                .modal-header .col-md-12 {
+                    float: none !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    width: 100% !important;
+                    padding: 0 !important;
+                }
+                .modal-title {
+                    width: 100% !important;
+                    text-align: center !important;
+                    margin: 0 auto !important;
+                    font-size: 22px !important;
+                    font-weight: bold !important;
+                }
+                .modal-header img {
+                    display: block !important;
+                    margin: 0 auto 10px auto !important;
+                    max-width: 120px !important;
+                    max-height: 80px !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    text-align: center;
+                }
+                .modal-body{
+                    padding: 15%;
+                }
+                .sale-details {
+                    margin: auto;
+                    width: 70%;
+                }
+            }
+            </style>
+        `);
+        a.document.write(divContents);
+        a.document.write('</body></html>');
+        a.document.close();
+        a.print();
+        setTimeout(function(){a.close();},200);
+    }
+
+    function createBillHtml(sale){
+        return (`
+            <div class="sale-details" style="line-height: 1.8; font-size: 16px; margin: auto; padding: 10px; width: 60%">
+                <p> <strong> Order Number: </strong> ${sale[1]} </p>
+                <p> <strong> Name: </strong>${sale[9]} </p>
+                <p> <strong> Number: </strong> ${sale[10]} </p> 
+                <p> <strong> Address: </strong> ${sale[11]} </p>
+                <p> <strong> Date: </strong>${sale[0]} </p>
+                <p> <strong> QTY : </strong> ${sale[33]} </p>
+                <p> <strong> Amount : </strong> ${sale[21]} </p>
+                <p> <strong> Delivery Fee : </strong> ${sale[20]} </p>
+                <p> <strong> Location : </strong> ${sale[34]} </p>
+                <div class="barcode-wrapper">
+                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:auto;display:block;width:220px;height:60px;"></svg>
+                </div>
+                <input type="hidden" name="sale_id[]" value="${sale[13]}">
+            </div>
+        `);
+    }
+
+    function saleDetails(sale){
+        console.log(sale);
+
+        var htmltext = createBillHtml(sale);
+
+        $('#sale-details .modal-body').html(htmltext);
+
+        // After generating the barcode
+        JsBarcode(`#barcode-${sale[1]}`, sale[1], {
+            height: 60,
+            displayValue: true,
+            class: "d-print-none"
+        });
+
+        $('.barcode-wrapper').css({
+            'margin' : '20px auto',
+            'text-align' : 'center',
+            'padding' : '10px',
+            'background' : '#f8f9fa',
+            'border-radius': '8px',
+            'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
+            'display' : 'inline-block'
+        });
+
+        $('.barcode').css({
+            'margin': '0 auto',
+            'display': 'block',
+            'width': '290px',
+            'height': '100px'
+        });
+
+        $('#sale-details').modal('show');
+    }
+
+    function print_waybill(saleList){
+    
+        var htmltext = '';
+        for(let i = 0; i < saleList.length; i ++){
+            var sale = saleList[i];
+            if(i > 0) htmltext += '<hr>';
+            htmltext += createBillHtml(sale);
         }
-        .d-print-none { display: none !important; }
-        .text-left { text-align: left !important; }
-        .text-center { text-align: center !important; }
-        .text-right { text-align: right !important; }
-        .row { width: 100%; margin-right: -15px; margin-left: -15px; }
-        .col-md-12 { width: 100%; display: block; padding: 5px 15px; }
-        .col-md-6 { width: 50%; float: left; padding: 5px 15px; }
-        table { width: 100%; margin-top: 30px; }
-        th { text-align: left; }
-        td { padding: 10px; }
-        table, th, td { border: 1px solid black; border-collapse: collapse; }
-        @media print {
-            .modal-dialog { max-width: 1000px; }
-            .modal-header, .modal-title, .modal-header .row {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: center !important;
-                justify-content: center !important;
-                text-align: center !important;
-                width: 100% !important;
-            }
-            .modal-header .col-md-4,
-            .modal-header .col-md-6,
-            .modal-header .col-md-12 {
-                float: none !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                text-align: center !important;
-                width: 100% !important;
-                padding: 0 !important;
-            }
-            .modal-title {
-                width: 100% !important;
-                text-align: center !important;
-                margin: 0 auto !important;
-                font-size: 22px !important;
-                font-weight: bold !important;
-            }
-            .modal-header img {
-                display: block !important;
-                margin: 0 auto 10px auto !important;
-                max-width: 120px !important;
-                max-height: 80px !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                text-align: center;
-            }
-            .modal-body .sale-details {
-                margin-left: 27%;
-            }
-        }
-        </style>
-    `);
-    a.document.write(divContents);
-    a.document.write('</body></html>');
-    a.document.close();
-    a.print();
-    setTimeout(function(){a.close();},200);
-}
+
+        $('#confirm-print .modal-body').html(htmltext);
+        // salelist is a javascript array
+        saleList.forEach(function(e){
+            JsBarcode(`#barcode-${e[1]}`, e[1], {
+                format: "CODE128",
+                lineColor: "#000",
+                width: 2,
+                height: 60,
+                displayValue: true
+            });
+        });
+
+        $('.barcode-wrapper').css({
+                'margin' : '20px auto',
+                'text-align' : 'center',
+                'padding' : '10px',
+                'background' : '#f8f9fa',
+                'border-radius': '8px',
+                'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
+                'display' : 'inline-block'
+        });
+
+        $('.barcode').css({
+            'margin': '0 auto',
+            'display': 'block',
+            'width': '290px',
+            'height': '100px'
+        });
+        $('#confirm-print input[name=order_type]').val('delivery');
+        $('#confirm-print').modal('show');
+    }
+
 
     $(document).on("click", ".btn-print", function() {
         var selector = $(this).data('print-target');
@@ -2065,14 +2165,12 @@
                 columns: ':gt(0)'
             },
         ],
-       // ...existing code...
         drawCallback: function () {
             var api = this.api();
             datatable_sum(api, false);
 
-            // Check if any #pending-to-shipped elements exist
             if ($("#pending-to-shipped").length > 0) {
-                // After 1 second, update badges
+                
                 setTimeout(function () {
                     $("#pending-to-shipped").each(function () {
                         $(this)
@@ -2081,14 +2179,13 @@
                             .text('Shipped');
                     });
 
-                    // After 3 seconds, clear search input and reset filtering
                     setTimeout(function () {
-                        $('#sale-table_filter input').val(''); // Clear visible text
+                        $('#sale-table_filter input').val(''); 
                         const dt = $('#sale-table').DataTable();
-                        dt.search('').draw(); // Optional: reset filtering
-                    }, 1000);
+                        dt.search('').draw(); 
+                    }, 100);
 
-                }, 1000); // Delay before badge update
+                }, 100); 
             }
         }
     });
@@ -2108,100 +2205,6 @@
         }
     }
 
-    function createBillHtml(sale){
-        return (`
-            <div class="sale-details" style="line-height: 2; font-size: 16px;">
-                <div> <strong> Order Number: </strong> ${sale[1]} </div>
-                <div> <strong> Name: </strong>${sale[9]} </div>
-                <div> <strong> Number: </strong> ${sale[10]} </div> 
-                <div> <strong> Address: </strong> ${sale[11]} </div>
-                <div> <strong> Date: </strong>${sale[0]} </div>
-                <div> <strong> QTY : </strong> ${sale[33]} </div>
-                <div> <strong> Amount : </strong> ${sale[21]} </div>
-                <div> <strong> Delivery Fee : </strong> ${sale[20]} </div>
-                <div> <strong> Location : </strong> ${sale[34]} </div>
-                <div class="barcode-wrapper">
-                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:0 auto;display:block;width:220px;height:60px;"></svg>
-                </div>
-                <input type="hidden" name="sale_id[]" value="${sale[13]}">
-            </div>
-        `);
-    }
-
-    function saleDetails(sale){
-        console.log(sale);
-
-        var htmltext = createBillHtml(sale);
-
-        $('#sale-details .modal-body').html(htmltext);
-
-        // After generating the barcode
-        JsBarcode(`#barcode-${sale[1]}`, sale[1], {
-            height: 60,
-            displayValue: true,
-            class: "d-print-none"
-        });
-
-        $('.barcode-wrapper').css({
-            'margin' : '20px auto',
-            'text-align' : 'center',
-            'padding' : '10px',
-            'background' : '#f8f9fa',
-            'border-radius': '8px',
-            'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
-            'display' : 'inline-block'
-        });
-
-        $('.barcode').css({
-            'margin': '0 auto',
-            'display': 'block',
-            'width': '290px',
-            'height': '100px'
-        });
-
-        $('#sale-details').modal('show');
-    }
-
-    function print_waybill(saleList){
-    
-        var htmltext = '';
-        for(let i = 0; i < saleList.length; i ++){
-            var sale = saleList[i];
-            if(i > 0) htmltext += '<hr>';
-            htmltext += createBillHtml(sale);
-        }
-
-        $('#confirm-print .modal-body').html(htmltext);
-        // salelist is a javascript array
-        saleList.forEach(function(e){
-            JsBarcode(`#barcode-${e[1]}`, e[1], {
-                format: "CODE128",
-                lineColor: "#000",
-                width: 2,
-                height: 60,
-                displayValue: true
-            });
-        });
-
-        $('.barcode-wrapper').css({
-                'margin' : '20px auto',
-                'text-align' : 'center',
-                'padding' : '10px',
-                'background' : '#f8f9fa',
-                'border-radius': '8px',
-                'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
-                'display' : 'inline-block'
-        });
-
-        $('.barcode').css({
-            'margin': '0 auto',
-            'display': 'block',
-            'width': '290px',
-            'height': '100px'
-        });
-        $('#confirm-print input[name=order_type]').val('delivery');
-        $('#confirm-print').modal('show');
-    }
 
     $(document).on('submit', '.payment-form', function(e) {
         if( $('input[name="paying_amount"]').val() < parseFloat($('#amount').val()) ) {

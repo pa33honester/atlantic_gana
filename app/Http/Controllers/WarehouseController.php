@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Warehouse;
+use App\Models\Product_Warehouse;
 use Illuminate\Validation\Rule;
 use Keygen;
 use Auth;
@@ -104,19 +105,40 @@ class WarehouseController extends Controller
 
     public function deleteBySelection(Request $request)
     {
+        $deleted = 0;
         $warehouse_id = $request['warehouseIdArray'];
         foreach ($warehouse_id as $id) {
             $lims_warehouse_data = Warehouse::find($id);
+            
+            $products = Product_Warehouse::where([['warehouse_id', $warehouse_id]])->count();
+            if($products > 0){
+                continue; 
+            }
+
+            $deleted += 1;
             $lims_warehouse_data->is_active = false;
             $lims_warehouse_data->save();
         }
-        $this->cacheForget('warehouse_list');
-        return 'Warehouse deleted successfully!';
+
+        if($deleted > 0){
+            $this->cacheForget('warehouse_list');
+            return 'Warehouse deleted successfully!';
+        }
+        else {
+            return 'Cannot delete warehouse';
+        }
     }
 
     public function destroy($id)
     {
         $lims_warehouse_data = Warehouse::find($id);
+
+        $products = Product_Warehouse::where([['warehouse_id', $id]])->count();
+
+        if($products > 0){
+            return redirect('warehouse')->with('not_permitted', 'Hmm, Data deleted failed...');
+        }
+
         $lims_warehouse_data->is_active = false;
         $lims_warehouse_data->save();
         $this->cacheForget('warehouse_list');

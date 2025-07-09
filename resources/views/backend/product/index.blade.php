@@ -226,7 +226,7 @@
         }
 
         var columns = [
-            { "data": "key" }, 
+            { "data": "key" },
             { "data": "image" }, 
             { "data": "name" }, 
             { "data": "code" }, 
@@ -235,8 +235,7 @@
             { "data": "qty" }, 
             { "data": "volume" }, 
             { "data": "price" }, 
-            { "data": "supplier_name" }, 
-            
+            { "data": "supplier_name" },
         ];
         var field_name = <?php echo json_encode($field_name) ?>;
         for (i = 0; i < field_name.length; i++) {
@@ -611,7 +610,7 @@
                                     if (i) {
                                         var product_data = $(this).closest('tr').data('product');
                                         if (product_data)
-                                            product_id[i - 1] = product_data[12];
+                                            product_id[i - 1] = product_data[15]; // ###
                                     }
                                 });
                                 if (product_id.length && confirmDelete()) {

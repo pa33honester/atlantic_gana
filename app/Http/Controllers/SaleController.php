@@ -765,7 +765,7 @@ class SaleController extends Controller
         ];
 
         // Handle special case for search and status update
-        if (!empty($searchValue)) {
+        if (!empty($searchValue) && $role->hasPermissionTo('receiving')) {
             // This is the case of Barcode Scanner Input
             if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
                 if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 12) {

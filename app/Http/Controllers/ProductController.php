@@ -198,7 +198,7 @@ class ProductController extends Controller
 
             $volume = ($product->width * $product->length * $product->height);
             if ($volume > 0) {
-                $nestedData['volume'] = $volume . " m<sup>3</sup>";
+                $nestedData['volume'] = number_format($volume, 5) . " m<sup>3</sup>";
             } else {
                 $nestedData['volume'] = "N/A";
             }
@@ -239,13 +239,15 @@ class ProductController extends Controller
                         <button type="submit" class="btn btn-link"><i class="dripicons-print"></i> ' . trans("file.print_barcode") . '</button>
                     </li>' . \Form::close();
             }
-            if (in_array("products-delete", $request['all_permission']))
+            if (in_array("products-delete", $request['all_permission'])){
+                $deletable = ($nestedData['sold_qty'] == 0 && $nestedData['delivery_qty'] == 0) ? 'true' : 'false';
                 $nestedData['options'] .= \Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"]) . '
                         <li>
                             <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="fa fa-trash"></i> ' . trans("file.delete") . '</button>
                         </li>' . \Form::close() . '
                     </ul>
                 </div>';
+            }
             // data for product details by one click
             if ($product->tax_id)
                 $tax = Tax::find($product->tax_id)->name;
@@ -258,9 +260,9 @@ class ProductController extends Controller
                 $tax_method = trans('file.Inclusive');
 
             $nestedData['product'] = array(
-                '[ "' . $product->type . '"',
-                ' "' . $product->name . '"',
-                ' "' . $product->code . '"',
+                '[ "' . $product->type . '"', // 0
+                ' "' . $product->name . '"',  // 1
+                ' "' . $product->code . '"',  //2
                 ' "' . $nestedData['volume'] . '"',
                 ' "' . $product->supplier_id . '"',
                 ' "' . $product->supplier_name . '"',
@@ -268,19 +270,21 @@ class ProductController extends Controller
                 ' "' . $nestedData['category'] . '"',
                 ' "' . $nestedData['unit'] . '"',
                 ' "' . $product->cost . '"',
-                ' "' . $product->price . '"',
+                ' "' . $product->price . '"', //10
                 ' "' . $tax . '"',
                 ' "' . $tax_method . '"',
                 ' "' . $product->alert_quantity . '"',
                 ' "' . preg_replace('/\s+/S', " ", $product->product_details) . '"',
-                ' "' . $product->id . '"',
+                ' "' . $product->id . '"',  // 15
                 ' "' . $product->product_list . '"',
                 ' "' . $product->variant_list . '"',
                 ' "' . $product->qty_list . '"',
                 ' "' . $product->price_list . '"',
                 ' "' . $nestedData['qty'] . '"',
                 ' "' . $product->image . '"',
-                ' "' . $product->is_variant . '"]'
+                ' "' . $product->is_variant . '"',
+                ' "' . $nestedData['delivery_qty'] . '"',
+                ' "' . $nestedData['sold_qty'] . '"]'
             );
             //$nestedData['imagedata'] = DNS1D::getBarcodePNG($product->code, $product->barcode_symbology);
             $data[] = $nestedData;
@@ -1676,8 +1680,14 @@ class ProductController extends Controller
     public function deleteBySelection(Request $request)
     {
         $product_id = $request['productIdArray'];
+        $deleted = 0;
         foreach ($product_id as $id) {
             $lims_product_data = Product::findOrFail($id);
+
+            if($lims_product_data->qty > 0) continue;
+
+            $deleted ++;
+
             $lims_product_data->is_active = false;
             $lims_product_data->save();
 
@@ -1688,9 +1698,14 @@ class ProductController extends Controller
                 }
             }
         }
-        $this->cacheForget('product_list');
-        $this->cacheForget('product_list_with_variant');
-        return 'Product deleted successfully!';
+        if($deleted > 0){
+            $this->cacheForget('product_list');
+            $this->cacheForget('product_list_with_variant');
+            return 'Product deleted successfully!';
+        }
+        else {
+            return 'You cannot delete product!';
+        }
     }
 
     public function destroy($id)
@@ -1699,6 +1714,14 @@ class ProductController extends Controller
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
         } else {
             $lims_product_data = Product::findOrFail($id);
+
+            $delivery_qty = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $id)->sum('qty');
+            
+
+            if($lims_product_data->qty > 0 || $delivery_qty > 0) { // added 7.9
+                return redirect('products')->with('message', 'Sorry, Product delete failed');
+            }
+
             $lims_product_data->is_active = false;
             if ($lims_product_data->image != 'zummXD2dvAtI.png') {
                 $images = explode(",", $lims_product_data->image);
