@@ -292,30 +292,39 @@
         });
 
         function productDetails(product, imagedata) {
-            product[11] = product[11].replace(/@/g, '"');
-            htmltext = slidertext = '';
-
-            htmltext = '<p><strong>{{trans("file.Type")}}: </strong> ' +product[0 ] +'</p><p><strong>{{trans("file.name")}}: </strong> ' +product[1 ] +'</p><p><strong>{{trans("file.Code")}}: </strong> ' +product[2 ]+ '</p><p><strong>{{trans("file.Quantity")}}: </strong> ' +product[17 ] +'</p><p><strong>{{trans("file.Unit")}}: </strong> ' +product[5 ] +'</p><p><strong>{{trans("file.Cost")}}: </strong> ' +product[6 ] +'</p><p><strong>{{trans("file.Price")}}: </strong> ' +product[7 ] +'</p><p><strong>{{trans("file.Tax")}}: </strong> ' +product[8 ] +'</p><p><strong>{{trans("file.Tax Method")}} : </strong> ' +product[9 ] +'</p><p><strong>{{trans("file.Alert Quantity")}} : </strong> ' +product[10 ] +'</p><p><strong>{{trans("file.Product Details")}}: </strong></p> ' +product[11];
+            var slidertext = '';
+            var htmltext = 
+            `
+                <p class="m-t-1"></p>
+                <p><strong>{{trans("Product Name")}}: </strong> ${product['name']}</p>
+                <p><strong>{{trans("Product Code")}}: </strong>  ${product['code']} </p>
+                <p><strong>{{trans("Delivery Qty")}}: </strong>  ${product['delivery_qty']} </p>
+                <p><strong>{{trans("Sold Qty")}}: </strong>  ${product['sold_qty']} </p>
+                <p><strong>{{trans("Stock Quantity")}}: </strong>  ${product['stock']} </p>
+                <p><strong>{{trans("Volume")}}: </strong>  ${product['volume']} </p>
+                <p><strong>{{trans("Price")}}: </strong>  ${product['price']} </p>
+            `;
             // alert(product[20]);
-            if (product[20]) {
-                var product_image = product[21].split(",");
+            if (product['stock']) {
+                var product_image = product['image'].split(",");
                 if (product_image.length > 1) {
                     slidertext = '<div id="product-img-slider" class="carousel slide" data-ride="carousel"><div class="carousel-inner">';
                     for (var i = 0; i < product_image.length; i++) {
                         if (!i)
-                            slidertext += '<div class="carousel-item active"><img src="images/product/' + product_image[i] + '" height="300" width="100%"></div>';
+                            slidertext += '<div class="carousel-item active"><img src="images/product/' + product_image[i] + '" height="400" width="100%"></div>';
                         else
-                            slidertext += '<div class="carousel-item"><img src="images/product/' + product_image[i] + '" height="300" width="100%"></div>';
+                            slidertext += '<div class="carousel-item"><img src="images/product/' + product_image[i] + '" height="400" width="100%"></div>';
                     }
                     slidertext += '</div><a class="carousel-control-prev" href="#product-img-slider" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#product-img-slider" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>';
                 }
                 else {
-                    slidertext = '<img src="images/product/' + product[21] + '" height="300" width="100%">';
+                    slidertext = '<img src="images/product/' + product['image'] + '" height="300" width="100%">';
                 }
             }
             else {
                 slidertext = '<img src="images/product/zummXD2dvAtI.png" height="300" width="100%">';
             }
+            
             $("#combo-header").text('');
             $("table.item-list thead").remove();
             $("table.item-list tbody").remove();
@@ -328,127 +337,6 @@
             $("#product-warehouse-section").addClass('d-none');
             $("#product-variant-section").addClass('d-none');
             $("#product-variant-warehouse-section").addClass('d-none');
-            if (product[0] == 'combo') {
-                $("#combo-header").text('{{trans("file.Combo Products")}}');
-                product_list = product[13].split(",");
-                variant_list = product[14].split(",");
-                qty_list = product[15].split(",");
-                price_list = product[16].split(",");
-                $(".item-list thead").remove();
-                $(".item-list tbody").remove();
-                var newHead = $("<thead>");
-                var newBody = $("<tbody>");
-                var newRow = $("<tr>");
-                newRow.append('<th>{{trans("file.product")}}</th><th>{{trans("file.Quantity")}}</th><th>{{trans("file.Price")}}</th>');
-                newHead.append(newRow);
-
-                $(product_list).each(function (i) {
-                    if (!variant_list[i])
-                        variant_list[i] = 0;
-                    $.get('products/getdata/' + product_list[i] + '/' + variant_list[i], function (data) {
-                        var newRow = $("<tr>");
-                        var cols = '';
-                        cols += '<td>' + data['name'] + ' [' + data['code'] + ']</td>';
-                        cols += '<td>' + qty_list[i] + '</td>';
-                        cols += '<td>' + price_list[i] + '</td>';
-
-                        newRow.append(cols);
-                        newBody.append(newRow);
-                    });
-                });
-
-                $("table.item-list").append(newHead);
-                $("table.item-list").append(newBody);
-            }
-            if (product[0] == 'standard' || product[0] == 'combo') {
-                if (product[19]) {
-                    $.get('products/variant-data/' + product[12], function (variantData) {
-                        var newHead = $("<thead>");
-                        var newBody = $("<tbody>");
-                        var newRow = $("<tr>");
-                        newRow.append('<th>{{trans("file.Variant")}}</th><th>{{trans("file.Item Code")}}</th><th>{{trans("file.Additional Cost")}}</th><th>{{trans("file.Additional Price")}}</th><th>{{trans("file.Qty")}}</th>');
-                        newHead.append(newRow);
-                        $.each(variantData, function (i) {
-                            var newRow = $("<tr>");
-                            var cols = '';
-                            cols += '<td>' + variantData[i]['name'] + '</td>';
-                            cols += '<td>' + variantData[i]['item_code'] + '</td>';
-                            if (variantData[i]['additional_cost'])
-                                cols += '<td>' + variantData[i]['additional_cost'] + '</td>';
-                            else
-                                cols += '<td>0</td>';
-                            if (variantData[i]['additional_price'])
-                                cols += '<td>' + variantData[i]['additional_price'] + '</td>';
-                            else
-                                cols += '<td>0</td>';
-                            cols += '<td>' + variantData[i]['qty'] + '</td>';
-
-                            newRow.append(cols);
-                            newBody.append(newRow);
-                        });
-                        $("table.product-variant-list").append(newHead);
-                        $("table.product-variant-list").append(newBody);
-                    });
-                    $("#product-variant-section").removeClass('d-none');
-                }
-                if (role_id <= 2) {
-                    $.get('products/product_warehouse/' + product[12], function (data) {
-                        if (data.product_warehouse[0].length != 0) {
-                            warehouse = data.product_warehouse[0];
-                            qty = data.product_warehouse[1];
-                            batch = data.product_warehouse[2];
-                            expired_date = data.product_warehouse[3];
-                            imei_numbers = data.product_warehouse[4];
-                            var newHead = $("<thead>");
-                            var newBody = $("<tbody>");
-                            var newRow = $("<tr>");
-                            var productQty = 0;
-                            newRow.append('<th>{{trans("file.Warehouse")}}</th><th>{{trans("file.Batch No")}}</th><th>{{trans("file.Expired Date")}}</th><th>{{trans("file.Quantity")}}</th><th>{{trans("file.IMEI or Serial Numbers")}}</th>');
-                            newHead.append(newRow);
-                            $.each(warehouse, function (index) {
-                                // productQty += qty[index];
-                                var newRow = $("<tr>");
-                                var cols = '';
-                                cols += '<td>' + warehouse[index] + '</td>';
-                                cols += '<td>' + batch[index] + '</td>';
-                                cols += '<td>' + expired_date[index] + '</td>';
-                                cols += '<td>' + qty[index] + '</td>';
-                                cols += '<td>' + imei_numbers[index] + '</td>';
-
-                                newRow.append(cols);
-                                newBody.append(newRow);
-                                $("table.product-warehouse-list").append(newHead);
-                                $("table.product-warehouse-list").append(newBody);
-                            });
-                            // console.log(productQty);
-                            $("#product-warehouse-section").removeClass('d-none');
-                        }
-                        if (data.product_variant_warehouse[0].length != 0) {
-                            warehouse = data.product_variant_warehouse[0];
-                            variant = data.product_variant_warehouse[1];
-                            qty = data.product_variant_warehouse[2];
-                            var newHead = $("<thead>");
-                            var newBody = $("<tbody>");
-                            var newRow = $("<tr>");
-                            newRow.append('<th>{{trans("file.Warehouse")}}</th><th>{{trans("file.Variant")}}</th><th>{{trans("file.Quantity")}}</th>');
-                            newHead.append(newRow);
-                            $.each(warehouse, function (index) {
-                                var newRow = $("<tr>");
-                                var cols = '';
-                                cols += '<td>' + warehouse[index] + '</td>';
-                                cols += '<td>' + variant[index] + '</td>';
-                                cols += '<td>' + qty[index] + '</td>';
-
-                                newRow.append(cols);
-                                newBody.append(newRow);
-                                $("table.product-variant-warehouse-list").append(newHead);
-                                $("table.product-variant-warehouse-list").append(newBody);
-                            });
-                            $("#product-variant-warehouse-section").removeClass('d-none');
-                        }
-                    });
-                }
-            }
 
             $('#product-content').html(htmltext);
             $('#slider-content').html(slidertext);
@@ -477,7 +365,7 @@
                 "createdRow": function (row, data, dataIndex) {
                     $(row).addClass('product-link');
                     $(row).attr('data-product', data['product']);
-                    $(row).attr('data-imagedata', data['imagedata']);
+                    // $(row).attr('data-imagedata', data['imagedata']);
                 },
                 "columns": columns,
                 'language': {
@@ -610,7 +498,7 @@
                                     if (i) {
                                         var product_data = $(this).closest('tr').data('product');
                                         if (product_data)
-                                            product_id[i - 1] = product_data[15]; // ###
+                                            product_id[i - 1] = product_data['id']; // ###
                                     }
                                 });
                                 if (product_id.length && confirmDelete()) {

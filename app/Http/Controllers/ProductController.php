@@ -259,33 +259,18 @@ class ProductController extends Controller
             else
                 $tax_method = trans('file.Inclusive');
 
-            $nestedData['product'] = array(
-                '[ "' . $product->type . '"', // 0
-                ' "' . $product->name . '"',  // 1
-                ' "' . $product->code . '"',  //2
-                ' "' . $nestedData['volume'] . '"',
-                ' "' . $product->supplier_id . '"',
-                ' "' . $product->supplier_name . '"',
-                ' "' . $nestedData['brand'] . '"',
-                ' "' . $nestedData['category'] . '"',
-                ' "' . $nestedData['unit'] . '"',
-                ' "' . $product->cost . '"',
-                ' "' . $product->price . '"', //10
-                ' "' . $tax . '"',
-                ' "' . $tax_method . '"',
-                ' "' . $product->alert_quantity . '"',
-                ' "' . preg_replace('/\s+/S', " ", $product->product_details) . '"',
-                ' "' . $product->id . '"',  // 15
-                ' "' . $product->product_list . '"',
-                ' "' . $product->variant_list . '"',
-                ' "' . $product->qty_list . '"',
-                ' "' . $product->price_list . '"',
-                ' "' . $nestedData['qty'] . '"',
-                ' "' . $product->image . '"',
-                ' "' . $product->is_variant . '"',
-                ' "' . $nestedData['delivery_qty'] . '"',
-                ' "' . $nestedData['sold_qty'] . '"]'
-            );
+            $nestedData['product'] = json_encode([
+                "id"                => $product->id,
+                "name"              => $product->name,
+                "code"              => $product->code,
+                "delivery_qty"      => $nestedData['delivery_qty'],
+                "sold_qty"          => $nestedData['sold_qty'],
+                "stock"             => $product->qty,
+                "volume"            => $nestedData["volume"],
+                "price"             => $product->price,
+                "supplier"          => $product->supplier_name,
+                "image"             => $product->image
+            ]);
             //$nestedData['imagedata'] = DNS1D::getBarcodePNG($product->code, $product->barcode_symbology);
             $data[] = $nestedData;
         }
