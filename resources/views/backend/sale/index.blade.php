@@ -12,10 +12,8 @@
     <div class="container-fluid"><?php //echo $sale_status; ?>
         @if(in_array("sales-add", $all_permission))
             <a href="{{route('sales.create')}}" class="btn btn-info add-sale-btn"><i class="dripicons-plus"></i> {{trans('Add Order')}}</a>&nbsp;
-            <!-- <a href="{{url('sales/sale_by_csv')}}" class="btn btn-primary add-sale-btn"><i class="dripicons-copy"></i> {{trans('Import Order')}}</a> -->
         @endif
         <div class="card mt-3">
-            <!-- <h3 class="text-center mt-3">{{trans('Order List')}}</h3> -->
             <div class="card-body">
                 {!! Form::open(['route' => 'sales.index', 'method' => 'get']) !!}
                 <div class="row mt-2">
@@ -27,7 +25,7 @@
                             <input type="hidden" name="ending_date" value="{{$ending_date}}" />
                         </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <div class="form-group">
                             <label><strong>{{trans('Location')}}</strong></label>
                             <select id="location" class="form-control" name="location">
@@ -38,7 +36,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <div class="form-group">
                             <label><strong>{{trans('file.Supplier')}}</strong></label>
                             <select id="supplier-id" class="form-control" name="supplier_id">
@@ -49,7 +47,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-2 @if(!in_array('ecommerce',explode(',',$general_setting->modules))) d-none @endif">
+                    <div class="col-md-1 @if(!in_array('ecommerce',explode(',',$general_setting->modules))) d-none @endif">
                         <div class="form-group">
                             <label><strong>{{trans('file.Sale Type')}}</strong></label>
                             <select id="sale-type" class="form-control" name="sale_type">
@@ -59,7 +57,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-7">
                         <div class="form-group">
                         <label><strong>{{trans('file.Order Status')}}</strong></label><br>
                             <div class="btn-group btn-group-toggle" data-toggle="buttons">
@@ -81,15 +79,15 @@
                                 <label class="btn btn-info btn-sale btn-9">
                                     <input type="radio" name="sale_status" value="9" onchange="make_active(this.value)"> Signed
                                 </label>
+                                <label class="btn btn-info btn-sale btn-14">
+                                    <input type="radio" name="sale_status" value="14" onchange="make_active(this.value)"> Returned Receiving
+                                </label>
                                 <label class="btn btn-info btn-sale btn-4">
                                     <input type="radio" name="sale_status" value="4" onchange="make_active(this.value)"> Returned
                                 </label>
                                 <label class="btn btn-info btn-sale btn-11">
                                     <input type="radio" name="sale_status" value="11" onchange="make_active(this.value)"> Cancelled
                                 </label>
-                                <!-- <label class="btn btn-info btn-sale btn-1">
-                                    <input type="radio" name="sale_status" value="1" onchange="make_active(this.value)"> Fulfilled
-                                </label> -->
                             </div>
                         </div>
                     </div>
@@ -172,11 +170,11 @@
                         <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
                     </div>
                     <div class="col-md-12 text-center">
-                        <div>
+                        <div class="d-print-none">
                             <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
                         </div>
                         <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
-                        <div>
+                        <div class="d-print-none">
                             <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
                         </div>
                     </div>
@@ -201,17 +199,14 @@
                     <div class="col-md-6 d-print-none">
                         <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
                     </div>
-                    <div class="col-md-4">
-                        
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
-                        <div>
+                    <div class="col-md-12 text-center">
+                        <div class="d-print-none">
                             <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
                         </div>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
+                        <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
+                        <div class="d-print-none">
+                            <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1358,17 +1353,17 @@
     function return_ship(id){
         $.get('delivery/create/'+id, function(data) {
             $('.dr_num').text(data[0]);
-                $('.sr_num').text(data[1]);
-                $('.customer_name').text(data[5]);
-                $('.customer_address').text(data[6]);
-                
-                $('input[name="reference_no"]').val(data[0]);
-                $('input[name="sale_id"]').val(id);
-                $('input[name="order_type"]').val("return_ship");
-                //$(".ajax-status").html(data);
-                $("#updateReturnShip").text("Return Shipping");
-            });
+            $('.sr_num').text(data[1]);
+            $('.customer_name').text(data[5]);
+            $('.customer_address').text(data[6]);
+            
+            $('input[name="reference_no"]').val(data[0]);
+            $('input[name="sale_id"]').val(id);
+            $('input[name="order_type"]').val("return_ship");
+            //$(".ajax-status").html(data);
+            $("#updateReturnShip").text("Return Shipping");
             $('#return-ship').modal('show');
+        });
     }
 
     $(".return_ship_btn").on("click", function(){
@@ -1388,6 +1383,10 @@
             }
         });
     });
+
+    function return_receiving_sign(sale_id){
+        alert('Sign Action Needed');
+    }
 
     function cancel_order(id){
         $.get('delivery/create/'+id, function(data) {
@@ -1587,21 +1586,8 @@
                     font-size: 22px !important;
                     font-weight: bold !important;
                 }
-                .modal-header img {
-                    display: block !important;
-                    margin: 0 auto 10px auto !important;
-                    max-width: 120px !important;
-                    max-height: 80px !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    text-align: center;
-                }
                 .modal-body{
                     padding: 15%;
-                }
-                .sale-details {
-                    margin: auto;
-                    width: 70%;
                 }
             }
             </style>
@@ -1615,18 +1601,19 @@
 
     function createBillHtml(sale){
         return (`
-            <div class="sale-details" style="line-height: 1.8; font-size: 16px; margin: auto; padding: 10px; width: 60%">
-                <p> <strong> Order Number: </strong> ${sale[1]} </p>
+            <div class="sale-details" style="line-height: 1.8; font-size: 17px; margin: auto; width: 70%">
+                <p> <strong> Order Number : </strong> ${sale[1]} </p>
                 <p> <strong> Name: </strong>${sale[9]} </p>
                 <p> <strong> Number: </strong> ${sale[10]} </p> 
+                <hr>
                 <p> <strong> Address: </strong> ${sale[11]} </p>
+                <hr>
                 <p> <strong> Date: </strong>${sale[0]} </p>
                 <p> <strong> QTY : </strong> ${sale[33]} </p>
                 <p> <strong> Amount : </strong> ${sale[21]} </p>
-                <p> <strong> Delivery Fee : </strong> ${sale[20]} </p>
-                <p> <strong> Location : </strong> ${sale[34]} </p>
+                <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale[34]} </p>
                 <div class="barcode-wrapper">
-                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:auto;display:block;width:220px;height:60px;"></svg>
+                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:20px auto;display:block;width:220px;height:60px;"></svg>
                 </div>
                 <input type="hidden" name="sale_id[]" value="${sale[13]}">
             </div>
@@ -1655,13 +1642,6 @@
             'border-radius': '8px',
             'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
             'display' : 'inline-block'
-        });
-
-        $('.barcode').css({
-            'margin': '0 auto',
-            'display': 'block',
-            'width': '290px',
-            'height': '100px'
         });
 
         $('#sale-details').modal('show');
@@ -2185,6 +2165,24 @@
                         dt.search('').draw(); 
                     }, 100);
 
+                }, 100); 
+            }
+
+            if ($("#pending-to-return").length > 0) {
+                
+                setTimeout(function () {
+                    $("#pending-to-return").each(function () {
+                        $(this)
+                            .removeClass('badge-info')
+                            .addClass('badge-primary')
+                            .text('Returned');
+                    });
+
+                    setTimeout(function () {
+                        $('#sale-table_filter input').val(''); 
+                        const dt = $('#sale-table').DataTable();
+                        dt.search('').draw(); 
+                    }, 100);
                 }, 100); 
             }
         }

@@ -303,6 +303,7 @@
                 <p><strong>{{trans("Stock Quantity")}}: </strong>  ${product['stock']} </p>
                 <p><strong>{{trans("Volume")}}: </strong>  ${product['volume']} </p>
                 <p><strong>{{trans("Price")}}: </strong>  ${product['price']} </p>
+                <p><strong>{{trans("Supplier")}}: </strong>  ${product['supplier']} </p>
             `;
             // alert(product[20]);
             if (product['stock']) {

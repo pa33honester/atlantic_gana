@@ -1353,6 +1353,54 @@ class RoleController extends Controller
                 $role->revokePermissionTo('returned');
         }
 
+        if($request->has('unpaid-confirm')) {
+            $permission = Permission::firstOrCreate(['name' => 'unpaid-confirm']);
+            if(!$role->hasPermissionTo('unpaid-confirm')) {
+                $role->givePermissionTo($permission);
+            }
+        }
+        else {
+            $permission = Permission::where('name', 'unpaid-confirm')->first();
+            if($permission)
+                $role->revokePermissionTo('unpaid-confirm');
+        }
+
+        if($request->has('unpaid-edit')) {
+            $permission = Permission::firstOrCreate(['name' => 'unpaid-edit']);
+            if(!$role->hasPermissionTo('unpaid-edit')) {
+                $role->givePermissionTo($permission);
+            }
+        }
+        else {
+            $permission = Permission::where('name', 'unpaid-edit')->first();
+            if($permission)
+                $role->revokePermissionTo('unpaid-edit');
+        }
+
+        if($request->has('unpaid-cancel')) {
+            $permission = Permission::firstOrCreate(['name' => 'unpaid-cancel']);
+            if(!$role->hasPermissionTo('unpaid-cancel')) {
+                $role->givePermissionTo($permission);
+            }
+        }
+        else {
+            $permission = Permission::where('name', 'unpaid-cancel')->first();
+            if($permission)
+                $role->revokePermissionTo('unpaid-cancel');
+        }
+
+        if($request->has('return-receiving')) {
+            $permission = Permission::firstOrCreate(['name' => 'return-receiving']);
+            if(!$role->hasPermissionTo('return-receiving')) {
+                $role->givePermissionTo($permission);
+            }
+        }
+        else {
+            $permission = Permission::where('name', 'return-receiving')->first();
+            if($permission)
+                $role->revokePermissionTo('return-receiving');
+        }
+
         cache()->forget('permissions');
 
         return redirect('role')->with('message', 'Permission updated successfully');

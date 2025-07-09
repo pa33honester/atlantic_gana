@@ -286,7 +286,7 @@ class SaleController extends Controller
                 break;
 
             case "return_ship":
-                $sale_details["sale_status"] = 4;
+                $sale_details["sale_status"] = 14; // return receiving
                 $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
                 $warehouse_id = Sale::select('warehouse_id')->find($sale_id)->warehouse_id;
                 $shipping_cost = Sale::select('shipping_cost')->find($sale_id)->shipping_cost;
@@ -363,6 +363,7 @@ class SaleController extends Controller
     {
         $user = Auth::user();
         $role = Role::find($user->role_id);
+
         if ($role->hasPermissionTo('sales-index')) {
             $permissions = Role::findByName($role->name)->permissions;
             foreach ($permissions as $permission)
@@ -580,6 +581,7 @@ class SaleController extends Controller
             11 => ['danger',    'Cancelled'],
             12 => ['info',      'Receiving'],
             13 => ['danger',    'Rported'],
+            14 => ['warning',   'Return Receiving']
         ];
         foreach ($sales as $key => $sale) {
             if(!$sale->customer) {
@@ -639,6 +641,7 @@ class SaleController extends Controller
 
             // RBAC and options
             $role = Role::find($user->role_id);
+            // Permission::create(['name'  => 'return-receiving']);
             $nestedData['options'] = ' ';
             if ($sale->sale_status == 1) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
@@ -647,50 +650,62 @@ class SaleController extends Controller
                 $nestedData['options'] = ' ';
             }
             else if ($sale->sale_status == 6 && $role->hasPermissionTo('unpaid')) {
-                $confirm_data = [
-                    'id'                => $sale->id,
-                    'order_number'      => $sale->reference_no,
-                    'order_time'        => $sale->created_at,
-                    'customer_id'       => $sale->customer->id,
-                    'customer_name'     => $sale->customer->name,
-                    'customer_phone'    => $sale->customer->phone_number,
-                    'customer_address'  => $sale->customer->address,
-                    'location'          => $sale->location,
-                    'product_amount'    => 0,
-                ];
-                foreach($sale->products as $product){
-                     $temp = [
-                        'id'            => $product->id,
-                        'product_sale_id'=> $product->pivot->id,
-                        'product_name'  => $product->name,
-                        'img'           => explode(',', $product->image),
-                        'price'         => $product->price,
-                        'qty'           => $product->pivot->qty - $product->pivot->return_qty,
-                        'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
-                    ];
-                    $confirm_data['products'] []= $temp;
-                    $confirm_data['product_amount'] += $temp['amount'];
-                }
-                $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
                 $nestedData['options'] = 
-                    '<div class="btn-group">
-                        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
-                            <span class="caret"></span>
-                            <span class="sr-only">Toggle Dropdown</span>
-                        </button>
-                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                            <li>
-                                <a href="#" class="btn btn-link view text-info" onclick="editx(' . $sale->id . ')">edit</a>
-                            </li>
-                            <li>
-                                <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '" onclick="update_status(this)">confirm</a>
-                            </li>
-                            <li>
-                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</a>
-                            </li>
-                        </ul>
-                    </div>';
-            } 
+                '<div class="btn-group">
+                    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
+                        <span class="caret"></span>
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
+                ';
+                
+                if($role->hasPermissionTo('unpaid-edit')){
+                    $nestedData['options'] .= 
+                        '<li>
+                            <a href="#" class="btn btn-link view text-info" onclick="editx(' . $sale->id . ')">edit</a>
+                        </li>';
+                }
+                if($role->hasPermissionTo('unpaid-confirm')){
+                    $confirm_data = [
+                        'id'                => $sale->id,
+                        'order_number'      => $sale->reference_no,
+                        'order_time'        => $sale->created_at,
+                        'customer_id'       => $sale->customer->id,
+                        'customer_name'     => $sale->customer->name,
+                        'customer_phone'    => $sale->customer->phone_number,
+                        'customer_address'  => $sale->customer->address,
+                        'location'          => $sale->location,
+                        'product_amount'    => 0,
+                    ];
+                    foreach($sale->products as $product){
+                        $temp = [
+                            'id'            => $product->id,
+                            'product_sale_id'=> $product->pivot->id,
+                            'product_name'  => $product->name,
+                            'img'           => explode(',', $product->image),
+                            'price'         => $product->price,
+                            'qty'           => $product->pivot->qty - $product->pivot->return_qty,
+                            'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
+                        ];
+                        $confirm_data['products'] []= $temp;
+                        $confirm_data['product_amount'] += $temp['amount'];
+                    }
+                    $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
+                    
+                    $nestedData['options'] .= 
+                        '<li>
+                            <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '" onclick="update_status(this)">confirm</a>
+                        </li>';
+                }
+                if($role->hasPermissionTo('unpaid-cancel')){
+                    $nestedData['options'] .= 
+                        '<li>
+                            <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $sale->id . ')">cancel</a>
+                        </li>';
+                }
+
+                $nestedData['options'] .= '</ul></div>';
+            }
             else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark print-waybill"> Print Waybill </button>';
             } 
@@ -708,12 +723,15 @@ class SaleController extends Controller
             else if ($sale->sale_status == 12 && $role->hasPermissionTo('receiving')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_status_filters_shipped(' . $sale->id . ')">shipped</button>';
             }
+            else if ($sale->sale_status == 14 && $role->hasPermissionTo('return-receiving')) {
+                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_receiving_sign(' . $sale->id . ')">sign</button>';
+            }
 
             // Sale details for one-click view
             $coupon = Coupon::find($sale->coupon_id);
             $coupon_code = $coupon ? $coupon->code : null;
             $currency_code = $sale->currency_id ? Currency::select('code')->find($sale->currency_id)->code : 'N/A';
-            $sale_status = $sale->sale_status; // You may want to use your badge logic here
+            $sale_status = $sale->sale_status;
 
             $nestedData['sale'] = [
                 '[ "' . date(config('date_format'), strtotime($sale->created_at->toDateString())) . '"',
@@ -764,17 +782,27 @@ class SaleController extends Controller
             "role" => config('staff_access'),
         ];
 
-        // Handle special case for search and status update
-        if (!empty($searchValue) && $role->hasPermissionTo('receiving')) {
-            // This is the case of Barcode Scanner Input
+        if (!empty($searchValue)) {
             if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
-                if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 12) {
-                    Sale::where([
-                        ['id', $sales[0]['id']]
-                    ])->update([
-                        'sale_status' => 8
-                    ]);
-                    $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-shipped\">Receiving</div>";
+                if($role->hasPermissionTo('receiving')){
+                    if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 12) {
+                        Sale::where([
+                            ['id', $sales[0]['id']]
+                        ])->update([
+                            'sale_status' => 8
+                        ]);
+                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-shipped\">Receiving</div>";
+                    }
+                }
+                else if($role->hasPermissionTo('return-receiving')){
+                    if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 14) {
+                        Sale::where([
+                            ['id', $sales[0]['id']]
+                        ])->update([
+                            'sale_status' => 4
+                        ]);
+                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-return\">Return Receiving</div>";
+                    }
                 }
             }            
         }
