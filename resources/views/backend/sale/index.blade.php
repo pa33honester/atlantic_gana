@@ -1060,6 +1060,32 @@
     var deposit;
     var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
 
+    var can_search = @json($can_search);
+
+    let dtDom, dtLanguage;
+    if (can_search) {
+        dtDom = '<"row"lfB>rtip';
+        dtLanguage = {
+            'search': '{{trans("file.Search")}}',
+            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
+            "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+            'paginate': {
+                'previous': '<i class="dripicons-chevron-left"></i>',
+                'next': '<i class="dripicons-chevron-right"></i>'
+            }
+        };
+    } else {
+        dtDom = '<"row"lB>rtip';
+        dtLanguage = {
+            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
+            "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+            'paginate': {
+                'previous': '<i class="dripicons-chevron-left"></i>',
+                'next': '<i class="dripicons-chevron-right"></i>'
+            }
+        };
+    }
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -1607,6 +1633,7 @@
                 <p> <strong> Number: </strong> ${sale[10]} </p> 
                 <hr>
                 <p> <strong> Address: </strong> ${sale[11]} </p>
+                <p></p>
                 <hr>
                 <p> <strong> Date: </strong>${sale[0]} </p>
                 <p> <strong> QTY : </strong> ${sale[33]} </p>
@@ -2014,15 +2041,8 @@
             $(row).attr('data-sale', data['sale']);
         },
         "columns": columns,
-        'language': {
-            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-             "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{trans("file.Search")}}',
-            'paginate': {
-                    'previous': '<i class="dripicons-chevron-left"></i>',
-                    'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        },
+        language: dtLanguage,
+        dom: dtDom,
         order:[['1', 'desc']],
         'columnDefs': [
             {
@@ -2046,7 +2066,6 @@
         ],
         'select': { style: 'multi',  selector: 'td:first-child'},
         'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        dom: '<"row"lfB>rtip',
         rowId: 'ObjectID',
         buttons: [
             {

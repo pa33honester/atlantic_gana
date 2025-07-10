@@ -441,6 +441,7 @@ class SaleController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
             $smsTemplates = SmsTemplate::all();
+            $can_search = $role->hasPermissionTo('return-receiving') || $role->hasPermissionTo('receiving');
             return view('backend.sale.index', compact(
                 'starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 
                 'sale_type', 'supplier_id', 'lims_gift_card_list', 
@@ -453,6 +454,7 @@ class SaleController extends Controller
                 'lims_supplier_list', 
                 'lims_shipping_cost_list', 
                 'lims_return_shipping_cost_list', 
+                'can_search',
                 'smsTemplates'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
