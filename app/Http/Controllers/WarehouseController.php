@@ -133,9 +133,13 @@ class WarehouseController extends Controller
     {
         $lims_warehouse_data = Warehouse::find($id);
 
-        $products = Product_Warehouse::where([['warehouse_id', $id]])->count();
-
-        if($products > 0){
+        $stock_qty = Product_Warehouse::
+                join('products', 'product_warehouse.product_id', '=', 'products.id')
+                ->where([ ['product_warehouse.warehouse_id', $id],
+                            ['products.is_active', true]
+                ])->sum('product_warehouse.qty');
+        
+        if($stock_qty > 0) {
             return redirect('warehouse')->with('not_permitted', 'Hmm, Data deleted failed...');
         }
 

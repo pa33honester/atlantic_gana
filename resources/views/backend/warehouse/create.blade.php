@@ -65,11 +65,13 @@
                                 </button>
                                 </li>
                                 <li class="divider"></li>
+                                @if($stock_qty ==0 || $number_of_product == 0)
                                 {{ Form::open(['route' => ['warehouse.destroy', $warehouse->id], 'method' => 'DELETE'] ) }}
                                 <li>
                                     <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> {{trans('file.delete')}}</button>
                                 </li>
                                 {{ Form::close() }}
+                                @endif
                             </ul>
                         </div>
                     </td>

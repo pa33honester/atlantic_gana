@@ -1613,7 +1613,7 @@
                     font-weight: bold !important;
                 }
                 .modal-body{
-                    padding: 15%;
+                    padding: 20px 30px;
                 }
             }
             </style>
@@ -1627,14 +1627,11 @@
 
     function createBillHtml(sale){
         return (`
-            <div class="sale-details" style="line-height: 1.8; font-size: 17px; margin: auto; width: 70%">
+            <div class="sale-details" style="line-height: 1.8; font-size: 20px; margin: 10px auto; width: 70%">
                 <p> <strong> Order Number : </strong> ${sale[1]} </p>
                 <p> <strong> Name: </strong>${sale[9]} </p>
                 <p> <strong> Number: </strong> ${sale[10]} </p> 
-                <hr>
-                <p> <strong> Address: </strong> ${sale[11]} </p>
-                <p></p>
-                <hr>
+                <p class="m-b-2"> <strong> Address: </strong> ${sale[11]} </p>
                 <p> <strong> Date: </strong>${sale[0]} </p>
                 <p> <strong> QTY : </strong> ${sale[33]} </p>
                 <p> <strong> Amount : </strong> ${sale[21]} </p>
