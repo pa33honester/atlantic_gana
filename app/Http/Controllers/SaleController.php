@@ -713,7 +713,7 @@ class SaleController extends Controller
             } 
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
-                $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                // $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
             } 
             else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="return_ship(' . $sale->id . ')">return</button>';
@@ -785,9 +785,9 @@ class SaleController extends Controller
         ];
 
         if (!empty($searchValue)) {
-            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
-                if($role->hasPermissionTo('receiving')){
-                    if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 12) {
+            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1 && !empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue){
+                if($role->hasPermissionTo('receiving') || $role->hasPermissionTo('return-receiving')){
+                    if ($sales[0]->sale_status == 12) {
                         Sale::where([
                             ['id', $sales[0]['id']]
                         ])->update([
@@ -795,15 +795,21 @@ class SaleController extends Controller
                         ]);
                         $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-shipped\">Receiving</div>";
                     }
-                }
-                else if($role->hasPermissionTo('return-receiving')){
-                    if (!empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue && $sales[0]->sale_status == 14) {
+                    else if ($sales[0]->sale_status == 14) {
                         Sale::where([
                             ['id', $sales[0]['id']]
                         ])->update([
                             'sale_status' => 4
                         ]);
-                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-return\">Return Receiving</div>";
+                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-warning\" id=\"pending-to-return\">Return Receiving</div>";
+                    }
+                    else if($sales[0]->sale_status == 8){
+                        Sale::where([
+                            ['id', $sales[0]['id']]
+                        ])->update([
+                            'sale_status' => 14
+                        ]);
+                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-success\" id=\"pending-to-return-receiving\"> Shipped </div>";
                     }
                 }
             }            

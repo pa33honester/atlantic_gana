@@ -1487,8 +1487,6 @@
         });
     });
 
-    // krishna singh - https://linktr.ee/iamsinghkrishna
-
     $(document).on("click", "tr.sale-link td:not(:first-child, :last-child)", function() {
         var sale = $(this).parent().data('sale');
         saleDetails(sale);
@@ -1609,11 +1607,8 @@
                     width: 100% !important;
                     text-align: center !important;
                     margin: 0 auto !important;
-                    font-size: 22px !important;
+                    font-size: 25px !important;
                     font-weight: bold !important;
-                }
-                .modal-body{
-                    padding: 20px 30px;
                 }
             }
             </style>
@@ -1627,13 +1622,13 @@
 
     function createBillHtml(sale){
         return (`
-            <div class="sale-details" style="line-height: 1.8; font-size: 20px; margin: 10px auto; width: 70%">
+            <div class="sale-details" style="line-height: 1.6; font-size: 20px; font-weight:500; margin: 20px auto; width: 80%">
                 <p> <strong> Order Number : </strong> ${sale[1]} </p>
                 <p> <strong> Name: </strong>${sale[9]} </p>
                 <p> <strong> Number: </strong> ${sale[10]} </p> 
                 <p class="m-b-2"> <strong> Address: </strong> ${sale[11]} </p>
                 <p> <strong> Date: </strong>${sale[0]} </p>
-                <p> <strong> QTY : </strong> ${sale[33]} </p>
+                <p> <strong> Qty : </strong> ${sale[33]} </p>
                 <p> <strong> Amount : </strong> ${sale[21]} </p>
                 <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale[34]} </p>
                 <div class="barcode-wrapper">
@@ -2183,15 +2178,30 @@
 
                 }, 100); 
             }
-
-            if ($("#pending-to-return").length > 0) {
+            else if ($("#pending-to-return").length > 0) {
                 
                 setTimeout(function () {
                     $("#pending-to-return").each(function () {
                         $(this)
-                            .removeClass('badge-info')
-                            .addClass('badge-primary')
+                            .removeClass('badge-warning')
+                            .addClass('badge-danger')
                             .text('Returned');
+                    });
+
+                    setTimeout(function () {
+                        $('#sale-table_filter input').val(''); 
+                        const dt = $('#sale-table').DataTable();
+                        dt.search('').draw(); 
+                    }, 100);
+                }, 100); 
+            }
+            else if ($("#pending-to-return-receiving").length > 0) {
+                setTimeout(function () {
+                    $("#pending-to-return").each(function () {
+                        $(this)
+                            .removeClass('badge-success')
+                            .addClass('badge-danger')
+                            .text('Return Receiving');
                     });
 
                     setTimeout(function () {
