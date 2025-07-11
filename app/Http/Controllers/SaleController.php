@@ -441,7 +441,9 @@ class SaleController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
             $smsTemplates = SmsTemplate::all();
-            $can_search = $role->hasPermissionTo('return-receiving') || $role->hasPermissionTo('receiving');
+            $can_search = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
+                    || ($role->hasPermissionTo('receiving') && $sale_status == 12)
+                    || ($role->hasPermissionTo('shipped') && $sale_status == 8);
             return view('backend.sale.index', compact(
                 'starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 
                 'sale_type', 'supplier_id', 'lims_gift_card_list', 
@@ -451,7 +453,7 @@ class SaleController extends Controller
                 'custom_fields', 
                 'field_name', 
                 'lims_courier_list', 
-                'lims_supplier_list', 
+                'lims_supplier_list',
                 'lims_shipping_cost_list', 
                 'lims_return_shipping_cost_list', 
                 'can_search',
@@ -784,37 +786,46 @@ class SaleController extends Controller
             "role" => config('staff_access'),
         ];
 
-        if (!empty($searchValue)) {
-            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1 && !empty($sales) && sizeof($sales) == 1 && $sales[0]->reference_no == $searchValue){
-                if($role->hasPermissionTo('receiving') || $role->hasPermissionTo('return-receiving')){
-                    if ($sales[0]->sale_status == 12) {
-                        Sale::where([
-                            ['id', $sales[0]['id']]
-                        ])->update([
+        return response()->json($json_data);
+    }
+
+    public function saleScan(Request $request){
+        $user = Auth::user();
+        $role = Role::find($user->role_id);
+        $searchValue = $request->search;
+
+        $sale = Sale::where('reference_no', $searchValue)->select('id', 'sale_status')->first();
+
+        if ($searchValue) {
+            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
+                if($role->hasPermissionTo('receiving') || $role->hasPermissionTo('return-receiving') || $role->hasPermissionTo('shipped')){
+                    if ($sale->sale_status == 12) {
+                        $sale->fill([
                             'sale_status' => 8
                         ]);
-                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-info\" id=\"pending-to-shipped\">Receiving</div>";
                     }
-                    else if ($sales[0]->sale_status == 14) {
-                        Sale::where([
-                            ['id', $sales[0]['id']]
-                        ])->update([
+                    else if ($sale->sale_status == 14) {
+                        $sale->fill([
                             'sale_status' => 4
                         ]);
-                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-warning\" id=\"pending-to-return\">Return Receiving</div>";
                     }
-                    else if($sales[0]->sale_status == 8){
-                        Sale::where([
-                            ['id', $sales[0]['id']]
-                        ])->update([
+                    else if($sale->sale_status == 8){
+                        $sale->fill([
                             'sale_status' => 14
                         ]);
-                        $json_data['search_value'] = $json_data["data"][0]['sale_status'] = "<div class=\"badge badge-success\" id=\"pending-to-return-receiving\"> Shipped </div>";
                     }
+                    $sale->save();
+                    return response()->json([
+                        "code"  => 200,
+                        "msg"   => "Scan Order Success!"
+                    ]);
                 }
-            }            
+            }
         }
-        return response()->json($json_data);
+        return response()->json([
+            "code"  => 400,
+            "msg"   => "No Scan!"
+        ]);
     }
 
     public function create()

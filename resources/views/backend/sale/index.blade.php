@@ -102,6 +102,16 @@
             </div>
         </div>
     </div>
+    @if($can_search)
+        <div class="container">
+            <div style="width: 25%; margin: auto;">
+                <p class="text-center">Scanned order comes here</p>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="posInput" readonly autofocus/>
+                </div>
+            </div>
+        </div>
+    @endif
     <div class="table-responsive">
         <table id="sale-table" class="table sale-list" style="width: 100%">
             <thead>
@@ -110,16 +120,16 @@
                     <th>{{trans('Order Number')}}</th>
                     <th>{{trans('file.Product Name')}}</th>
                     <th>{{trans('Product Number')}}</th>      
-                    <th>{{trans('Supplier')}}</th>         
+                    <th>{{trans('Supplier')}}</th>
                     <th>{{trans('Order Time')}}</th>                         
                     <th>{{trans('file.Order Status')}}</th>   
-                    <th>{{trans('Product Quantity')}}</th>                         
+                    <th>{{trans('Product Quantity')}}</th>
                     <th>{{trans('Total Product Price')}}</th>
                     <th>{{trans('Delivery Fee')}}</th>                    
                     <th>{{trans('Customer Information')}}</th>    
                     <th>{{trans('Customer Address')}}</th>                
                     <th>{{trans('Update Time')}}</th>   
-                    <th>{{trans('Location')}}</th>                
+                    <th>{{trans('Location')}}</th>
                     @foreach($custom_fields as $fieldName)
                     <th>{{$fieldName}}</th>
                     @endforeach
@@ -1062,29 +1072,16 @@
 
     var can_search = @json($can_search);
 
-    let dtDom, dtLanguage;
-    if (can_search) {
-        dtDom = '<"row"lfB>rtip';
-        dtLanguage = {
-            'search': '{{trans("file.Search")}}',
-            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-            "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            'paginate': {
-                'previous': '<i class="dripicons-chevron-left"></i>',
-                'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        };
-    } else {
-        dtDom = '<"row"lB>rtip';
-        dtLanguage = {
-            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-            "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            'paginate': {
-                'previous': '<i class="dripicons-chevron-left"></i>',
-                'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        };
-    }
+    let dtDom = '<"row"lfB>rtip';
+    let dtLanguage = {
+        'search': '{{trans("file.Search")}}',
+        'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
+        "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+        'paginate': {
+            'previous': '<i class="dripicons-chevron-left"></i>',
+            'next': '<i class="dripicons-chevron-right"></i>'
+        }
+    };
 
     $.ajaxSetup({
         headers: {
@@ -1115,8 +1112,6 @@
     $("#cheque").hide();
     $('#view-payment').modal('hide');
     $('.selectpicker').selectpicker('refresh');
-
-    // krishna singh - https://linktr.ee/iamsinghkrishna
 
     function make_active(sale_status){
         $(".btn-sale").removeClass("btn-dark").addClass("btn-info");
@@ -1707,7 +1702,6 @@
         $('#confirm-print').modal('show');
     }
 
-
     $(document).on("click", ".btn-print", function() {
         var selector = $(this).data('print-target');
         printDocument(selector);
@@ -2006,7 +2000,7 @@
         }
     }
 
-    $('#sale-table').DataTable({
+    var data_table = $('#sale-table').DataTable({
         "processing": true,
         "serverSide": true,
         "ajax":{
@@ -2159,58 +2153,17 @@
         drawCallback: function () {
             var api = this.api();
             datatable_sum(api, false);
-
-            if ($("#pending-to-shipped").length > 0) {
-                
-                setTimeout(function () {
-                    $("#pending-to-shipped").each(function () {
-                        $(this)
-                            .removeClass('badge-info')
-                            .addClass('badge-primary')
-                            .text('Shipped');
-                    });
-
-                    setTimeout(function () {
-                        $('#sale-table_filter input').val(''); 
-                        const dt = $('#sale-table').DataTable();
-                        dt.search('').draw(); 
-                    }, 100);
-
-                }, 100); 
-            }
-            else if ($("#pending-to-return").length > 0) {
-                
-                setTimeout(function () {
-                    $("#pending-to-return").each(function () {
-                        $(this)
-                            .removeClass('badge-warning')
-                            .addClass('badge-danger')
-                            .text('Returned');
-                    });
-
-                    setTimeout(function () {
-                        $('#sale-table_filter input').val(''); 
-                        const dt = $('#sale-table').DataTable();
-                        dt.search('').draw(); 
-                    }, 100);
-                }, 100); 
-            }
-            else if ($("#pending-to-return-receiving").length > 0) {
-                setTimeout(function () {
-                    $("#pending-to-return").each(function () {
-                        $(this)
-                            .removeClass('badge-success')
-                            .addClass('badge-danger')
-                            .text('Return Receiving');
-                    });
-
-                    setTimeout(function () {
-                        $('#sale-table_filter input').val(''); 
-                        const dt = $('#sale-table').DataTable();
-                        dt.search('').draw(); 
-                    }, 100);
-                }, 100); 
-            }
+            const search_input = $('#sale-table_filter input');
+            search_input.on('keydown', function(e){
+                setTimeout(function(){
+                    $('#posInput').focus();
+                }, 2000);
+            });
+            search_input.on('click', function(e){
+                setTimeout(function(){
+                    $('#posInput').focus();
+                }, 2000);
+            });
         }
     });
 
@@ -2228,7 +2181,6 @@
             $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
         }
     }
-
 
     $(document).on('submit', '.payment-form', function(e) {
         if( $('input[name="paying_amount"]').val() < parseFloat($('#amount').val()) ) {
@@ -2265,6 +2217,31 @@
     }
 
     $(document).ready(function() {
+        $('#posInput').on('input', function(){
+            const searchValue = this.value;
+            $.ajax({
+                url: '/sales/sale-scan', // Your backend search endpoint
+                method: 'POST',
+                data: {
+                    search: searchValue
+                },
+                success: function(response) {
+                    // Handle the response from the backend
+                    $('#sale-table_filter input').val('');
+                    $('#sale-table').DataTable().search('').draw();
+                },
+                error: function(error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
+        $('#posInput').on('keydown', function(e){
+            e.preventDefault();
+        });
+
+        $('#posInput').focus();
+
         // Hide button initially
         $('#print-waybill-btn').hide();
 

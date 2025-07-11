@@ -303,7 +303,6 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
     });
     Route::resource('customer', CustomerController::class)->except('show');
 
-
     Route::controller(BillerController::class)->group(function () {
         Route::post('importbiller', 'importBiller')->name('biller.import');
         Route::post('biller/deletebyselection', 'deleteBySelection');
@@ -311,9 +310,9 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
     });
     Route::resource('biller', BillerController::class);
 
-
     Route::controller(SaleController::class)->group(function () {
         Route::post('sales/sale-data', 'saleData');
+        Route::post('sales/sale-scan', 'saleScan');
         Route::post('sales/sendmail', 'sendMail')->name('sale.sendmail');
         Route::get('sales/sale_by_csv', 'saleByCsv');
         Route::get('sales/product_sale/{id}', 'productSaleData');
