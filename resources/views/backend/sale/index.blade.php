@@ -102,17 +102,57 @@
             </div>
         </div>
     </div>
-    @if($can_search)
-        <div class="container">
-            <div style="width: 25%; margin: auto;">
-                <p class="text-center">Scanned order comes here</p>
-                <div class="form-group">
-                    <input type="text" class="form-control" id="posInput" readonly autofocus/>
-                </div>
-            </div>
-        </div>
-    @endif
     <div class="table-responsive">
+        <style>
+           .datatable-controls-wrapper {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 1rem;
+            }
+
+            .left-section,
+            .middle-section,
+            .right-section {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .middle-section {
+                flex-grow: 1;
+                justify-content: center;
+                gap: 150px;
+            }
+
+            /* Force buttons to line up horizontally */
+            .dt-buttons {
+                display: flex !important;
+                gap: 6px;
+                flex-wrap: nowrap;
+                justify-content: flex-end;
+                align-items: center;
+            }
+
+            /* Optional: make sure each button doesn't expand or stack */
+            .dt-button {
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+                padding: 4px 8px;
+                white-space: nowrap;
+            }
+
+            /* Optional: if the right section is misbehaving */
+            .right-section {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+            }
+        </style>
         <table id="sale-table" class="table sale-list" style="width: 100%">
             <thead>
                 <tr>
@@ -1015,19 +1055,7 @@
     var account = [];
     var deposit;
     var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
-
-    var can_search = @json($can_search);
-
-    let dtDom = '<"row"lfB>rtip';
-    let dtLanguage = {
-        'search': '{{trans("file.Search")}}',
-        'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-        "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-        'paginate': {
-            'previous': '<i class="dripicons-chevron-left"></i>',
-            'next': '<i class="dripicons-chevron-right"></i>'
-        }
-    };
+    var can_scanner = @json($can_scanner);
 
     $.ajaxSetup({
         headers: {
@@ -1183,6 +1211,7 @@
 
             var res_info = $('textarea[name="res_info"]').val();
             check_validation("textarea", "res_info", res_info);
+
         } else if(res_type == "cancel"){
             var res_reason_1 = $('select[name="res_reason_1"]').val();
             check_validation("select", "res_reason_1", res_reason_1);
@@ -1200,8 +1229,13 @@
             type: "POST",
             data: $(".update_status").serializeArray(),
             success:function(data) {
-                $('#update-status').modal('hide');
-                location.reload();
+                if(data['code'] == 200){
+                    $('#update-status').modal('hide');
+                    location.reload();
+                }
+                else {
+                    alert(data['msg']);
+                }
             }
         });
     });   
@@ -1939,183 +1973,7 @@
         }
     }
 
-    var data_table = $('#sale-table').DataTable({
-        "processing": true,
-        "serverSide": true,
-        "ajax":{
-            url:"sales/sale-data",
-            data:{
-                all_permission: all_permission,
-                starting_date: starting_date,
-                ending_date: ending_date,
-                warehouse_id: warehouse_id,
-                sale_status: sale_status,
-                sale_type: sale_type,
-                payment_status: payment_status,
-                location : _location,
-                supplier_id: supplier_id,
-            },
-            dataType: "json",
-            type:"post"
-        },
-        /*rowId: function(data) {
-              return 'row_'+data['id'];
-        },*/
-        "createdRow": function( row, data, dataIndex ) {
-            $(row).addClass('sale-link');
-            $(row).attr('data-sale', data['sale']);
-        },
-        "columns": columns,
-        language: dtLanguage,
-        dom: dtDom,
-        order:[['1', 'desc']],
-        'columnDefs': [
-            {
-                "orderable": false,
-                'targets': [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-            },
-            {
-                'render': function(data, type, row, meta){
-                    if(type === 'display'){
-                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
-                    }
-
-                   return data;
-                },
-                'checkboxes': {
-                   'selectRow': true,
-                   'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
-                },
-                'targets': [0]
-            }
-        ],
-        'select': { style: 'multi',  selector: 'td:first-child'},
-        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        rowId: 'ObjectID',
-        buttons: [
-            {
-                extend: 'pdf',
-                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'excel',
-                text: '<i title="export to excel" class="dripicons-document-new"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'csv',
-                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'print',
-                text: '<i title="print" class="fa fa-print"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                text: '<i title="delete" class="dripicons-cross"></i>',
-                className: 'buttons-delete',
-                action: function ( e, dt, node, config ) {
-                    if(user_verified == '1') {
-                        sale_id.length = 0;
-                        $(':checkbox:checked').each(function(i){
-                            if(i){
-                                var sale = $(this).closest('tr').data('sale');
-                                if(sale)
-                                    sale_id[i-1] = sale[13];
-                            }
-                        });
-                        if(sale_id.length && confirm("Are you sure want to delete?")) {
-                            $.ajax({
-                                type:'POST',
-                                url:'sales/deletebyselection',
-                                data:{
-                                    saleIdArray: sale_id
-                                },
-                                success:function(data){
-                                    alert(data);
-                                    //dt.rows({ page: 'current', selected: true }).deselect();
-                                    dt.rows({ page: 'current', selected: true }).remove().draw(false);
-                                }
-                            });
-                        }
-                        else if(!sale_id.length)
-                            alert('Nothing is selected!');
-                    }
-                    else
-                        alert('This feature is disable for demo!');
-                }
-            },
-            {
-                extend: 'colvis',
-                text: '<i title="column visibility" class="fa fa-eye"></i>',
-                columns: ':gt(0)'
-            },
-        ],
-        drawCallback: function () {
-            var api = this.api();
-            datatable_sum(api, false);
-            const search_input = $('#sale-table_filter input');
-            search_input.on('keydown', function(e){
-                setTimeout(function(){
-                    $('#posInput').focus();
-                }, 2000);
-            });
-            search_input.on('click', function(e){
-                setTimeout(function(){
-                    $('#posInput').focus();
-                }, 2000);
-            });
-
-            // Reapply focus to the POS input when clicking anywhere else in the document
-            $(document).on('click', function(event) {
-                setTimeout(function(){
-
-                    if (!$(event.target).closest('#posInput, #sale-table_filter input').length) {
-                        $('#posInput').focus(); // Set focus back to the POS scanner input
-                    }
-                }, 1000);
-            });
-        }
-    });
-
+   
     function datatable_sum(dt_selector, is_calling_first) {
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
@@ -2166,31 +2024,233 @@
     }
 
     $(document).ready(function() {
-        $('#posInput').on('input', function(){
-            const searchValue = this.value;
-            $.ajax({
-                url: '/sales/sale-scan', // Your backend search endpoint
-                method: 'POST',
-                data: {
-                    search: searchValue
+        let data_table = $('#sale-table').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax":{
+                url:"sales/sale-data",
+                data:{
+                    all_permission: all_permission,
+                    starting_date: starting_date,
+                    ending_date: ending_date,
+                    warehouse_id: warehouse_id,
+                    sale_status: sale_status,
+                    sale_type: sale_type,
+                    payment_status: payment_status,
+                    location : _location,
+                    supplier_id: supplier_id,
                 },
-                success: function(response) {
-                    // Handle the response from the backend
-                    $('#sale-table_filter input').val('');
-                    $('#sale-table').DataTable().search('').draw();
+                dataType: "json",
+                type:"post"
+            },
+            "createdRow": function( row, data, dataIndex ) {
+                $(row).addClass('sale-link');
+                $(row).attr('data-sale', data['sale']);
+            },
+            "columns": columns,
+            "language": {
+                // 'search': '{{trans("file.Search")}}',
+                'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
+                "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+                'paginate': {
+                    'previous': '<i class="dripicons-chevron-left"></i>',
+                    'next': '<i class="dripicons-chevron-right"></i>'
+                }
+            },
+            // "searching" : false,
+            "dom": '<"datatable-controls-wrapper"<"left-section"l><"middle-section"><"right-section"B>>rtip',
+            "order":[['1', 'desc']],
+            'columnDefs': [
+                {
+                    "orderable": false,
+                    'targets': [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]
                 },
-                error: function(error) {
-                    console.error('Error:', error);
+                {
+                    'render': function(data, type, row, meta){
+                        if(type === 'display'){
+                            data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
+                        }
+
+                    return data;
+                    },
+                    'checkboxes': {
+                    'selectRow': true,
+                    'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
+                    },
+                    'targets': [0]
+                }
+            ],
+            'select': { style: 'multi',  selector: 'td:first-child'},
+            'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            "rowId": 'ObjectID',
+            "buttons": [
+                {
+                    extend: 'pdf',
+                    text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    },
+                    action: function(e, dt, button, config) {
+                        datatable_sum(dt, true);
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
+                        datatable_sum(dt, false);
+                    },
+                    footer:true
+                },
+                {
+                    extend: 'excel',
+                    text: '<i title="export to excel" class="dripicons-document-new"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    },
+                    action: function(e, dt, button, config) {
+                        datatable_sum(dt, true);
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                        datatable_sum(dt, false);
+                    },
+                    footer:true
+                },
+                {
+                    extend: 'csv',
+                    text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    },
+                    action: function(e, dt, button, config) {
+                        datatable_sum(dt, true);
+                        $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
+                        datatable_sum(dt, false);
+                    },
+                    footer:true
+                },
+                {
+                    extend: 'print',
+                    text: '<i title="print" class="fa fa-print"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    },
+                    action: function(e, dt, button, config) {
+                        datatable_sum(dt, true);
+                        $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
+                        datatable_sum(dt, false);
+                    },
+                    footer:true
+                },
+                {
+                    text: '<i title="delete" class="dripicons-cross"></i>',
+                    className: 'buttons-delete',
+                    action: function ( e, dt, node, config ) {
+                        if(user_verified == '1') {
+                            sale_id.length = 0;
+                            $(':checkbox:checked').each(function(i){
+                                if(i){
+                                    var sale = $(this).closest('tr').data('sale');
+                                    if(sale)
+                                        sale_id[i-1] = sale[13];
+                                }
+                            });
+                            if(sale_id.length && confirm("Are you sure want to delete?")) {
+                                $.ajax({
+                                    type:'POST',
+                                    url:'sales/deletebyselection',
+                                    data:{
+                                        saleIdArray: sale_id
+                                    },
+                                    success:function(data){
+                                        alert(data);
+                                        //dt.rows({ page: 'current', selected: true }).deselect();
+                                        dt.rows({ page: 'current', selected: true }).remove().draw(false);
+                                    }
+                                });
+                            }
+                            else if(!sale_id.length)
+                                alert('Nothing is selected!');
+                        }
+                        else
+                            alert('This feature is disable for demo!');
+                    }
+                },
+                {
+                    extend: 'colvis',
+                    text: '<i title="column visibility" class="fa fa-eye"></i>',
+                    columns: ':gt(0)'
+                },
+            ],
+            "drawCallback": function () {
+                var api = this.api();
+                datatable_sum(api, false);
+            }
+        });
+
+        // Inject custom search into the middle section
+        @if($can_scanner)
+            $('.middle-section').html(`
+                <input type="text" id="regular-search" class="form-control form-control-sm"
+                    placeholder="Search..." style="max-width: 200px; margin-right: 10px;">
+                <input type="text" id="scanner-search" class="form-control form-control-sm"
+                    placeholder="Scan..." style="max-width: 200px;">
+            `);
+                    // Always focus #scanner-search after it is created
+            function focusScannerInput() {
+                setTimeout(function(){
+                    $('#scanner-search').focus();
+                }, 3000);
+            }
+
+            focusScannerInput();
+
+            // Also focus scanner input when user clicks anywhere except an input/textarea/select
+            $(document).on('keydown', function(e) {
+                if (!$(e.target).is('input, textarea, select')) {
+                    focusScannerInput();
                 }
             });
-            $('#posInput').focus();
-        });
 
-        $('#posInput').on('keydown', function(e){
-            e.preventDefault();
-        });
+            // Scanner input (search on Enter, auto-clear input)
+            $(document).on('keydown', '#scanner-search' , function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const searchValue = this.value;
 
-        $('#posInput').focus();
+                    $.ajax({
+                        url: '/sales/sale-scan', // Your backend search endpoint
+                        method: 'POST',
+                        data: {
+                            search: searchValue,
+                            sale_status : sale_status,
+                        },
+                        success: function(response) {
+                            // Handle the response from the backend
+                            data_table.search('').draw();
+                        },
+                        error: function(error) {
+                            console.error('Scan Search Error : ', error);
+                        }
+                    });
+
+                    this.value = '';
+                    setTimeout(focusScannerInput, 100); // Refocus after processing
+                }
+            });
+        @else
+            $('.middle-section').html(`
+                <input type="text" id="regular-search" class="form-control form-control-sm"
+                    placeholder="Search..." style="max-width: 200px; margin-right: 10px;">
+            `);
+        @endif
+
+        // Manual (live) search input
+        $(document).on('input', '#regular-search' , function () {
+            const value = this.value;
+            data_table.search(value).draw();
+            setTimeout(function() {
+                $('#regular-search').blur();
+            }, 10000);
+        });
 
         // Hide button initially
         $('#print-waybill-btn').hide();

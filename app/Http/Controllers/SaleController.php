@@ -135,10 +135,19 @@ class SaleController extends Controller
                         ])
                         ->select('id', 'qty')
                         ->first();
-
+                        
+                        $stock = $product_warehouse_data->qty;
                         $qty = $prod->pivot->qty - $prod->pivot->return_qty;
-                        $product_warehouse_data->qty -= $qty;
-                        $product_warehouse_data->save();
+                        if($stock > 0 && $stock >= $qty) {
+                            $product_warehouse_data->qty -= $qty;
+                            $product_warehouse_data->save();
+                        }
+                        else {
+                            return response()->json([
+                                "code"  => 400,
+                                "msg"   => "Cannot confirm order, product stock insufficient"
+                            ]);
+                        }
                     }
                 }
                 break;
@@ -248,6 +257,11 @@ class SaleController extends Controller
 
         // Update the sale record
         Sale::where('id', $saleId)->update($saleDetails);
+
+        return response()->json([
+                                "code"  => 200,
+                                "msg"   => "Update Status Success!"
+                            ]);
     }
    
     /**
@@ -441,7 +455,7 @@ class SaleController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
             $smsTemplates = SmsTemplate::all();
-            $can_search = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
+            $can_scanner = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
                     || ($role->hasPermissionTo('receiving') && $sale_status == 12)
                     || ($role->hasPermissionTo('shipped') && $sale_status == 8);
             return view('backend.sale.index', compact(
@@ -456,7 +470,7 @@ class SaleController extends Controller
                 'lims_supplier_list',
                 'lims_shipping_cost_list', 
                 'lims_return_shipping_cost_list', 
-                'can_search',
+                'can_scanner',
                 'smsTemplates'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -795,25 +809,27 @@ class SaleController extends Controller
         $searchValue = $request->search;
 
         $sale = Sale::where('reference_no', $searchValue)->select('id', 'sale_status')->first();
+        $status = $request->sale_status;
 
         if ($searchValue) {
             if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
                 if($role->hasPermissionTo('receiving') || $role->hasPermissionTo('return-receiving') || $role->hasPermissionTo('shipped')){
-                    if ($sale->sale_status == 12) {
+                    if ($status == 12 && $sale->sale_status == 12) {  // receiving -> shipped
                         $sale->fill([
                             'sale_status' => 8
                         ]);
                     }
-                    else if ($sale->sale_status == 14) {
-                        $sale->fill([
-                            'sale_status' => 4
-                        ]);
-                    }
-                    else if($sale->sale_status == 8){
+                    else if($status == 8 && $sale->sale_status == 8){// shipped-> return receiving
                         $sale->fill([
                             'sale_status' => 14
                         ]);
                     }
+                    else if ($status == 14 && $sale->sale_status == 14) { // return receiving -> return
+                        $sale->fill([
+                            'sale_status' => 4
+                        ]);
+                    }
+                   
                     $sale->save();
                     return response()->json([
                         "code"  => 200,

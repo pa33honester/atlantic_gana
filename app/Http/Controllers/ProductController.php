@@ -154,6 +154,7 @@ class ProductController extends Controller
 
         $data = array();
         foreach ($products as $key => $product) {
+            $product->qty = max(0, $product->qty);
             $nestedData['id'] = $product->id;
             $nestedData['key'] = $key;
             $product_image = explode(",", $product->image);
