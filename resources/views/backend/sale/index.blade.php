@@ -70,7 +70,7 @@
                                 <label class="btn btn-info btn-sale btn-7">
                                     <input type="radio" name="sale_status" value="7" onchange="make_active(this.value)"> Confirmed
                                 </label>
-                                <label class="btn btn-info btn-sale btn-11">
+                                <label class="btn btn-info btn-sale btn-12">
                                     <input type="radio" name="sale_status" value="12" onchange="make_active(this.value)"> Receiving
                                 </label>
                                 <label class="btn btn-info btn-sale btn-8">
@@ -659,24 +659,6 @@
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status-filters', 'method' => 'post', 'files' => true, 'class' => 'update_status_filters']) !!}
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Name')}}</label>
-                        <p class="customer_name"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Address')}}</label>
-                        <p class="customer_address"></p>
-                    </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6 form-group text-left">
                         <input type="hidden" name="reference_no">
                         <input type="hidden" name="sale_id">
@@ -697,29 +679,11 @@
     <div role="document" class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 id="updateShippingFee" class="modal-title">{{trans('Update Status')}}</h5>
+                <h5 id="updateShippingFee" class="modal-title">Update Shipping Fee</h5>
                 <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status-filters', 'method' => 'post', 'files' => true, 'class' => 'update_shipping_fee']) !!}
-                <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Name')}}</label>
-                        <p class="customer_name"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Address')}}</label>
-                        <p class="customer_address"></p>
-                    </div>
-                </div>
                 <div class="row">
                     <div class="col-md-12"><p class="ajax-status">Shipping Cost</p></div>
                     <div class="col-md-6 form-group text-left">
@@ -751,24 +715,6 @@
             </div>
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status-filters', 'method' => 'post', 'files' => true, 'class' => 'return_ship']) !!}
-                <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Name')}}</label>
-                        <p class="customer_name"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Address')}}</label>
-                        <p class="customer_address"></p>
-                    </div>
-                </div>
                 <div class="row">
                     <div class="col-md-12"><p class="ajax-status">Return Shipping Cost</p></div>
                     <div class="col-md-8 form-group text-left">
@@ -1263,9 +1209,6 @@
     function update_status_filters(id){
         $.get('delivery/create/'+id, function(data) {
             $('.dr_num').text(data[0]);
-                $('.sr_num').text(data[1]);
-                $('.customer_name').text(data[5]);
-                $('.customer_address').text(data[6]);
                 
                 $('input[name="reference_no"]').val(data[0]);
                 $('input[name="sale_id"]').val(id);
@@ -1280,9 +1223,6 @@
      function update_status_filters_shipped(id){
         $.get('delivery/create/'+id, function(data) {
             $('.dr_num').text(data[0]);
-                $('.sr_num').text(data[1]);
-                $('.customer_name').text(data[5]);
-                $('.customer_address').text(data[6]);
                 
                 $('input[name="reference_no"]').val(data[0]);
                 $('input[name="sale_id"]').val(id);
@@ -1346,8 +1286,7 @@
                 $('input[name="sale_id"]').val(id);
                 $('input[name="order_type"]').val("shipping");
                 $('input[name="shipping_cost"]').val(shipping_cost);
-                //$(".ajax-status").html(data);
-                $("#updateShippingFee").text("Shipping Fee");
+
                 $("#updateShippingLabel").text("Please check shipping fee before return delivery ?");
             });
             $('#update-shipping-fee').modal('show');
@@ -2164,6 +2103,16 @@
                     $('#posInput').focus();
                 }, 2000);
             });
+
+            // Reapply focus to the POS input when clicking anywhere else in the document
+            $(document).on('click', function(event) {
+                setTimeout(function(){
+
+                    if (!$(event.target).closest('#posInput, #sale-table_filter input').length) {
+                        $('#posInput').focus(); // Set focus back to the POS scanner input
+                    }
+                }, 1000);
+            });
         }
     });
 
@@ -2234,6 +2183,7 @@
                     console.error('Error:', error);
                 }
             });
+            $('#posInput').focus();
         });
 
         $('#posInput').on('keydown', function(e){

@@ -311,7 +311,7 @@
                                             <input type="number" name="shipping_cost" class="form-control" value="{{$lims_sale_data->shipping_cost}}" step="any" />
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label>{{trans('file.Attach Document')}}</label> <i class="dripicons-question" data-toggle="tooltip" title="Only jpg, jpeg, png, gif, pdf, csv, docx, xlsx and txt file is supported"></i>
                                             <input type="file" name="document" class="form-control" />
@@ -381,32 +381,6 @@
                                             </div>
                                         @endif
                                     @endforeach
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label>{{trans('Order Status')}} *</label>
-                                            <input type="hidden" name="sale_status_hidden" value="{{$lims_sale_data->sale_status}}" />
-                                            <select name="sale_status" class="form-control">
-                                                <!-- <option value="1">{{trans('file.Completed')}}</option>
-                                                <option value="2">{{trans('file.Pending')}}</option>
-                                                <option value="4">{{trans('file.Returned')}}</option>
-                                                <option value="5">{{trans('Processing')}}</option>
-                                                <option value="6">{{trans('Unpaid')}}</option>
-                                                <option value="7">{{trans('Confirmed')}}</option>
-                                                <option value="8">{{trans('Delivered')}}</option>
-                                                <option value="9">{{trans('Signed')}}</option>
-                                                <option value="10">{{trans('Refunded')}}</option>
-                                                <option value="11">{{trans('Cancelled')}}</option> -->
-                                                <option value="6">{{trans('Unpaid')}}</option>
-                                                <option value="7">{{trans('Confirmed')}}</option>
-                                                <option value="12">{{trans('Receiving')}}</option>
-                                                <option value="8">{{trans('Shipped')}}</option>
-                                                <option value="1">{{trans('Signed')}}</option>
-                                                <!-- <option value="1">{{trans('Fulfilled')}}</option> -->
-                                                <option value="4">{{trans('file.Returned')}}</option>
-                                                <option value="11">{{trans('Cancelled')}}</option>
-                                            </select>
-                                        </div>
-                                    </div>
                                     @if($lims_sale_data->coupon_id)
                                     <div class="col-md-4">
                                         <div class="form-group">
@@ -603,18 +577,6 @@
                         <div class="form-group">
                             <label>{{trans('file.City')}}</label>
                             <input type="text" name="city" value="{{$lims_customer_data->city}}" class="form-control">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>{{trans('file.State')}}</label>
-                            <input type="text" name="state" value="{{$lims_customer_data->state}}" class="form-control">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>{{trans('file.Postal Code')}}</label>
-                            <input type="text" name="postal_code" value="{{$lims_customer_data->postal_code}}" class="form-control">
                         </div>
                     </div>
                     <div class="col-md-12">

@@ -6,13 +6,13 @@
                 <h3 class="text-center">{{trans('file.Supplier Report')}}</h3>
             </div>
             {!! Form::open(['route' => 'report.supplier', 'method' => 'post']) !!}
-            <div class="row mb-3">
-                <div class="col-md-4 offset-md-1 mt-3">
+            <div class="row m-3">
+                <div class="col-md-6 mt-3">
                     <div class="form-group row">
                         <label class="d-tc mt-2"><strong>{{trans('file.Choose Your Date')}}</strong> &nbsp;</label>
                         <div class="d-tc">
-                            <div class="input-group">
-                                <input type="text" class="daterangepicker-field form-control" value="{{$start_date}} To {{$end_date}}" required />
+                            <div class="input-group" style="width:100%">
+                                <input type="text" class="daterangepicker-field form-control input-lg w-100" value="{{$start_date}} To {{$end_date}}" required />
                                 <input type="hidden" name="start_date" value="{{$start_date}}" />
                                 <input type="hidden" name="end_date" value="{{$end_date}}" />
                             </div>
@@ -32,7 +32,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 mt-3">
+                <div class="col-md-2 mt-3">
                     <div class="form-group">
                         <button class="btn btn-primary" type="submit">{{trans('file.submit')}}</button>
                     </div>
@@ -43,13 +43,13 @@
     </div>
     <ul class="nav nav-tabs ml-4 mt-3" role="tablist">
       <li class="nav-item">
-        <a class="nav-link active" href="#supplier-purchase" role="tab" data-toggle="tab">{{trans('file.Purchase')}}</a>
+        <a class="nav-link active" href="#supplier-purchase" role="tab" data-toggle="tab"> Signed </a>
       </li>
       <!-- <li class="nav-item">
         <a class="nav-link " href="#supplier-payments" role="tab" data-toggle="tab">{{trans('file.Payment')}}</a>
       </li> -->
       <li class="nav-item">
-        <a class="nav-link" href="#supplier-return" role="tab" data-toggle="tab">{{trans('file.Return')}}</a>
+        <a class="nav-link" href="#supplier-return" role="tab" data-toggle="tab"> Returned </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="#supplier-quotation" role="tab" data-toggle="tab">{{trans('Total Balance')}}</a>
@@ -133,8 +133,8 @@
                 <table id="return-quotation" class="table table-hover" style="width: 100%">
                     <thead>
                         <tr>
-                            <th>Purchase</th>
-                            <th>Return</th>
+                            <th>Signed</th>
+                            <th>Returned</th>
                             <th>Total Balance</th>
                         </tr>
                     </thead>
@@ -565,14 +565,19 @@
     });
 
     $(".daterangepicker-field").daterangepicker({
-    callback: function(startDate, endDate, period){
-        var start_date = startDate.format('YYYY-MM-DD');
-        var end_date = endDate.format('YYYY-MM-DD');
-        var title = start_date + ' to ' + end_date;
-        $(this).val(title);
-        $('input[name="start_date"]').val(start_date);
-        $('input[name="end_date"]').val(end_date);
-    }
+        callback: function(startDate, endDate, period){
+            var start_date = startDate.format('YYYY-MM-DD');
+            var end_date = endDate.format('YYYY-MM-DD');
+            var title = start_date + ' to ' + end_date;
+            $(this).val(title);
+            $('input[name="start_date"]').val(start_date);
+            $('input[name="end_date"]').val(end_date);
+        }
+    });
+    $('.daterangepicker-field').css({
+        'width': '100%',
+        'min-width': '300px',
+        'max-width': '100%'
     });
 </script>
 @endpush
