@@ -14,6 +14,7 @@
 @if(session()->has('error'))
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('error') }}</div>
 @endif
+
 <section id="pos-layout" class="forms hidden-print">
     <div class="container-fluid">
         <div class="row">
@@ -1604,7 +1605,7 @@ $(document).on('submit', '.payment-form', function(e) {
             type: $('.payment-form').attr('method'),
             data: $('.payment-form').serialize(),
             success: function(response) {
-                console.log(response);
+                // console.log(response);
 
                 if(response.code == 400){
                     alert(response.msg);

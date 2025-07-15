@@ -1687,7 +1687,6 @@
                             contentType: false,
                             processData: false,
                             success:function(response) {
-                                //console.log(response);
                                 location.href = '../products';
                             },
                             error:function(response) {

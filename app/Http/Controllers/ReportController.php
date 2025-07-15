@@ -4726,6 +4726,7 @@ class ReportController extends Controller
             ->offset($start)
             ->limit($limit)
             ->orderBy($order, $dir);
+            
         if(empty($request->input('search.value'))) {
             $purchases = $q->get();
         }

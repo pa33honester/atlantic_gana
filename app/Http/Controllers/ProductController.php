@@ -345,7 +345,7 @@ class ProductController extends Controller
             $data['qty_list'] = implode(",", $data['product_qty']);
             $data['price_list'] = implode(",", $data['unit_price']);
             //$data['cost'] = $data['unit_id'] = $data['purchase_unit_id'] = $data['sale_unit_id'] = 0;
-        } elseif ($data['type'] == 'digital' || $data['type'] == 'service')
+        } else
             $data['cost'] = $data['unit_id'] = $data['purchase_unit_id'] = $data['sale_unit_id'] = 0;
 
         $data['product_details'] = str_replace('"', '@', $data['product_details']);
@@ -416,7 +416,7 @@ class ProductController extends Controller
         }
         if (!isset($data['is_sync_disable']) && \Schema::hasColumn('products', 'is_sync_disable'))
             $data['is_sync_disable'] = null;
-        //return $data;
+
         $lims_product_data = Product::create($data);
         //inserting custom field data
         $custom_field_data = [];

@@ -1335,21 +1335,6 @@ class SaleController extends Controller
             }
         }
 
-        //sms send start
-        $smsData = [];
-
-        $smsTemplate = SmsTemplate::where('is_default', 1)->latest()->first();
-        $smsProvider = ExternalService::where('active', true)->where('type', 'sms')->first();
-        if ($smsProvider && $smsTemplate && $lims_pos_setting_data['send_sms'] == 1) {
-            $smsData['type'] = 'onsite';
-            $smsData['template_id'] = $smsTemplate['id'];
-            $smsData['sale_status'] = $data['sale_status'];
-            $smsData['payment_status'] = $data['payment_status'];
-            $smsData['customer_id'] = $data['customer_id'];
-            $smsData['reference_no'] = $data['reference_no'];
-            $this->_smsModel->initialize($smsData);
-        }
-        //sms send end
 
         //api calling code
         if ($lims_sale_data->sale_status == '1' && isset($data['draft']) && $data['draft'])
