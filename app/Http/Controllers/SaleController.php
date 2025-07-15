@@ -295,76 +295,32 @@ class SaleController extends Controller
                 $sale_details["shipping_cost"] = $data["shipping_cost"];
                 $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
                 // Update shipping cost in purchase and sale tables
-                Purchase::where('reference_no', $reference_no)->update(['shipping_cost' => $data["shipping_cost"]]);
+                Purchase::where('reference_no', $reference_no)->update([
+                    'shipping_cost' => $data["shipping_cost"],
+                    'status'        => 9,
+                ]);
                 Sale::where('reference_no', $reference_no)->update(['shipping_cost' => $data["shipping_cost"]]);
                 break;
 
             case "return_ship":
                 $sale_details["sale_status"] = 14; // return receiving
-                $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
-                $warehouse_id = Sale::select('warehouse_id')->find($sale_id)->warehouse_id;
-                $shipping_cost = Sale::select('shipping_cost')->find($sale_id)->shipping_cost;
-                $return_shipping_cost = $data["return_shipping_cost"];
-
-                // Update return shipping cost in purchase and sale tables
-                Purchase::where('reference_no', $reference_no)->update(['return_shipping_cost' => $return_shipping_cost]);
-                Sale::where('reference_no', $reference_no)->update(['return_shipping_cost' => $return_shipping_cost]);
-                $sale_details["shipping_cost"] = $shipping_cost;
-
-                // Update product warehouse and product sale return quantities
-                $product_sales = Product_Sale::select('id', 'qty', 'return_qty', 'product_id')->where('sale_id', $sale_id)->get();
-                foreach ($product_sales as $product_sale) {
-                    $product_warehouse = Product_Warehouse::where([
-                        ['product_id', $product_sale->product_id],
-                        ['warehouse_id', $warehouse_id]
-                    ])->first();
-                    if ($product_warehouse) {
-                        $product_warehouse->qty += $product_sale->qty - $product_sale->return_qty;
-                        $product_warehouse->save();
-                    }
-                    $product_sale->return_qty += $product_sale->qty;
-                    $product_sale->save();
-                }
-
-                // Create a return purchase record
-                $purchase = Purchase::where('reference_no', $reference_no)->first();
-                if ($purchase) {
-                    $return_purchase_data = [
-                        'reference_no' => $purchase->reference_no,
-                        'supplier_id' => $purchase->supplier_id,
-                        'warehouse_id' => $purchase->warehouse_id,
-                        'user_id' => $purchase->user_id,
-                        'purchase_id' => $purchase->id,
-                        'account_id' => 1,
-                        'currency_id' => $purchase->currency_id,
-                        'shipping_cost' => $shipping_cost,
-                        'return_shipping_cost' => $return_shipping_cost,
-                        'exchange_rate' => $purchase->exchange_rate,
-                        'item' => $purchase->item,
-                        'total_qty' => $purchase->total_qty,
-                        'total_discount' => $purchase->total_discount,
-                        'total_tax' => $purchase->total_tax,
-                        'total_cost' => $purchase->total_cost,
-                        'order_tax_rate' => $purchase->order_tax_rate,
-                        'order_tax' => $purchase->order_tax,
-                        'grand_total' => $purchase->total_cost + ($purchase->order_tax - $purchase->order_discount),
-                        'document' => $purchase->document,
-                        'return_note' => $purchase->note,
-                        'staff_note' => $purchase->note,
-                    ];
-                    ReturnPurchase::create($return_purchase_data);
-                }
+                $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
+                break;
+            
+            case "return_receiving":
+                $sale_details["sale_status"] = 4; // return receiving - return
+                $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
                 break;
 
             case "cancel_order":
-                $sale_details["sale_status"] = 11;
+                $sale_details["sale_status"] = 11; // cancel
                 $sale_details["res_type"] = "cancel_order";
                 $sale_details["res_reason"] = $data["res_reason_1"];
                 $sale_details["res_info"] = $data["res_info"];
                 break;
 
-            case "reset_order":
-                $sale_details["sale_status"] = 7;
+            case "reset_order": // cancel - unpaid
+                $sale_details["sale_status"] = 6;
                 break;
         }
 
@@ -639,7 +595,7 @@ class SaleController extends Controller
                 'returned_amount' => number_format(DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total'), config('decimal')),
                 'paid_amount' => number_format($sale->paid_amount, config('decimal')),
                 'item' => $sale->total_qty,
-                'shipping' => ($filters['sale_status'] != 4 ? $sale->shipping_cost : $sale->return_shipping_cost),
+                'shipping' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? $sale->shipping_cost : $sale->return_shipping_cost,
                 'due' => number_format($sale->grand_total - $sale->paid_amount, config('decimal')),
             ];
 
@@ -729,14 +685,14 @@ class SaleController extends Controller
             } 
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
-                // $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
             } 
             else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="return_ship(' . $sale->id . ')">return</button>';
                 $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">revise</button>';
             } 
             else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
-                $nestedData['options'] = ' <button type="button" class="update-status btn btn-danger" onclick="reset_order(' . $sale->id . ')"><i class="fa fa-refresh"></i></button>';
+                $nestedData['options'] = ' <button type="button" class="update-status btn btn-danger" onclick="reset_order(' . $sale->id . ')"><i class="fa fa-refresh"></i> Confirm</button>';
             } 
             else if ($sale->sale_status == 12 && $role->hasPermissionTo('receiving')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_status_filters_shipped(' . $sale->id . ')">shipped</button>';
@@ -820,13 +776,20 @@ class SaleController extends Controller
                         ]);
                     }
                     else if($status == 8 && $sale->sale_status == 8){// shipped-> return receiving
+                        $lims_general_setting_data = GeneralSetting::latest()->select('shipping_cost_list', 'return_shipping_cost_list')->first();
+                        $return_shipping_cost_list = explode(',', $lims_general_setting_data->return_shipping_cost_list);
                         $sale->fill([
-                            'sale_status' => 14
+                            'sale_status' => 14,
+                            'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
                     }
                     else if ($status == 14 && $sale->sale_status == 14) { // return receiving -> return
+                        // $delivery_fee = 
+                        $lims_general_setting_data = GeneralSetting::latest()->select('shipping_cost_list', 'return_shipping_cost_list')->first();
+                        $return_shipping_cost_list = explode(',', $lims_general_setting_data->return_shipping_cost_list);
                         $sale->fill([
-                            'sale_status' => 4
+                            'sale_status' => 4,
+                            'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
                     }
                    

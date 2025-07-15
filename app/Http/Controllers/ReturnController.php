@@ -171,10 +171,10 @@ class ReturnController extends Controller
             $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->updated_at));
             $nestedData['customer_address'] = $returns->customer->address . '<br>' . $returns->customer->city;
 
-            $nestedData['item'] = $returns->item;
             $nestedData['return_note'] = $returns->return_note;
-
-            $nestedData['grand_total'] = number_format($returns->grand_total, config('decimal'));
+            
+            $nestedData['item'] = 0;
+            $nestedData['grand_total'] = 0;
             // added 6.28 @dorian
             {
                 $sale = Sale::with([
@@ -207,6 +207,11 @@ class ReturnController extends Controller
                     ];
                     $confirm_data['products'] []= $temp;
                     $confirm_data['product_amount'] += $temp['amount'];
+                    
+                    // @7.13
+                    $nestedData['item'] += $temp['qty'];   
+                    $nestedData['grand_total'] += $temp['amount'];
+
                 }
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
             }

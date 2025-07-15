@@ -843,24 +843,6 @@
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status-filters', 'method' => 'post', 'files' => true, 'class' => 'reset_order']) !!}
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Name')}}</label>
-                        <p class="customer_name"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Address')}}</label>
-                        <p class="customer_address"></p>
-                    </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6 form-group text-left">
                         <input type="hidden" name="reference_no">
                         <input type="hidden" name="sale_id">
@@ -1345,12 +1327,7 @@
     });
 
     function return_ship(id){
-        $.get('delivery/create/'+id, function(data) {
-            $('.dr_num').text(data[0]);
-            $('.sr_num').text(data[1]);
-            $('.customer_name').text(data[5]);
-            $('.customer_address').text(data[6]);
-            
+        $.get('delivery/create/'+id, function(data) {           
             $('input[name="reference_no"]').val(data[0]);
             $('input[name="sale_id"]').val(id);
             $('input[name="order_type"]').val("return_ship");
@@ -1358,6 +1335,14 @@
             $("#updateReturnShip").text("Return Shipping");
             $('#return-ship').modal('show');
         });
+    }
+
+    function return_receiving_sign(sale_id){
+        $('input[name="sale_id"]').val(sale_id);
+        $('input[name="order_type"]').val("return_receiving");
+        //$(".ajax-status").html(data);
+        $("#updateReturnShip").text("Return Receving");
+        $('#return-ship').modal('show');
     }
 
     $(".return_ship_btn").on("click", function(){
@@ -1378,9 +1363,7 @@
         });
     });
 
-    function return_receiving_sign(sale_id){
-        alert('Sign Action Needed');
-    }
+
 
     function cancel_order(id){
         $.get('delivery/create/'+id, function(data) {
@@ -2195,10 +2178,10 @@
                     placeholder="Scan..." style="max-width: 200px;">
             `);
                     // Always focus #scanner-search after it is created
-            function focusScannerInput() {
+            function focusScannerInput(delay = 3000) {
                 setTimeout(function(){
                     $('#scanner-search').focus();
-                }, 3000);
+                }, delay);
             }
 
             focusScannerInput();
@@ -2207,6 +2190,12 @@
             $(document).on('keydown', function(e) {
                 if (!$(e.target).is('input, textarea, select')) {
                     focusScannerInput();
+                }
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).is('input, textarea, select')) {
+                    focusScannerInput(10000);
                 }
             });
 
@@ -2249,7 +2238,7 @@
             data_table.search(value).draw();
             setTimeout(function() {
                 $('#regular-search').blur();
-            }, 10000);
+            }, 3000);
         });
 
         // Hide button initially

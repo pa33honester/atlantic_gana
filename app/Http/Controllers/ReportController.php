@@ -1909,7 +1909,7 @@ class ReportController extends Controller
             $limit = $request->input('length');
         else
             $limit = $totalData;
-        //return $request;
+
         $start = $request->input('start');
         $order = $columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
@@ -2058,8 +2058,6 @@ class ReportController extends Controller
                             }
                         }
                         $nestedData['sold_qty'] = $sold_qty;
-
-
 
                         $product_warehouse = Product_Warehouse::where([
                             ['product_id', $product->id],
@@ -4676,41 +4674,6 @@ class ReportController extends Controller
         echo json_encode($json_data);
     }
 
-    // public function supplierReport(Request $request)
-    // {
-    //     $data = $request->all();
-    //     $supplier_id = $data['supplier_id'];
-    //     $start_date = $data['start_date'];
-    //     $end_date = $data['end_date'];
-    //     $lims_purchase_data = Purchase::with('warehouse')->where('supplier_id', $supplier_id)->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->orderBy('created_at', 'desc')->get();
-    //     $lims_quotation_data = Quotation::with('warehouse', 'customer')->where('supplier_id', $supplier_id)->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->orderBy('created_at', 'desc')->get();
-    //     $lims_return_data = ReturnPurchase::with('warehouse')->where('supplier_id', $supplier_id)->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->orderBy('created_at', 'desc')->get();
-    //     $lims_payment_data = DB::table('payments')
-    //                        ->join('purchases', 'payments.purchase_id', '=', 'purchases.id')
-    //                        ->where('supplier_id', $supplier_id)
-    //                        ->whereDate('payments.created_at', '>=' , $start_date)
-    //                        ->whereDate('payments.created_at', '<=' , $end_date)
-    //                        ->select('payments.*', 'purchases.reference_no as purchase_reference')
-    //                        ->orderBy('payments.created_at', 'desc')
-    //                        ->get();
-
-    //     $lims_product_purchase_data = [];
-    //     $lims_product_quotation_data = [];
-    //     $lims_product_return_data = [];
-
-    //     foreach ($lims_purchase_data as $key => $purchase) {
-    //         $lims_product_purchase_data[$key] = ProductPurchase::where('purchase_id', $purchase->id)->get();
-    //     }
-    //     foreach ($lims_return_data as $key => $return) {
-    //         $lims_product_return_data[$key] = PurchaseProductReturn::where('return_id', $return->id)->get();
-    //     }
-    //     foreach ($lims_quotation_data as $key => $quotation) {
-    //         $lims_product_quotation_data[$key] = ProductQuotation::where('quotation_id', $quotation->id)->get();
-    //     }
-    //     $lims_supplier_list = Supplier::where('is_active', true)->get();
-    //     return view('backend.report.supplier_report', compact('lims_purchase_data', 'lims_product_purchase_data', 'lims_payment_data', 'supplier_id', 'start_date', 'end_date', 'lims_supplier_list', 'lims_quotation_data', 'lims_product_quotation_data', 'lims_return_data', 'lims_product_return_data'));
-    // }
-
     public function supplierReport(Request $request)
     {
         $user = Auth::user();
@@ -4745,6 +4708,7 @@ class ReportController extends Controller
             ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
             ->join('warehouses', 'purchases.warehouse_id', '=', 'warehouses.id')
             ->where('purchases.supplier_id', $supplier_id)
+            ->where('purchases.status', 9) // SIGNED
             ->whereDate('purchases.created_at', '>=' ,$request->input('start_date'))
             ->whereDate('purchases.created_at', '<=' ,$request->input('end_date'));
 
