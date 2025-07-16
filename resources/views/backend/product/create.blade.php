@@ -137,7 +137,7 @@
                                       </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6 hidden">
+                                <div class="col-md-6" hidden>
                                     <div class="form-group">
                                         <label>{{trans('file.category')}} *</strong> </label>
                                         <div class="input-group pos">
@@ -1687,6 +1687,7 @@
                             contentType: false,
                             processData: false,
                             success:function(response) {
+                                //console.log(response);
                                 location.href = '../products';
                             },
                             error:function(response) {

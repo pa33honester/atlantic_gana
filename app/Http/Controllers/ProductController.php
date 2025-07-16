@@ -172,7 +172,7 @@ class ProductController extends Controller
                 $nestedData['brand'] = $product->brand->title;
             else
                 $nestedData['brand'] = "N/A";
-            $nestedData['category'] = $product->category->name;
+            $nestedData['category'] = $product->category->name ?? "N / A";
             if ($warehouse_id > 0 && $product->type == 'standard') {
                 $nestedData['qty'] = Product_Warehouse::where([
                     ['product_id', $product->id],
@@ -416,6 +416,10 @@ class ProductController extends Controller
         }
         if (!isset($data['is_sync_disable']) && \Schema::hasColumn('products', 'is_sync_disable'))
             $data['is_sync_disable'] = null;
+
+        // set defaul value
+        $data["category_id"] = 1;
+        $data['unit_id'] = 0;
 
         $lims_product_data = Product::create($data);
         //inserting custom field data

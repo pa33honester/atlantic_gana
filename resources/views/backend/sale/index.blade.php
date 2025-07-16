@@ -1579,6 +1579,7 @@
                 <p> <strong> Number: </strong> ${sale[10]} </p> 
                 <p class="m-b-2"> <strong> Address: </strong> ${sale[11]} </p>
                 <p> <strong> Date: </strong>${sale[0]} </p>
+                <p> <strong> Product : </strong>${sale[3]} </p>
                 <p> <strong> Qty : </strong> ${sale[33]} </p>
                 <p> <strong> Amount : </strong> ${sale[21]} </p>
                 <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale[34]} </p>
