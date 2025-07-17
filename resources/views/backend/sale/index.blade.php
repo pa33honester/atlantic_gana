@@ -1001,7 +1001,22 @@
         });
     @endif
 
-    var columns = [{"data": "key"}, {"data": "reference_no"}, {"data": "product_name"}, {"data": "product_code"},{"data" : "supplier"}, {"data": "date"}, {"data": "sale_status"},{"data": "item"}, {"data": "grand_total"},{"data": "shipping"},{"data": "customer"},{"data": "customer_address"},{"data": "updated_date"}, {"data" : "location"}];
+    var columns = [
+        {"data": "key"}, 
+        {"data": "reference_no"}, 
+        {"data": "product_name"}, 
+        {"data": "product_code"},
+        {"data" : "supplier_name"}, 
+        {"data": "date"}, 
+        {"data": "sale_status"},
+        {"data": "total_qty"}, 
+        {"data": "total_price"},
+        {"data": "delivery_fee"},
+        {"data": "customer_info"},
+        {"data": "customer_address"},
+        {"data": "updated_date"}, 
+        {"data" : "location"}];
+    
     var field_name = <?php echo json_encode($field_name) ?>;
     for(i = 0; i < field_name.length; i++) {
         columns.push({"data": field_name[i]});

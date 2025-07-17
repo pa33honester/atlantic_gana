@@ -263,6 +263,47 @@ class SaleController extends Controller
                                 "msg"   => "Update Status Success!"
                             ]);
     }
+
+    private function returnSale($sale_id)
+    {
+        DB::beginTransaction();
+        try {
+            $sale = Sale::find($sale_id);
+            if (!$sale) {
+                throw new \Exception('Sale not found');
+            }
+
+            $productSales = Product_Sale::where('sale_id', $sale_id)->get();
+            foreach ($productSales as $productSale) {
+                $product = Product::find($productSale->product_id);
+                if (!$product) {
+                    throw new \Exception('Product not found');
+                }
+
+                $productWarehouse = Product_Warehouse::where('product_id', $productSale->product_id)
+                                                    ->where('warehouse_id', $sale->warehouse_id)
+                                                    ->first();
+                if (!$productWarehouse) {
+                    throw new \Exception('Product warehouse record not found');
+                }
+
+                $product->qty += $productSale->qty;
+                $productSale->return_qty += $productSale->qty;
+                $productWarehouse->qty += $productSale->qty;
+
+                $product->save();
+                $productSale->save();
+                $productWarehouse->save();
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Log the error or handle it as needed
+            return false;
+        }
+    }
    
     /**
      * Update sale status and related data based on order type (delivery, shipped, shipping, return_ship, cancel_order, reset_order).
@@ -305,6 +346,7 @@ class SaleController extends Controller
             case "return_ship":
                 $sale_details["sale_status"] = 14; // return receiving
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
+                $this->returnSale($sale_id);
                 break;
             
             case "return_receiving":
@@ -543,7 +585,7 @@ class SaleController extends Controller
       
         $data = [];
         $statusMap = [
-                1  => ['info',      'Fulfilled'],
+            1  => ['info',      'Fulfilled'],
             2  => ['danger',    'file.Pending'],
             3  => ['warning',   'file.Draft'],
             4  => ['warning',   'file.Returned'],
@@ -561,53 +603,39 @@ class SaleController extends Controller
         foreach ($sales as $key => $sale) {
             if(!$sale->customer) {
                 $sale->customer = (object)[
-                    "name"  => "Unknown",
-                    "address"   => "",
+                    "name"          => "Unknown",
+                    "address"       => "",
                     "phone_number"  => "",
-                    "city"      => ""
+                    "city"          => ""
                 ];
             }
-            // Get product names and codes from the related products
-            $product_names = $sale->products->pluck('name')->toArray();
-            $product_codes = $sale->products->pluck('code')->toArray();
-            $product_amount = 0;
-            foreach($sale->products as $product) {
-                $product_amount += $product->price * ($product->pivot->qty - $product->pivot->return_qty);
-            }
-
-            // If you want supplier names as well:
-            $supplier_names = $sale->products->pluck('supplier.name')->filter()->unique()->toArray();
 
             $nestedData = [
                 'id' => $sale->id,
                 'key'  => $sale->id,
-                'product_name' => implode(",", $product_names),
-                'product_code' => implode(",", $product_codes),
-                'supplier' => $supplier_names,
-                'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
-                'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
                 'reference_no' => $sale->reference_no,
-                'customer' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
-                'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
-                'payment_method' => implode(",", Payment::where('sale_id', $sale->id)->pluck('paying_method')->toArray()),
+                'product_name' => implode(",", $sale->products->pluck('name')->toArray()),
+                'product_code' => implode(",", $sale->products->pluck('code')->toArray()),
+                'supplier_name' => $sale->products->pluck('supplier.name')->filter()->unique()->toArray(),
+                'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'sale_status' => $sale->sale_status,
-                'location' => $sale->location,
-                'grand_total' => number_format($product_amount, config('decimal')),
-                'returned_amount' => number_format(DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total'), config('decimal')),
-                'paid_amount' => number_format($sale->paid_amount, config('decimal')),
-                'item' => $sale->total_qty,
-                'shipping' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? $sale->shipping_cost : $sale->return_shipping_cost,
-                'due' => number_format($sale->grand_total - $sale->paid_amount, config('decimal')),
+                'total_qty' => $sale->total_qty,
+                'total_price' => number_format($sale->total_price, config('decimal')),
+                'delivery_fee' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? $sale->shipping_cost : $sale->return_shipping_cost,
+                'customer_info' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
+                'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
+                'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
+                'location' => $sale->location
             ];
 
             switch($sale->location){
                 case '1': $nestedData['location'] = "Inside Accra"; break;
                 case '2': $nestedData['location'] = "Outside Accra"; break;
                 case "3": $nestedData["location"] = "Kumasi"; break;
-                default: $nestedData['location'] = "Unknown";
+                default:  $nestedData['location'] = "Undefined";
             }
 
-            list($badgeClass, $statusText) = $statusMap[$sale->sale_status] ?? ['secondary', 'Unknown'];
+            list($badgeClass, $statusText) = $statusMap[$sale->sale_status] ?? ['secondary', 'Undefined'];
             $nestedData['sale_status'] = '<div class="badge badge-' . $badgeClass . '">' . trans($statusText) . '</div>';
 
             foreach ($fieldNames as $fieldName) {
@@ -637,7 +665,7 @@ class SaleController extends Controller
                 if($role->hasPermissionTo('unpaid-edit')){
                     $nestedData['options'] .= 
                         '<li>
-                            <a href="#" class="btn btn-link view text-info" onclick="editx(' . $sale->id . ')">edit</a>
+                            <a href="#" class="btn btn-link text-info" onclick="editx(' . $sale->id . ')">edit</a>
                         </li>';
                 }
                 if($role->hasPermissionTo('unpaid-confirm')){
@@ -658,7 +686,7 @@ class SaleController extends Controller
                             'product_sale_id'=> $product->pivot->id,
                             'product_name'  => $product->name,
                             'img'           => explode(',', $product->image),
-                            'price'         => $product->price,
+                            'price'         => $product->pivot->net_unit_price,
                             'qty'           => $product->pivot->qty - $product->pivot->return_qty,
                             'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
                         ];
@@ -730,8 +758,8 @@ class SaleController extends Controller
                 ' "' . $sale->order_tax_rate . '"',
                 ' "' . $sale->order_discount . '"',
                 ' "' . ($filters['sale_status'] != 4 ? $sale->shipping_cost : $sale->return_shipping_cost) . '"',
-                ' "' . $product_amount . '"',
-                ' "' . $sale->paid_amount . '"',
+                ' "' . $nestedData['total_price'] . '"',
+                ' "' . $nestedData['total_price'] . '"',
                 ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->sale_note) . '"',
                 ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->staff_note) . '"',
                 ' "' . $sale->user->name . '"',
@@ -783,6 +811,7 @@ class SaleController extends Controller
                             'sale_status' => 14,
                             'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
+                        $this->returnSale($sale->id); // added 7.17
                     }
                     else if ($status == 14 && $sale->sale_status == 14) { // return receiving -> return
                         // $delivery_fee = 
@@ -854,7 +883,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-
+        // return $data;
         if (isset($request->reference_no)) {
             $this->validate($request, [
                 'reference_no' => [
@@ -946,6 +975,7 @@ class SaleController extends Controller
 
         //inserting data to sales table
         $data['sale_status'] = 6; // unpaid
+        $data['res_type'] = 'new';// adding
 
         $lims_sale_data = Sale::create($data);
 
@@ -965,12 +995,13 @@ class SaleController extends Controller
         if (count($custom_field_data))
             DB::table('sales')->where('id', $lims_sale_data->id)->update($custom_field_data);
 
-        $product_id = $data['product_id'];
+        $product_ids = $data['product_id'];
         $qty = $data['qty'];
+        $net_unit_price = $data['net_unit_price'];
 
         $purc = 0;
 
-        foreach ($product_id as $i => $id) {
+        foreach ($product_ids as $i => $id) {
             
             $lims_product_data = Product::where('id', $id)->first();
             $unit_price = $lims_product_data->price;
@@ -978,19 +1009,19 @@ class SaleController extends Controller
             
             // Products Sale Create
             $product_sale = [
-                'variant_id'        => null,
-                'product_batch_id'  => null,
                 'supplier_id'      => $lims_product_data->supplier_id,
                 'sale_id'          => $lims_sale_data->id,
                 'product_id'       => $id,
                 'qty'              => $qty[$i],
-                'imei_number'      => null,
-                'sale_unit_id'     => 1,
-                'net_unit_price'   => $unit_price,
+                'net_unit_price'   => $net_unit_price[$i],
                 'discount'         => $lims_sale_data->order_discount,
                 'tax_rate'         => $lims_sale_data->order_tax_rate,
+                'sale_unit_id'     => 1,
+                'variant_id'        => null,
+                'product_batch_id'  => null,
+                'imei_number'      => null,
                 'tax'              => 0,
-                'total'            => $total_price
+                'total'            => $net_unit_price[$i] * $qty[$i]
             ];
             Product_Sale::create($product_sale);
 

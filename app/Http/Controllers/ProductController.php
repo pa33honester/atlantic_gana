@@ -113,8 +113,7 @@ class ProductController extends Controller
         $relatedSearchFields = [
             'category' => 'name',
             'brand' => 'title',
-            'variant' => 'item_code',
-            // 'productPurchases' => 'imei_number',
+            'variant' => 'item_code'
         ];
 
         $query = Product::with(['category', 'brand', 'unit', 'supplier', 'variant'])
@@ -173,17 +172,10 @@ class ProductController extends Controller
             else
                 $nestedData['brand'] = "N/A";
             $nestedData['category'] = $product->category->name ?? "N / A";
-            if ($warehouse_id > 0 && $product->type == 'standard') {
-                $nestedData['qty'] = Product_Warehouse::where([
-                    ['product_id', $product->id],
-                    ['warehouse_id', $warehouse_id]
-                ])->sum('qty');
-            } elseif ($product->type == 'standard') {
-                $nestedData['qty'] = Product_Warehouse::where([
-                    ['product_id', $product->id],
-                ])->sum('qty');
-            } else
-                $nestedData['qty'] = $product->qty;
+
+            $nestedData['qty'] = Product_Warehouse::where([
+                ['product_id', $product->id]
+            ])->sum('qty');
 
             // @dorian - 6.20
             $nestedData['sold_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 9)->where('product_id', $product->id)->sum('qty');

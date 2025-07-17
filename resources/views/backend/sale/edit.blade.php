@@ -454,9 +454,10 @@
                             <div class="col-md-4 form-group hidden">
                                 <label>{{trans('file.Tax Rate')}}</label>
                                 <select name="edit_tax_rate" class="form-control selectpicker">
-                                    @foreach($tax_name_all as $key => $name)
-                                    <option value="{{$key}}">{{$name}}</option>
-                                    @endforeach
+                                    <option value="0">{{ trans('No Tax') }}</option>
+                                    <option value="10">{{ trans('@10') }}</option>
+                                    <option value="15">{{ trans('@15') }}</option>
+                                    <option value="20">{{ trans('20%') }}</option>
                                 </select>
                             </div>
                             <div id="edit_unit" class="col-md-4 form-group hidden">
@@ -751,8 +752,7 @@
             alert("Quantity can't be less than 1");
         }
 
-        var tax_rate_all = <?php echo json_encode($tax_rate_all) ?>;
-        tax_rate[rowindex] = parseFloat(tax_rate_all[$('select[name="edit_tax_rate"]').val()]);
+        tax_rate[rowindex] = parseFloat($('select[name="edit_tax_rate"]').val());
         tax_name[rowindex] = $('select[name="edit_tax_rate"] option:selected').text();
         product_price[rowindex] = $('input[name="edit_unit_price"]').val();
         product_discount[rowindex] = $('input[name="edit_discount"]').val();
@@ -867,12 +867,11 @@
 
         var qty = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val();
         $('input[name="edit_qty"]').val(qty);
-
         $('input[name="edit_discount"]').val(parseFloat(product_discount[rowindex]).toFixed({{$general_setting->decimal}}));
 
         var tax_name_all = <?php echo json_encode($tax_name_all) ?>;
         pos = tax_name_all.indexOf(tax_name[rowindex]);
-        $('select[name="edit_tax_rate"]').val(pos);
+        $('select[name="edit_tax_rate"]').val(0);
 
         row_product_price = product_price[rowindex];
 
@@ -882,39 +881,20 @@
     function checkQuantity(sale_qty, flag) {
         var row_product_code = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text();
         pos = product_code.indexOf(row_product_code);
-        if(without_stock == 'no') {
-            if(product_type[pos] == 'standard' || product_type[pos] == 'combo'){
-                var operator = unit_operator[rowindex].split(',');
-                var operation_value = unit_operation_value[rowindex].split(',');
-                if(operator[0] == '*')
-                    total_qty = sale_qty * operation_value[0];
-                else if(operator[0] == '/')
-                    total_qty = sale_qty / operation_value[0];
-                console.log(product_qty[pos]);
-                if (total_qty > parseFloat(product_qty[pos])) {
-                    alert('Quantity exceeds stock quantity!');
-                    if (flag) {
-                        sale_qty = sale_qty.substring(0, sale_qty.length - 1);
-                        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty);
-                    }
-                    else {
-                        edit();
-                        return;
-                    }
-                }
-            }
-        }
 
         if(!flag){
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty); // change quantity
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .net_unit_price').val(product_price[rowindex]); // change net_unit_price
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(6)').text(product_price[rowindex]); // change net_unit_price
             $('#editModal').modal('hide');
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty);
         }
 
         calculateRowProductData(sale_qty);
     }
 
     function calculateRowProductData(quantity) {
-        row_product_price = product_price[rowindex];
+        row_product_price = parseFloat(product_price[rowindex]);
+        row_product_discount = parseFloat(product_discount[rowindex]);
 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.discount').text((product_discount[rowindex] * quantity).toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.discount-value').val((product_discount[rowindex] * quantity).toFixed({{$general_setting->decimal}}));
@@ -922,7 +902,7 @@
 
         var net_unit_price = row_product_price; // - product_discount[rowindex]; @dorian
         var tax = 0;
-        var sub_total = row_product_price * quantity;
+        var sub_total = (row_product_price - row_product_discount) * quantity;
 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
@@ -976,7 +956,6 @@
     function calculateGrandTotal() {
 
         var item = $('table.order-list tbody tr:last').index();
-
         var total_qty = parseFloat($('#total-qty').text());
         var subtotal = parseFloat($('#total').text());
         var order_tax = parseFloat($('select[name="order_tax_rate"]').val());
