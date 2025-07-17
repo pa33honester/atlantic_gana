@@ -4779,7 +4779,7 @@ class ReportController extends Controller
                 'shipping_cost'         => $purchase->shipping_cost,
                 'return_shipping_cost'  => $purchase->return_shipping_cost,
                 'product'               => $purchase->products->pluck('name')->toArray(),
-                'qty'                   => $purchase->products->pluck('qty')->toArray(),
+                'qty'                   => $purchase->products->pluck('pivot.qty')->toArray(),
                 'paid'                  => number_format($paid, cache()->get('general_setting')->decimal),
                 'balance'               => number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal),
                 'grand_total'           => number_format($purchase->grand_total, cache()->get('general_setting')->decimal)
@@ -4960,7 +4960,7 @@ class ReportController extends Controller
                 "shipping_cost" => $return->shipping_cost,
                 "return_shipping_cost"  => $return->return_shipping_cost,
                 "product"       => $return->products->pluck('name')->toArray(),
-                "qty"           => $return->products->pluck('qty')->toArray(),
+                "qty"           => $return->products->pluck('pivot.qty')->toArray(),
                 "grand_total"   => number_format($return->sipping_cost + $return->return_shipping_cost, cache()->get('general_setting')->decimal)
             ];
             $data[] = $nestedData;

@@ -664,7 +664,6 @@ $('button[name="update_btn"]').on("click", function() {
     tax_name[rowindex] = $('select[name="edit_tax_rate"] option:selected').text();
     product_price[rowindex] = $('input[name="edit_unit_price"]').val();
     product_discount[rowindex] = $('input[name="edit_discount"]').val();
-    checkDiscount(edit_qty, false);
 });
 
 function productSearch(data) {
@@ -680,18 +679,10 @@ function productSearch(data) {
     $(".product-code").each(function(i) {
         if ($(this).val() == code) {
             foundRow = i;
-            if (imeiOrSerial && imeiOrSerial !== 'null') {
-                var imeiNumbers = $('table.order-list tbody tr').eq(i).find('.imei-number').val() || '';
-                var imeiNumbersArray = imeiNumbers.split(",");
-                if (imeiNumbersArray.includes(imeiOrSerial)) {
-                    alert('Same imei or serial number is not allowed!');
-                    allowAdd = false;
-                    $('#lims_productcodeSearch').val('');
-                }
-            }
             pre_qty = $('table.order-list tbody tr').eq(i).find('.qty').val() || 0;
         }
     });
+
     if (!allowAdd) return;
 
     // Prepare AJAX data
@@ -779,13 +770,6 @@ function productSearch(data) {
                     : parseFloat(response[2] * currency['exchange_rate']) + parseFloat(response[2] * currency['exchange_rate'] * customer_group_rate);
                 product_price[foundRow] = price;
                 checkQuantity(String(qty), true);
-
-                // Add IMEI/serial if present
-                if (response[18]) {
-                    var imeiNumbers = $('table.order-list tbody tr').eq(foundRow).find('.imei-number').val() || '';
-                    imeiNumbers = imeiNumbers ? imeiNumbers + ',' + response[18] : response[18];
-                    $('table.order-list tbody tr').eq(foundRow).find('.imei-number').val(imeiNumbers);
-                }
             }
         }
     });
@@ -837,25 +821,6 @@ function edit()
     console.info("product_price", product_price);
     $('input[name="edit_unit_price"]').val(row_product_price.toFixed({{$general_setting->decimal}}));
     $('.selectpicker').selectpicker('refresh');
-}
-
-function checkDiscount(qty, flag) {
-    var customer_id = $('#customer_id').val();
-    var warehouse_id = $('#warehouse_id').val();
-    var product_id = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .product-id').val();
-    if(flag) {
-        $.ajax({
-            type: 'GET',
-            async: false,
-            url: '../sales/check-discount?qty='+qty+'&customer_id='+customer_id+'&product_id='+product_id+'&warehouse_id='+warehouse_id,
-            success: function(data) {
-                pos = product_code.indexOf($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .product-code').val());
-                product_price[rowindex] = parseFloat(data[0] * currency['exchange_rate']) + parseFloat(data[0] * currency['exchange_rate'] * customer_group_rate);
-            }
-        });
-    }
-    $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(qty);
-    checkQuantity(String(qty), flag);
 }
 
 function checkQuantity(sale_qty, flag) {

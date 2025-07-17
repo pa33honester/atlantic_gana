@@ -117,33 +117,11 @@
                                                         $unit_name = array();
                                                         $unit_operator = array();
                                                         $unit_operation_value = array();
-                                                        if($product_data->type == 'standard' || $product_data->type == 'combo') {
-                                                            $units = DB::table('units')->where('base_unit', $product_data->unit_id)->orWhere('id', $product_data->unit_id)->get();
 
-                                                            foreach($units as $unit) {
-                                                                if($product_sale->sale_unit_id == $unit->id) {
-                                                                    array_unshift($unit_name, $unit->unit_name);
-                                                                    array_unshift($unit_operator, $unit->operator);
-                                                                    array_unshift($unit_operation_value, $unit->operation_value);
-                                                                }
-                                                                else {
-                                                                    $unit_name[]  = $unit->unit_name;
-                                                                    $unit_operator[] = $unit->operator;
-                                                                    $unit_operation_value[] = $unit->operation_value;
-                                                                }
-                                                            }
-                                                            if($unit_operator[0] == '*'){
-                                                                $product_price = $product_price / $unit_operation_value[0];
-                                                            }
-                                                            elseif($unit_operator[0] == '/'){
-                                                                $product_price = $product_price * $unit_operation_value[0];
-                                                            }
-                                                        }
-                                                        else {
-                                                            $unit_name[] = 'n/a'. ',';
-                                                            $unit_operator[] = 'n/a'. ',';
-                                                            $unit_operation_value[] = 'n/a'. ',';
-                                                        }
+                                                        $unit_name[] = 'n/a'. ',';
+                                                        $unit_operator[] = 'n/a'. ',';
+                                                        $unit_operation_value[] = 'n/a'. ',';
+
                                                         $temp_unit_name = $unit_name = implode(",",$unit_name) . ',';
 
                                                         $temp_unit_operator = $unit_operator = implode(",",$unit_operator) .',';
@@ -458,12 +436,12 @@
                                 <input type="number" step="any" name="edit_qty" class="form-control">
                             </div>
                             <div class="col-md-4 form-group">
-                                <label>{{trans('file.Unit Price')}}</label>
-                                <input type="number" name="edit_unit_price" class="form-control" step="any">
-                            </div>
-                            <div class="col-md-4 form-group">
                                 <label>{{trans('file.Unit Discount')}}</label>
                                 <input type="number" name="edit_discount" class="form-control">
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>{{trans('file.Unit Price')}}</label>
+                                <input type="number" name="edit_unit_price" class="form-control" step="any">
                             </div>
                             <?php
                                 $tax_name_all[] = 'No Tax';
@@ -491,39 +469,6 @@
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
-    <!-- add cash register modal -->
-    <div id="cash-register-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-        <div role="document" class="modal-dialog">
-          <div class="modal-content">
-            {!! Form::open(['route' => 'cashRegister.store', 'method' => 'post']) !!}
-            <div class="modal-header">
-              <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Add Cash Register')}}</h5>
-              <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-              <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
-                <div class="row">
-                  <div class="col-md-6 form-group warehouse-section">
-                      <label>{{trans('file.Warehouse')}} *</strong> </label>
-                      <select required name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select warehouse...">
-                          @foreach($lims_warehouse_list as $warehouse)
-                          <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
-                          @endforeach
-                      </select>
-                  </div>
-                  <div class="col-md-6 form-group">
-                      <label>{{trans('file.Cash in Hand')}} *</strong> </label>
-                      <input type="number" name="cash_in_hand" required class="form-control">
-                  </div>
-                  <div class="col-md-12 form-group">
-                      <button type="submit" class="btn btn-primary">{{trans('file.submit')}}</button>
-                  </div>
-                </div>
-            </div>
-            {{ Form::close() }}
-          </div>
         </div>
     </div>
 
@@ -593,6 +538,7 @@
           </div>
         </div>
     </div>
+
 </section>
 
 @endsection
@@ -686,7 +632,6 @@
     //assigning value
     $('select[name="customer_id"]').val($('input[name="customer_id_hidden"]').val());
     $('select[name="warehouse_id"]').val($('input[name="warehouse_id_hidden"]').val());
-    $('select[name="biller_id"]').val($('input[name="biller_id_hidden"]').val());
     $('select[name="sale_status"]').val($('input[name="sale_status_hidden"]').val());
     $('select[name="order_tax_rate"]').val($('input[name="order_tax_rate_hidden"]').val());
     $('.selectpicker').selectpicker('refresh');
@@ -741,8 +686,6 @@
         });
     });
 
-    isCashRegisterAvailable(id);
-
     var lims_productcodeSearch = $('#lims_productcodeSearch');
     lims_productcodeSearch.autocomplete({
         source: function(request, response) {
@@ -766,20 +709,6 @@
             productSearch(data);
         }
     });
-
-    //Change quantity
-    $("#myTable").on('input', '.qty', function() {
-        rowindex = $(this).closest('tr').index();
-        if($(this).val() < 0 && $(this).val() != '') {
-          $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
-          alert("Quantity can't be less than 0");
-        }
-        if(is_variant[rowindex])
-            checkQuantity($(this).val(), true);
-        else
-            checkDiscount($(this).val(), true);
-    });
-
 
     //Delete product
     $("table.order-list tbody").on("click", ".ibtnDel", function(event) {
@@ -806,16 +735,6 @@
 
     //Update product
     $('button[name="update_btn"]').on("click", function() {
-        if(is_imei[rowindex]) {
-            var imeiNumbers = '';
-            $("#editModal .imei-numbers").each(function(i) {
-                if (i)
-                    imeiNumbers += ','+ $(this).val();
-                else
-                    imeiNumbers = $(this).val();
-            });
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val(imeiNumbers);
-        }
 
         var edit_discount = $('input[name="edit_discount"]').val();
         var edit_qty = $('input[name="edit_qty"]').val();
@@ -835,76 +754,10 @@
         var tax_rate_all = <?php echo json_encode($tax_rate_all) ?>;
         tax_rate[rowindex] = parseFloat(tax_rate_all[$('select[name="edit_tax_rate"]').val()]);
         tax_name[rowindex] = $('select[name="edit_tax_rate"] option:selected').text();
-        if(product_type[pos] == 'standard'){
-            var row_unit_operator = unit_operator[rowindex].slice(0, unit_operator[rowindex].indexOf(","));
-            var row_unit_operation_value = unit_operation_value[rowindex].slice(0, unit_operation_value[rowindex].indexOf(","));
-            if (row_unit_operator == '*') {
-                product_price[rowindex] = $('input[name="edit_unit_price"]').val() / row_unit_operation_value;
-            } else {
-                product_price[rowindex] = $('input[name="edit_unit_price"]').val() * row_unit_operation_value;
-            }
-            var position = $('select[name="edit_unit"]').val();
-            var temp_operator = temp_unit_operator[position];
-            var temp_operation_value = temp_unit_operation_value[position];
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sale-unit').val(temp_unit_name[position]);
-            temp_unit_name.splice(position, 1);
-            temp_unit_operator.splice(position, 1);
-            temp_unit_operation_value.splice(position, 1);
-
-            temp_unit_name.unshift($('select[name="edit_unit"] option:selected').text());
-            temp_unit_operator.unshift(temp_operator);
-            temp_unit_operation_value.unshift(temp_operation_value);
-
-            unit_name[rowindex] = temp_unit_name.toString() + ',';
-            unit_operator[rowindex] = temp_unit_operator.toString() + ',';
-            unit_operation_value[rowindex] = temp_unit_operation_value.toString() + ',';
-        }
-        else {
-            product_price[rowindex] = $('input[name="edit_unit_price"]').val();
-        }
+        product_price[rowindex] = $('input[name="edit_unit_price"]').val();
         product_discount[rowindex] = $('input[name="edit_discount"]').val();
-        checkDiscount(edit_qty, false);
-        //checkQuantity(edit_qty, false);
+        checkQuantity(edit_qty, false);
     });
-
-    $("#myTable").on("change", ".batch-no", function () {
-        rowindex = $(this).closest('tr').index();
-        var product_id = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-id').val();
-        var warehouse_id = $('select[name="warehouse_id"]').val();
-        $.get('../../check-batch-availability/' + product_id + '/' + $(this).val() + '/' + warehouse_id, function(data) {
-            if(data['message'] != 'ok') {
-                alert(data['message']);
-                $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.batch-no').val('');
-            }
-            else {
-                $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-batch-id').val(data['product_batch_id']);
-                code = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-code').val();
-                console.log(code);
-                pos = product_code.indexOf(code);
-                product_qty[pos] = data['qty'];
-            }
-        });
-    });
-
-    function isCashRegisterAvailable(warehouse_id) {
-        $.ajax({
-            url: '../../cash-register/check-availability/'+warehouse_id,
-            type: "GET",
-            success:function(data) {
-                if(data == 'false') {
-                    $('#cash-register-modal select[name=warehouse_id]').val(warehouse_id);
-                    $('.selectpicker').selectpicker('refresh');
-                    if(role_id <= 2){
-                        $("#cash-register-modal .warehouse-section").removeClass('d-none');
-                    }
-                    else {
-                        $("#cash-register-modal .warehouse-section").addClass('d-none');
-                    }
-                    // $("#cash-register-modal").modal('show');
-                }
-            }
-        });
-    }
 
     function productSearch(data) {
         var product_info = data.split("|");
@@ -914,20 +767,10 @@
         $(".product-code").each(function(i) {
             if ($(this).val() == code) {
                 rowindex = i;
-                if(product_info[2] != 'null') {
-                    imeiNumbers = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .imei-number').val();
-                    imeiNumbersArray = imeiNumbers.split(",");
-                    // console.log('arra '+ rowindex);
-
-                    if(imeiNumbersArray.includes(product_info[2])) {
-                        alert('Same imei or serial number is not allowed!');
-                        flag = false;
-                        $('#lims_productcodeSearch').val('');
-                    }
-                }
                 pre_qty = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val();
             }
         });
+
         if(flag){
             data += '?'+$('#customer_id').val()+'?'+(parseFloat(pre_qty) + 1);
             $.ajax({
@@ -1010,17 +853,6 @@
                         is_imei.splice(rowindex, 0, data[13]);
                         is_variant.splice(rowindex, 0, data[14]);
                         checkQuantity(data[15], true);
-                        // if(data[13]) {
-                        //     $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.edit-product').click();
-                        // }
-                    }
-                    else if(data[18]) {
-                        var imeiNumbers = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val();
-                        if(imeiNumbers)
-                            imeiNumbers += ','+data[18];
-                        else
-                            imeiNumbers = data[18];
-                        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val(imeiNumbers);
                     }
                 }
             });
@@ -1029,34 +861,6 @@
 
     function edit()
     {
-        $(".imei-section").remove();
-        if(is_imei[rowindex]) {
-            var imeiNumbers = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val();
-            if(imeiNumbers.length) {
-                imeiArrays = imeiNumbers.split(",");
-                htmlText = `<div class="col-md-8 form-group imei-section">
-                            <label>IMEI or Serial Numbers</label>
-                            <div class="table-responsive ml-2">
-                                <table id="imei-table" class="table table-hover">
-                                    <tbody>`;
-                for (var i = 0; i < imeiArrays.length; i++) {
-                    htmlText += `<tr>
-                                    <td>
-                                        <input type="text" class="form-control imei-numbers" name="imei_numbers[]" value="`+imeiArrays[i]+`" />
-                                    </td>
-                                    <td>
-                                        <button type="button" class="imei-del btn btn-sm btn-danger">X</button>
-                                    </td>
-                                </tr>`;
-                }
-                htmlText += `</tbody>
-                                </table>
-                            </div>
-                        </div>`;
-                $("#editModal .modal-element").append(htmlText);
-            }
-        }
-
         var row_product_name = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(1)').text();
         var row_product_code = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text();
         $('#modal_header').text(row_product_name + '(' + row_product_code + ')');
@@ -1070,56 +874,9 @@
         pos = tax_name_all.indexOf(tax_name[rowindex]);
         $('select[name="edit_tax_rate"]').val(pos);
 
-        pos = product_code.indexOf(row_product_code);
-        if(product_type[pos] == 'standard'){
-            unitConversion();
-            temp_unit_name = (unit_name[rowindex]).split(',');
-            temp_unit_name.pop();
-            temp_unit_operator = (unit_operator[rowindex]).split(',');
-            temp_unit_operator.pop();
-            temp_unit_operation_value = (unit_operation_value[rowindex]).split(',');
-            temp_unit_operation_value.pop();
-            $('select[name="edit_unit"]').empty();
-            $.each(temp_unit_name, function(key, value) {
-                $('select[name="edit_unit"]').append('<option value="' + key + '">' + value + '</option>');
-            });
-            $("#edit_unit").show();
-        }
-        else{
-            row_product_price = product_price[rowindex];
-            $("#edit_unit").hide();
-        }
+        row_product_price = product_price[rowindex];
+
         $('input[name="edit_unit_price"]').val(row_product_price.toFixed({{$general_setting->decimal}}));
-        $('.selectpicker').selectpicker('refresh');
-    }
-
-    //Delete imei
-    $(document).on("click", "table#imei-table tbody .imei-del", function() {
-        $(this).closest("tr").remove();
-        //decreaing qty
-        var edit_qty = parseFloat($('input[name="edit_qty"]').val());
-        $('input[name="edit_qty"]').val(edit_qty-1);
-    });
-
-    function checkDiscount(qty, flag) {
-        var customer_id = $('#customer_id').val();
-        var warehouse_id = $('#warehouse_id').val();
-        var product_id = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .product-id').val();
-        if(flag) {
-            $.ajax({
-                type: 'GET',
-                async: false,
-                url: '../check-discount?qty='+qty+'&customer_id='+customer_id+'&product_id='+product_id+'&warehouse_id='+warehouse_id,
-                success: function(data) {
-                    console.log(data);
-                    pos = product_code.indexOf($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .product-code').val());
-                    product_price[rowindex] = parseFloat(data[0] * currencyExchangeRate) + parseFloat(data[0] * currencyExchangeRate * customer_group_rate);
-                }
-            });
-        }
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(qty);
-        checkQuantity(String(qty), flag);
-        localStorage.setItem("tbody-id", $("table.order-list tbody").html());
     }
 
     function checkQuantity(sale_qty, flag) {
@@ -1157,52 +914,22 @@
     }
 
     function calculateRowProductData(quantity) {
-        if(product_type[pos] == 'standard')
-            unitConversion();
-        else
-            row_product_price = product_price[rowindex];
+        row_product_price = product_price[rowindex];
 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.discount').text((product_discount[rowindex] * quantity).toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.discount-value').val((product_discount[rowindex] * quantity).toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-rate').val(tax_rate[rowindex].toFixed({{$general_setting->decimal}}));
 
-        if (tax_method[rowindex] == 1) {
-            var net_unit_price = row_product_price - product_discount[rowindex];
-            var tax = net_unit_price * quantity * (tax_rate[rowindex] / 100);
-            var sub_total = (net_unit_price * quantity) + tax;
+        var net_unit_price = row_product_price; // - product_discount[rowindex]; @dorian
+        var tax = 0;
+        var sub_total = row_product_price * quantity;
 
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax').text(tax.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
-        } else {
-            var sub_total_unit = row_product_price - product_discount[rowindex];
-            var net_unit_price = (100 / (100 + tax_rate[rowindex])) * sub_total_unit;
-            var tax = (sub_total_unit - net_unit_price) * quantity;
-            var sub_total = sub_total_unit * quantity;
-
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').text(net_unit_price.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_price').val(net_unit_price.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax').text(tax.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
-        }
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
 
         calculateTotal();
-    }
-
-    function unitConversion() {
-        var row_unit_operator = unit_operator[rowindex].slice(0, unit_operator[rowindex].indexOf(","));
-        var row_unit_operation_value = unit_operation_value[rowindex].slice(0, unit_operation_value[rowindex].indexOf(","));
-
-        if (row_unit_operator == '*') {
-            row_product_price = product_price[rowindex] * row_unit_operation_value;
-        } else {
-            row_product_price = product_price[rowindex] / row_unit_operation_value;
-        }
     }
 
     function calculateTotal() {
