@@ -4698,122 +4698,101 @@ class ReportController extends Controller
 
     public function supplierPurchaseData(Request $request)
     {
-        $columns = array(
+        
+         $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
         );
 
-        $supplier_id = $request->input('supplier_id');
-        $q = DB::table('purchases')
-            ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
-            ->join('warehouses', 'purchases.warehouse_id', '=', 'warehouses.id')
-            ->where('purchases.supplier_id', $supplier_id)
-            ->where('purchases.status', 9) // SIGNED
-            ->whereDate('purchases.created_at', '>=' ,$request->input('start_date'))
-            ->whereDate('purchases.created_at', '<=' ,$request->input('end_date'));
+        $filters = [
+            'supplier_id'    => $request->input('supplier_id') ?? 0,
+            'sale_status'    => 9, // signed data
+            'start_date'     => $request->input('start_date'),
+            'end_date'       => $request->input('end_date'),
+        ];
 
-        $totalData = $q->count();
+        $query = Sale::with([
+            'customer',
+            'warehouse',
+            'user',
+            'products'
+        ])
+        ->whereDate('created_at', '>=', $filters['start_date'])
+        ->whereDate('created_at', '<=', $filters['end_date'])
+        ->where('sale_status', $filters['sale_status']);
+
+        // Filter by supplier if needed
+        if ($filters['supplier_id'] > 0) {
+            $query->whereHas('products', function($q) use ($filters) {
+                $q->where('products.supplier_id', $filters['supplier_id']);
+            });
+        }
+
+        $totalData = $query->count();
         $totalFiltered = $totalData;
 
-        if($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
-        $start = $request->input('start');
-        $order = 'purchases.'.$columns[$request->input('order.0.column')];
-        $dir = $request->input('order.0.dir');
-        $q = $q->select('purchases.id', 'purchases.reference_no', 'purchases.grand_total', 'purchases.shipping_cost', 'purchases.return_shipping_cost', 'purchases.paid_amount', 'purchases.status', 'purchases.created_at','purchases.updated_at', 'warehouses.name as warehouse_name')
+              // Pagination and ordering
+        $limit = $request->input('length', 10);
+        $start = $request->input('start', 0);
+        $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
+        $orderColumn = $columns[$request->input('order.0.column')];
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        // Handle search
+        $searchValue = $request->input('search.value');
+
+        if($searchValue) {
+            // Apply search filters
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('reference_no', 'LIKE', "%{$searchValue}%")
+                    ->orWhereHas('customer', function($q2) use ($searchValue) {
+                        $q2->where('name', 'LIKE', "%{$searchValue}%")
+                            ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
+                    });
+            });
+
+            $totalFiltered = $query->count();
+        }
+
+         // Fetch paginated sales
+        $sales = $query
             ->offset($start)
             ->limit($limit)
-            ->orderBy($order, $dir);
-            
-        if(empty($request->input('search.value'))) {
-            $purchases = $q->get();
-        }
-        else
+            ->orderBy($orderColumn, $orderDir)
+            ->get();
+
+        $data = [];
+
+        foreach ($sales as $key => $purchase)
         {
-            $search = $request->input('search.value');
-            $q = $q->whereDate('purchases.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))));
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $purchases =  $q->orwhere([
-                                ['purchases.reference_no', 'LIKE', "%{$search}%"],
-                                ['purchases.user_id', Auth::id()]
-                            ])
-                            ->orwhere([
-                                ['purchases.created_at', 'LIKE', "%{$search}%"],
-                                ['purchases.user_id', Auth::id()]
-                            ])
-                            ->get();
-                $totalFiltered = $q->orwhere([
-                                    ['purchases.reference_no', 'LIKE', "%{$search}%"],
-                                    ['purchases.user_id', Auth::id()]
-                                ])
-                                ->orwhere([
-                                    ['purchases.created_at', 'LIKE', "%{$search}%"],
-                                    ['purchases.user_id', Auth::id()]
-                                ])
-                                ->count();
+            $paid = 0;
+            foreach($purchase->products as $product){
+                $paid += $product->price * $product->pivot->qty;
             }
-            else {
-                $purchases =  $q->orwhere('purchases.created_at', 'LIKE', "%{$search}%")->orwhere('purchases.reference_no', 'LIKE', "%{$search}%")->get();
-                $totalFiltered = $q->orwhere('purchases.created_at', 'LIKE', "%{$search}%")->orwhere('purchases.reference_no', 'LIKE', "%{$search}%")->count();
-            }
+            $purchase->grand_total = $purchase->total_price = $paid;
+            $nestedData = [
+                'id'                    => $purchase->id,
+                'key'                   => $key,
+                'date'                  => date(config('date_format') . ' h:i:s', strtotime($purchase->updated_at)),
+                'reference_no'          => $purchase->reference_no,
+                'warehouse'             => $purchase->warehouse->name,
+                'shipping_cost'         => $purchase->shipping_cost,
+                'return_shipping_cost'  => $purchase->return_shipping_cost,
+                'product'               => $purchase->products->pluck('name')->toArray(),
+                'qty'                   => $purchase->products->pluck('qty')->toArray(),
+                'paid'                  => number_format($paid, cache()->get('general_setting')->decimal),
+                'balance'               => number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal),
+                'grand_total'           => number_format($purchase->grand_total, cache()->get('general_setting')->decimal)
+            ];
+            $purchase->save();
+            $data[] = $nestedData;
         }
-        $data = array();
-        if(!empty($purchases))
-        {
-            foreach ($purchases as $key => $purchase)
-            {
-                $nestedData['id'] = $purchase->id;
-                $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format') . ' h:i:s', strtotime($purchase->updated_at));
-                $nestedData['reference_no'] = $purchase->reference_no;
-                $nestedData['warehouse'] = $purchase->warehouse_name;
-                $nestedData['shipping_cost'] = $purchase->shipping_cost;
-                $nestedData['return_shipping_cost'] = $purchase->return_shipping_cost;
-                $product_purchase_data = DB::table('purchases')->join('product_purchases', 'purchases.id', '=', 'product_purchases.purchase_id')
-                                    ->join('products', 'product_purchases.product_id', '=', 'products.id')
-                                    ->where('purchases.id', $purchase->id)
-                                    ->select('products.name as product_name', 'product_purchases.qty', 'product_purchases.purchase_unit_id')
-                                    ->get();
-                foreach ($product_purchase_data as $index => $product_purchase) {
-                    if($product_purchase->purchase_unit_id) {
-                        $unit_data = DB::table('units')->select('unit_code')->find($product_purchase->purchase_unit_id);
-                        $unitCode = $unit_data->unit_code;
-                    }
-                    else
-                        $unitCode = '';
-                    if($index){
-                        $nestedData['product'] .= '<br>'.$product_purchase->product_name;
-                        $nestedData['qty'] = number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
-                    }
-                    else{
-                        $nestedData['product'] = $product_purchase->product_name;
-                        $nestedData['qty'] = number_format($product_purchase->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
-                    }
-                }
-                $nestedData['paid'] = number_format($purchase->paid_amount, cache()->get('general_setting')->decimal);
-                $nestedData['balance'] = number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal);
-                $nestedData['return_total'] = DB::table('returns')->where('reference_no', $purchase->reference_no)->sum('grand_total');
-                $nestedData['grand_total'] = number_format($purchase->grand_total /*- $purchase->shipping_cost - $purchase->return_shipping_cost*/, cache()->get('general_setting')->decimal);
-                // $nestedData['grand_total'] = number_format($purchase->grand_total - $nestedData['return_total'] - $purchase->return_shipping_cost, cache()->get('general_setting')->decimal);
-                if($purchase->status == 1){
-                    $nestedData['status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
-                }
-                elseif($purchase->status == 2){
-                    $nestedData['status'] = '<div class="badge badge-warning">'.trans('file.Pending').'</div>';
-                }
-                else{
-                    $nestedData['status'] = '<div class="badge badge-warning">'.trans('file.Draft').'</div>';
-                }
-                $data[] = $nestedData;
-            }
-        }
+
         $json_data = array(
             "draw"            => intval($request->input('draw')),
             "recordsTotal"    => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
-            "data"            => $data
+            "data"            => $data,
         );
         echo json_encode($json_data);
     }
@@ -4909,112 +4888,84 @@ class ReportController extends Controller
             2 => 'reference_no',
         );
 
-        $supplier_id = $request->input('supplier_id');
-        $q = DB::table('return_purchases')
-            ->join('suppliers', 'return_purchases.supplier_id', '=', 'suppliers.id')
-            ->join('warehouses', 'return_purchases.warehouse_id', '=', 'warehouses.id')
-            ->where('return_purchases.supplier_id', $supplier_id)
-            ->whereDate('return_purchases.created_at', '>=' ,$request->input('start_date'))
-            ->whereDate('return_purchases.created_at', '<=' ,$request->input('end_date'));
+        $filters = [
+            'supplier_id'    => $request->input('supplier_id') ?? 0,
+            'sale_status'    => 4, // return data
+            'start_date'     => $request->input('start_date'),
+            'end_date'       => $request->input('end_date'),
+        ];
 
-        $totalData = $q->count();
+        $query = Sale::with([
+            'customer',
+            'warehouse',
+            'user',
+            'products'
+        ])
+        ->whereDate('created_at', '>=', $filters['start_date'])
+        ->whereDate('created_at', '<=', $filters['end_date'])
+        ->where('sale_status', $filters['sale_status']);
+
+        // Filter by supplier if needed
+        if ($filters['supplier_id'] > 0) {
+            $query->whereHas('products', function($q) use ($filters) {
+                $q->where('products.supplier_id', $filters['supplier_id']);
+            });
+        }
+
+        $totalData = $query->count();
         $totalFiltered = $totalData;
 
-        if($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
-        $start = $request->input('start');
-        $order = 'return_purchases.'.$columns[$request->input('order.0.column')];
-        $dir = $request->input('order.0.dir');
-        $q = $q->select('return_purchases.id', 'return_purchases.reference_no', 'return_purchases.shipping_cost', 'return_purchases.return_shipping_cost', 'return_purchases.grand_total', 'return_purchases.created_at', 'return_purchases.updated_at','warehouses.name as warehouse_name')
+        // Pagination and ordering
+        $limit = $request->input('length', 10);
+        $start = $request->input('start', 0);
+        $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
+        $orderColumn = $columns[$request->input('order.0.column')];
+        $orderDir = $request->input('order.0.dir', 'desc');
+
+        // Handle search
+        $searchValue = $request->input('search.value');
+
+        if($searchValue) {
+            // Apply search filters
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('reference_no', 'LIKE', "%{$searchValue}%")
+                    ->orWhereHas('customer', function($q2) use ($searchValue) {
+                        $q2->where('name', 'LIKE', "%{$searchValue}%")
+                            ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
+                    });
+            });
+
+            $totalFiltered = $query->count();
+        }
+
+        
+        // Fetch paginated sales
+        $sales = $query
             ->offset($start)
             ->limit($limit)
-            ->orderBy($order, $dir);
-        if(empty($request->input('search.value'))) {
-            $return_purchases = $q->get();
-        }
-        else
+            ->orderBy($orderColumn, $orderDir)
+            ->get();
+
+        $data = [];
+
+        foreach ($sales as $key => $return)
         {
-            $search = $request->input('search.value');
-            $q = $q->whereDate('return_purchases.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))));
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $return_purchases =  $q->orwhere([
-                                ['return_purchases.reference_no', 'LIKE', "%{$search}%"],
-                                ['return_purchases.user_id', Auth::id()]
-                            ])
-                            ->orwhere([
-                                ['return_purchases.created_at', 'LIKE', "%{$search}%"],
-                                ['return_purchases.user_id', Auth::id()]
-                            ])
-                            ->get();
-                $totalFiltered = $q->orwhere([
-                                    ['return_purchases.reference_no', 'LIKE', "%{$search}%"],
-                                    ['return_purchases.user_id', Auth::id()]
-                                ])
-                                ->orwhere([
-                                    ['return_purchases.created_at', 'LIKE', "%{$search}%"],
-                                    ['return_purchases.user_id', Auth::id()]
-                                ])
-                                ->count();
-            }
-            else {
-                $return_purchases =  $q->orwhere('return_purchases.created_at', 'LIKE', "%{$search}%")->orwhere('return_purchases.reference_no', 'LIKE', "%{$search}%")->get();
-                $totalFiltered = $q->orwhere('return_purchases.created_at', 'LIKE', "%{$search}%")->orwhere('return_purchases.reference_no', 'LIKE', "%{$search}%")->count();
-            }
+            $nestedData = [
+                "id"            => $return->id,
+                "key"           => $key,
+                "date"          => date(config('date_format'), strtotime($return->created_at)),
+                "return_time"   => date(config('date_format').' h:i:s', strtotime($return->updated_at)),
+                "reference_no"  => $return->reference_no,
+                "warehouse"     => $return->warehouse->name,
+                "shipping_cost" => $return->shipping_cost,
+                "return_shipping_cost"  => $return->return_shipping_cost,
+                "product"       => $return->products->pluck('name')->toArray(),
+                "qty"           => $return->products->pluck('qty')->toArray(),
+                "grand_total"   => number_format($return->sipping_cost + $return->return_shipping_cost, cache()->get('general_setting')->decimal)
+            ];
+            $data[] = $nestedData;
         }
-        $data = array();
-        if(!empty($return_purchases))
-        {
-            foreach ($return_purchases as $key => $return)
-            {
-                $nestedData['id'] = $return->id;
-                $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format'), strtotime($return->created_at));
-                $nestedData['return_time'] = date(config('date_format').' h:i:s', strtotime($return->updated_at));
-                $nestedData['reference_no'] = $return->reference_no;
-                $nestedData['warehouse'] = $return->warehouse_name;
-                $nestedData['shipping_cost'] = $return->shipping_cost;
-                $nestedData['return_shipping_cost'] = $return->return_shipping_cost;
-                // $product_return_data = DB::table('return_purchases')
-                //     ->join('purchase_product_return', 'return_purchases.id', '=', 'purchase_product_return.return_id')
-                //     ->join('products', 'purchase_product_return.product_id', '=', 'products.id')
-                //     ->where('return_purchases.id', $return->id)
-                //     ->select(
-                // 'products.name as product_name',
-                //         'purchase_product_return.qty',
-                //         'purchase_product_return.purchase_unit_id'
-                //     )
-                //     ->get();
-                $product_return_data = DB::table('return_purchases')
-                    ->join('product_purchases', 'product_purchases.purchase_id', '=', 'return_purchases.purchase_id')
-                    ->join('products', 'product_purchases.product_id', '=', 'products.id')
-                    ->where('return_purchases.id', $return->id)
-                    ->select(
-                'products.name as product_name',
-                         'product_purchases.qty as qty', // this might be changed
-                         'product_purchases.purchase_unit_id' 
-                    )->get();
-                $nestedData['product'] = '';
-                $nestedData['qty'] = '';
-                foreach ($product_return_data as $index => $product_return) {
-                    if($product_return->purchase_unit_id) {
-                        $unit_data = DB::table('units')->select('unit_code')->find($product_return->purchase_unit_id);
-                        $unitCode = $unit_data->unit_code;
-                    }
-                    else
-                        $unitCode = '';
-                    if($index){
-                        $nestedData['product'] .= '<br>';
-                        $nestedData['qty'] .= '<br>';
-                    }
-                    $nestedData['product'] .= $product_return->product_name;
-                    $nestedData['qty'] .= number_format($product_return->qty, cache()->get('general_setting')->decimal).' '.$unitCode;
-                }
-                $nestedData['grand_total'] = number_format($return->shipping_cost + $return->return_shipping_cost, cache()->get('general_setting')->decimal);
-                $data[] = $nestedData;
-            }
-        }
+
         $json_data = array(
             "draw"            => intval($request->input('draw')),
             "recordsTotal"    => intval($totalData),

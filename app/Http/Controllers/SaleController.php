@@ -450,6 +450,7 @@ class SaleController extends Controller
             2 => 'reference_no',
             3 => 'grand_total',
             4 => 'paid_amount',
+            12=> 'updated_at'
         ];
         
         // Extract filters
@@ -853,6 +854,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
+
         if (isset($request->reference_no)) {
             $this->validate($request, [
                 'reference_no' => [
@@ -899,42 +901,9 @@ class SaleController extends Controller
             $data['created_at'] = date("Y-m-d", strtotime(str_replace("/", "-", $data['created_at']))) . ' ' . date("H:i:s");
         else
             $data['created_at'] = date("Y-m-d H:i:s");
-        //return dd($data);
 
-        //set the paid_amount value to $new_data variable
-        $new_data['paid_amount'] = $data['paid_amount'];
-
-        if (is_array($data['paid_amount'])) {
-            $data['paid_amount'] = array_sum($data['paid_amount']);
-        }
-
-        if ($data['pos']) {
-            if (!isset($data['reference_no']))
-                $data['reference_no'] = 'E' . date('dmy') . time();
-
-            foreach ($new_data['paid_amount'] as $paid_amount) {
-                $balance = $data['grand_total'] - $paid_amount;
-            }
-            if (is_array($data['paid_amount'])) {
-                $data['paid_amount'] = array_sum($data['paid_amount']);
-            }
-            if ($balance > 0 || $balance < 0)
-                $data['payment_status'] = 2;
-            else
-                $data['payment_status'] = 4;
-
-            if ($data['draft']) {
-                $lims_sale_data = Sale::find($data['sale_id']);
-                $lims_product_sale_data = Product_Sale::where('sale_id', $data['sale_id'])->get();
-                foreach ($lims_product_sale_data as $product_sale_data) {
-                    $product_sale_data->delete();
-                }
-                $lims_sale_data->delete();
-            }
-        } else {
-            if (!isset($data['reference_no']))
-                $data['reference_no'] = 'E' . date('dmy') . time();
-        }
+        if (!isset($data['reference_no']))
+            $data['reference_no'] = 'E' . date('dmy') . time();
 
         $document = $request->document;
         if ($document) {
@@ -960,11 +929,13 @@ class SaleController extends Controller
             }
             $data['document'] = $documentName;
         }
+
         if ($data['coupon_active']) {
             $lims_coupon_data = Coupon::find($data['coupon_id']);
             $lims_coupon_data->used += 1;
             $lims_coupon_data->save();
         }
+        
         if (isset($data['table_id'])) {
             $latest_sale = Sale::whereNotNull('table_id')->whereDate('created_at', date('Y-m-d'))->where('warehouse_id', $data['warehouse_id'])->select('queue')->orderBy('id', 'desc')->first();
             if ($latest_sale)
@@ -972,16 +943,11 @@ class SaleController extends Controller
             else
                 $data['queue'] = 1;
         }
+
         //inserting data to sales table
-        $data['total_tax'] = 0;
-        $data['order_tax'] = 0;
-        $data['total_price'] = 0;
-        $data['grand_total'] = 0;
+        $data['sale_status'] = 6; // unpaid
 
         $lims_sale_data = Sale::create($data);
-
-        // add the $new_data variable value to $data['paid_amount'] variable
-        $data['paid_amount'] = $new_data['paid_amount'];
 
         //inserting data for custom fields
         $custom_field_data = [];
@@ -998,95 +964,89 @@ class SaleController extends Controller
 
         if (count($custom_field_data))
             DB::table('sales')->where('id', $lims_sale_data->id)->update($custom_field_data);
-        $lims_customer_data = Customer::find($data['customer_id']);
-        $lims_reward_point_setting_data = RewardPointSetting::latest()->first();
-        //checking if customer gets some points or not
-        if ($lims_reward_point_setting_data && $lims_reward_point_setting_data->is_active && $data['grand_total'] >= $lims_reward_point_setting_data->minimum_amount) {
-            $point = (int) ($data['grand_total'] / $lims_reward_point_setting_data->per_point_amount);
-            $lims_customer_data->points += $point;
-            $lims_customer_data->save();
-        }
-
 
         $product_id = $data['product_id'];
         $qty = $data['qty'];
-        $product_sale = [];
 
         $purc = 0;
 
         foreach ($product_id as $i => $id) {
+            
             $lims_product_data = Product::where('id', $id)->first();
-            $product_sale['variant_id'] = null;
-            $product_sale['product_batch_id'] = null;
-            $product_sale['supplier_id'] = $lims_product_data->supplier_id;
-
+            $unit_price = $lims_product_data->price;
+            $total_price = $qty[$i] * $unit_price;
+            
             // Products Sale Create
-            $product_sale['sale_id'] = $lims_sale_data->id;
-            $product_sale['product_id'] = $id;
-            $product_sale['qty'] = $qty[$i];
-
-            $product_sale['imei_number'] = null;
-            $product_sale['sale_unit_id'] = 0;
-            $product_sale['net_unit_price'] = 0;
-            $product_sale['discount'] = 0;
-            $product_sale['tax_rate'] = 0;
-            $product_sale['tax'] = 0;
-            $product_sale['total'] = $lims_product_data->price * $qty[$i];
+            $product_sale = [
+                'variant_id'        => null,
+                'product_batch_id'  => null,
+                'supplier_id'      => $lims_product_data->supplier_id,
+                'sale_id'          => $lims_sale_data->id,
+                'product_id'       => $id,
+                'qty'              => $qty[$i],
+                'imei_number'      => null,
+                'sale_unit_id'     => 1,
+                'net_unit_price'   => $unit_price,
+                'discount'         => $lims_sale_data->order_discount,
+                'tax_rate'         => $lims_sale_data->order_tax_rate,
+                'tax'              => 0,
+                'total'            => $total_price
+            ];
             Product_Sale::create($product_sale);
 
             // Purchase Create
             // inserting data to purchase table (krishna)
             if($purc == 0){
-                $purchase_data = [];
-                $purchase_data['reference_no'] = $lims_sale_data->reference_no;
-                $purchase_data['user_id'] = $lims_sale_data->user_id;
-                $purchase_data['warehouse_id'] = $lims_sale_data->warehouse_id;
-                $purchase_data['supplier_id'] = $lims_product_data->supplier_id;
-                $purchase_data['currency_id'] = 1;
-                $purchase_data['exchange_rate'] = 0;
-                $purchase_data['item'] = $lims_sale_data->item;
-                $purchase_data['total_qty'] = $lims_sale_data->total_qty;
-                $purchase_data['total_discount'] = 0;
-                $purchase_data['total_tax'] = 0;
-                $purchase_data['total_cost'] = $lims_sale_data->price * $qty[$i];
-                $purchase_data['order_tax_rate'] = 0;
-                $purchase_data['order_tax'] = 0;
-                $purchase_data['order_discount'] = 0;
-                $purchase_data['shipping_cost'] = 0;
-                $purchase_data['grand_total'] = $lims_sale_data->price * $qty[$i];
-                $purchase_data['paid_amount'] = 0;
-                $purchase_data['status'] = 2;
-                $purchase_data['payment_status'] = $lims_sale_data->payment_status;
-                $purchase_data['document'] = $lims_sale_data->document;
-                $purchase_data['note'] = $lims_sale_data->sale_note;
+                $purchase_data = [
+                    'reference_no'       => $lims_sale_data->reference_no,
+                    'user_id'           => $lims_sale_data->user_id,
+                    'warehouse_id'      => $lims_sale_data->warehouse_id,
+                    'supplier_id'       => $lims_product_data->supplier_id,
+                    'currency_id'       => 1,
+                    'exchange_rate'     => 0,
+                    'item'              => $lims_sale_data->item,
+                    'total_qty'         => $lims_sale_data->total_qty,
+                    'total_discount'    => $lims_sale_data->total_discount,
+                    'total_tax'         => $lims_sale_data->total_tax,
+                    'total_cost'        => $lims_sale_data->total_price,
+                    'order_tax_rate'    => $lims_sale_data->order_tax_rate,
+                    'order_tax'         => 0,
+                    'order_discount'    => 0,
+                    'shipping_cost'     => 0,
+                    'grand_total'       => $lims_sale_data->grand_total,
+                    'paid_amount'       => 0,
+                    'status'            => 2,
+                    'payment_status'    => $lims_sale_data->payment_status,
+                    'document'          => $lims_sale_data->document,
+                    'note'              => $lims_sale_data->sale_note
+                ];
                 $lims_purchase_data = Purchase::create($purchase_data);
                 $purchase_id = $lims_purchase_data->id;
                 $purc++;
             }
             // Product Purchase Create
             // inserting data into product purchase table (krishna)
-            $product_purchase_data = [];
-            $product_purchase_data['purchase_id'] = $purchase_id;
-            $product_purchase_data['product_id'] = $id;
-            $product_purchase_data['qty'] = $qty[$i];
-            $product_purchase_data['product_batch_id'] = 0;
-            $product_purchase_data['variant_id'] = 0;
-            $product_purchase_data['imei_number'] = 0;
-            $product_purchase_data['recieved'] = 0;
-            $product_purchase_data['return_qty'] = 0;
-            $product_purchase_data['purchase_unit_id'] = 0;
-            $product_purchase_data['net_unit_cost'] = 0;
-            $product_purchase_data['discount'] = 0;
-            $product_purchase_data['tax_rate'] = 0;
-            $product_purchase_data['order_tax'] = 0;
-            $product_purchase_data['tax'] = 0;
-            $product_purchase_data['total'] = $qty[$i] * $lims_product_data->price;
-            $lims_product_purchase_data = ProductPurchase::create($product_purchase_data);
+            $product_purchase_data = [
+                'purchase_id'       => $purchase_id,
+                'product_id'        => $id,
+                'qty'               => $qty[$i],
+                'product_batch_id'  => 0,
+                'variant_id'        => 0,
+                'imei_number'       => 0,
+                'recieved'          => 0,
+                'return_qty'        => 0,
+                'purchase_unit_id'  => 0,
+                'net_unit_cost'     => 0,
+                'discount'          => 0,
+                'tax_rate'          => 0,
+                'order_tax'         => 0,
+                'tax'               => 0,
+                'total'             => $total_price
+            ];
+            ProductPurchase::create($product_purchase_data);
         }
 
-        $message = ' Sale created successfully';
-
-        return redirect('sales')->with('message', $message);
+        return redirect('sales')->with('message', 'Sale created successfully');
     }
 
     public function getSoldItem($id)
