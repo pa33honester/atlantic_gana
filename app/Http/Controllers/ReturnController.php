@@ -85,6 +85,7 @@ class ReturnController extends Controller
     public function returnData(Request $request)
     {
         $user = Auth::user();
+        $role = Role::find($user->role_id);
         $columns = array(
             1 => 'updated_at',
             2 => 'reference_no',
@@ -216,7 +217,7 @@ class ReturnController extends Controller
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
             }
 
-            if($user->role_id ^ 0x8){
+            if($role->hasPermissionTo('sale-report')){ // important
                 $nestedData['options'] = 
                     '<div class="btn-group">
                         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '

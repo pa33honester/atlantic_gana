@@ -1638,7 +1638,19 @@
         var htmltext = '';
         for(let i = 0; i < saleList.length; i ++){
             var sale = saleList[i];
-            if(i > 0) htmltext += '<hr>';
+            if(i > 0) {
+                htmltext += '<hr>';
+                htmltext += `
+                <div class="row">
+                    <div class="col-md-12 text-center mb-2">
+                        <div class="d-print-none">
+                            <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
+                        </div>
+                        <h3 class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
+                    </div>
+                </div>
+                `;
+            }
             htmltext += createBillHtml(sale);
         }
 
@@ -2138,40 +2150,6 @@
                         datatable_sum(dt, false);
                     },
                     footer:true
-                },
-                {
-                    text: '<i title="delete" class="dripicons-cross"></i>',
-                    className: 'buttons-delete',
-                    action: function ( e, dt, node, config ) {
-                        if(user_verified == '1') {
-                            sale_id.length = 0;
-                            $(':checkbox:checked').each(function(i){
-                                if(i){
-                                    var sale = $(this).closest('tr').data('sale');
-                                    if(sale)
-                                        sale_id[i-1] = sale[13];
-                                }
-                            });
-                            if(sale_id.length && confirm("Are you sure want to delete?")) {
-                                $.ajax({
-                                    type:'POST',
-                                    url:'sales/deletebyselection',
-                                    data:{
-                                        saleIdArray: sale_id
-                                    },
-                                    success:function(data){
-                                        alert(data);
-                                        //dt.rows({ page: 'current', selected: true }).deselect();
-                                        dt.rows({ page: 'current', selected: true }).remove().draw(false);
-                                    }
-                                });
-                            }
-                            else if(!sale_id.length)
-                                alert('Nothing is selected!');
-                        }
-                        else
-                            alert('This feature is disable for demo!');
-                    }
                 },
                 {
                     extend: 'colvis',

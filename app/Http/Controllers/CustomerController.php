@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use App\Models\CustomerGroup;
 use App\Models\Customer;
@@ -267,53 +268,69 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $this->validate($request, [
-            'phone_number' => [
-                'max:255',
-                Rule::unique('customers')->where(function ($query) {
-                    return $query->where('is_active', 1);
-                }),
-            ],
-        ]);
-        //validation for supplier if create both user and supplier
-        if(isset($request->both)) {
-            $this->validate($request, [
-                'company_name' => [
-                    'max:255',
-                    Rule::unique('suppliers')->where(function ($query) {
-                        return $query->where('is_active', 1);
-                    }),
-                ],
-                'email' => [
-                    'max:255',
-                    Rule::unique('suppliers')->where(function ($query) {
-                        return $query->where('is_active', 1);
-                    }),
-                ],
-            ]);
-        }
-        //validation for user if given user access
-        if(isset($request->user)) {
-            $this->validate($request, [
-                'name' => [
-                    'max:255',
-                        Rule::unique('users')->where(function ($query) {
-                        return $query->where('is_deleted', false);
-                    }),
-                ],
-                'email' => [
-                    'email',
-                    'max:255',
-                        Rule::unique('users')->where(function ($query) {
-                        return $query->where('is_deleted', false);
-                    }),
-                ],
-            ]);
+        $role = Role::find($user->role_id);
+
+        if(!$role->hasPermissionTo('customers-add')) {
+             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to add customer');
         }
 
+        // //validation for user if given user access
+        // if(isset($request->user)) {
+        //     $this->validate($request, [
+        //         'name' => [
+        //             'max:255',
+        //                 Rule::unique('users')->where(function ($query) {
+        //                 return $query->where('is_deleted', false);
+        //             }),
+        //         ],
+        //         'email' => [
+        //             'email',
+        //             'max:255',
+        //                 Rule::unique('users')->where(function ($query) {
+        //                 return $query->where('is_deleted', false);
+        //             }),
+        //         ],
+        //     ]);
+        // }
+
         $customer_data = $request->all();
+
+        if(isset($customer_data['customer_id_hidden'])){
+            DB::beginTransaction();
+            try{
+                $lims_customer_data = Customer::find($customer_data['customer_id_hidden']);
+
+                $lims_customer_data->update([
+                    'customer_group_id' => $customer_data['customer_group_id'],
+                    'name'              => $customer_data['customer_name'],
+                    'phone_number'      => $customer_data['phone_number'],
+                    'email'             => $customer_data['email'],
+                    'address'           => $customer_data['address'],
+                    'city'              => $customer_data['city'],
+                    'supplier_id'       => $user->supplier_id ?? 0
+                ]);
+
+                $lims_customer_data->save();
+
+                DB::commit();
+
+                return response()->json([
+                    "code"  => 200,
+                    'id'            => $customer_data['customer_id_hidden'],
+                    'name'          => $customer_data['customer_name'],
+                    'phone_number'  => $customer_data['phone_number']
+                ]);
+            }
+            catch(\Exception $e){
+                DB::rollBack();
+                return response()->json([
+                    "code"  => 400,
+                    "msg"   => $e ?? "Server Error at line number 328 in customer controller"
+                ]);
+            }
+        }
+
         $customer_data['is_active'] = true;
-        $prefixMessage = 'Customer';
         if(isset($request->user)) {
             $customer_data['phone'] = $customer_data['phone_number'];
             $customer_data['role_id'] = 5;
@@ -321,23 +338,15 @@ class CustomerController extends Controller
             $customer_data['password'] = bcrypt($customer_data['password']);
             $user = User::create($customer_data);
             $customer_data['user_id'] = $user->id;
-            $prefixMessage .= ', User';
         }
-        $customer_data['name'] = $customer_data['customer_name'];
 
-        if($user->supplier_id) {
-            $customer_data['supplier_id'] = $user->supplier_id;
-        }
+        $customer_data['name'] = $customer_data['customer_name'];
+        $customer_data['supplier_id'] = $user->supplier_id ?? 0;
         
         // @dorian
-        // if(isset($request->both)) {
-        //     Supplier::create($customer_data);
-        //     $prefixMessage .= ' and Supplier';
-        // }
-
-        $fullMessage = $prefixMessage.' created successfully!';
-        $mail_setting = MailSetting::latest()->first();
-        $message = $this->mailAction($customer_data, $mail_setting, $request, $fullMessage);
+        if(isset($request->both)) {
+            Supplier::create($customer_data);
+        }
 
         $lims_customer_data = Customer::create($customer_data);
 
@@ -353,16 +362,23 @@ class CustomerController extends Controller
                     $custom_field_data[$field_name] = $customer_data[$field_name];
             }
         }
+        
         if(count($custom_field_data))
             DB::table('customers')->where('id', $lims_customer_data->id)->update($custom_field_data);
+
         $this->cacheForget('customer_list');
-        $customerInfo['id'] = $lims_customer_data->id;
-        $customerInfo['name'] = $lims_customer_data->name;
-        $customerInfo['phone_number'] = $lims_customer_data->phone_number;
-        if($customer_data['pos'])
-            return $customerInfo;
-        else
-            return redirect('customer')->with('create_message', $message);
+
+        if($customer_data['pos']){
+            return response()->json([
+                'code'          => 200,
+                'id'            => $lims_customer_data->id,
+                'name'          => $lims_customer_data->name,
+                'phone_number'  => $lims_customer_data->phone_number
+            ]);
+        }
+        else {
+            return redirect('customer')->with('create_message', "Customer Created Successfully.");
+        }
     }
 
     public function edit($id)

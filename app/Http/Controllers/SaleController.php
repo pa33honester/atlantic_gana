@@ -883,7 +883,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        // return $data;
+    
         if (isset($request->reference_no)) {
             $this->validate($request, [
                 'reference_no' => [

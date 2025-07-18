@@ -504,39 +504,6 @@
                 footer:true
             },
             {
-                text: '<i title="delete" class="dripicons-cross"></i>',
-                className: 'buttons-delete',
-                action: function ( e, dt, node, config ) {
-                    if(user_verified == '1') {
-                        return_id.length = 0;
-                        $(':checkbox:checked').each(function(i){
-                            if(i){
-                                var returns = $(this).closest('tr').data('return');
-                                return_id[i-1] = returns[13];
-                            }
-                        });
-                        if(return_id.length && confirm("Are you sure want to delete?")) {
-                            $.ajax({
-                                type:'POST',
-                                url:'returns/deletebyselection',
-                                data:{
-                                    returnIdArray: return_id
-                                },
-                                success:function(data){
-                                    alert(data);
-                                    //dt.rows({ page: 'current', selected: true }).deselect();
-                                    dt.rows({ page: 'current', selected: true }).remove().draw(false);
-                                }
-                            });
-                        }
-                        else if(!return_id.length)
-                            alert('Nothing is selected!');
-                    }
-                    else
-                        alert('This feature is disable for demo!');
-                }
-            },
-            {
                 extend: 'colvis',
                 text: '<i title="column visibility" class="fa fa-eye"></i>',
                 columns: ':gt(0)'

@@ -62,29 +62,11 @@
                                                                         ['role_id', \Auth::user()->role_id] ])
                                                                     ->first();
                                                 ?>
-                                                @if(auth()->user()->role_id == 1)
-                                                    <select required name="customer_id" id="customer_id" class="selectpicker form-control" data-live-search="true" title="Select customer..." style="width: 100px;">
-                                                    @foreach($lims_customer_list as $customer)
-                                                        @php
-                                                        $deposit[$customer->id] = $customer->deposit - $customer->expense;
-
-                                                        $points[$customer->id] = $customer->points;
-                                                        @endphp
-                                                        <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
-                                                    @endforeach
-                                                    </select>
-                                                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
-                                                @else
-                                                    <select required name="customer_id" id="customer_id" class="d-none">
-                                                    @foreach($lims_customer_list as $customer)
-                                                        @php
-                                                        $deposit[$customer->id] = $customer->deposit - $customer->expense;
-                                                        $points[$customer->id] = $customer->points;
-                                                        @endphp
-                                                        <option value="{{$customer->id}}">{{$customer->name . ' (' . $customer->phone_number . ')'}}</option>
-                                                    @endforeach
-                                                    </select>
-                                                    <button type="button" class="btn btn-default btn-block btn-sm" data-toggle="modal" data-target="#addCustomer"><i class="dripicons-plus"></i></button>
+                                                @if($customer_active)
+                                                    <input type="hidden" name="customer_id" id="customer_id" value=""/>
+                                                    <button type="button" class="btn btn-default btn-block" data-toggle="modal" data-target="#addCustomer" id="btn-add-customer">
+                                                        <i class="dripicons-plus"></i>
+                                                    </button>
                                                 @endif
                                             </div>
                                         </div>
@@ -410,6 +392,7 @@
                 </div>
                 <div class="form-group">
                     <input type="hidden" name="pos" value="1">
+                    <input type="hidden" name="customer_id_hidden" id = "customer_id_hidden" />
                     <input type="hidden" name="supplier_id" value="{{ auth()->user()->supplier_id }}">
                     <button type="button" class="btn btn-primary customer-submit-btn">{{trans('file.submit')}}</button>
                 </div>
@@ -444,25 +427,42 @@ $("ul#sale #sale-create-menu").addClass("active");
 @endif
 
 @if($lims_pos_setting_data)
-    var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
+var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
 @endif
+
 var currency = <?php echo json_encode($currency) ?>;
 var currencyChange = false;
 var without_stock = <?php echo json_encode($general_setting->without_stock) ?>;
 
 $('.customer-submit-btn').on("click", function() {
+
     $.ajax({
         type:'POST',
         url:'{{route('customer.store')}}',
         data: $("#customer-form").serialize(),
         success:function(response) {
-            key = response['id'];
-            value = response['name']+' ['+response['phone_number']+']';
-            $('select[name="customer_id"]').append('<option value="'+ key +'">'+ value +'</option>');
-            $('select[name="customer_id"]').val(key);
-            $('.selectpicker').selectpicker('refresh');
-            $("#addCustomer").modal('hide');
-            setCustomerGroupRate(key);
+            if(response['code'] == 200){
+                key = response['id'];
+                value = response['name'] + ' [' +response['phone_number'] + ']';
+                
+                $("#customer_id_hidden").val(response['id']);
+                var customer_id_hidden = $("#customer_id_hidden").val();
+    
+                $("#addCustomer").modal('hide');
+                
+                $("#customer_id").val(response['id']);
+                var customer_id = $("#customer_id").val();
+    
+                $("#btn-add-customer").text(value);
+    
+                console.info("customer_id_hidden = ", customer_id_hidden);
+                console.info("customer_id = ", customer_id);
+    
+                setCustomerGroupRate(key);
+            }
+            else {
+                toastr.error(response['msg']);
+            }
         }
     });
 });
@@ -522,10 +522,6 @@ $('.selectpicker').selectpicker({
 });
 
 $('[data-toggle="tooltip"]').tooltip();
-
-$('select[name="customer_id"]').on('change', function() {
-    setCustomerGroupRate($(this).val());
-});
 
 function getProduct(warehouse_id){
     $.get('getproduct/' + warehouse_id, function(data) {
@@ -1021,8 +1017,6 @@ $(document).on('submit', '.payment-form', function(e) {
             type: $('.payment-form').attr('method'),
             data: $('.payment-form').serialize(),
             success: function(response) {
-                
-                // return 0;
 
                 if(response.code == 400){
                     alert(response.msg);

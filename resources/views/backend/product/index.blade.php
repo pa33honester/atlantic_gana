@@ -488,41 +488,7 @@
                                     '<img src="http://datatables.net/media/images/logo-fade.png" style="margin:10px;" />'
                                 );
                         }*/
-                    },
-                    {
-                        text: '<i title="delete" class="dripicons-cross"></i>',
-                        className: 'buttons-delete',
-                        action: function (e, dt, node, config) {
-                            if (user_verified == '1') {
-                                product_id.length = 0;
-                                $(':checkbox:checked').each(function (i) {
-                                    if (i) {
-                                        var product_data = $(this).closest('tr').data('product');
-                                        if (product_data)
-                                            product_id[i - 1] = product_data['id']; // ###
-                                    }
-                                });
-                                if (product_id.length && confirmDelete()) {
-                                    $.ajax({
-                                        type: 'POST',
-                                        url: 'products/deletebyselection',
-                                        data: {
-                                            productIdArray: product_id
-                                        },
-                                        success: function (data) {
-                                            alert(data);
-                                            //dt.rows({ page: 'current', selected: true }).deselect();
-                                            dt.rows({ page: 'current', selected: true }).remove().draw(false);
-                                        }
-                                    });
-                                }
-                                else if (!product_id.length)
-                                    alert('No product is selected!');
-                            }
-                            else
-                                alert('This feature is disable for demo!');
-                        }
-                    },
+                    }, 
                     {
                         extend: 'colvis',
                         text: '<i title="column visibility" class="fa fa-eye"></i>',
