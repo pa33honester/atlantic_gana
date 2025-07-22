@@ -63,6 +63,8 @@ class AdjustmentController extends Controller
 
     public function get_table(Request $request)
     {
+        $user = Auth::user();
+
         $columns = [
             1 => 'updated_at',
             5 => 'qty'
@@ -88,6 +90,10 @@ class AdjustmentController extends Controller
         // Filters
         if ($filter['adjustment_action']) {
             $query->where('action', $filter['adjustment_action']);
+        }
+        
+        if($filter['supplier_id'] == 0){
+            $filter['supplier_id'] = $user->supplier_id;
         }
 
         if ($filter['supplier_id']) {
