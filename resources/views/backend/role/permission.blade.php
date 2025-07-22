@@ -735,70 +735,6 @@
                                         </td>
                                     </tr>
 
-                                    <tr class="sale-return-row">
-                                        <td>{{trans('file.Sale Return')}}</td>
-                                        <td class="text-center">
-                                            <div class="icheckbox_square-blue" aria-checked="false"
-                                                aria-disabled="false">
-                                                <div class="checkbox">
-                                                    @if(in_array("returns-index", $all_permission))
-                                                    <input type="checkbox" value="1" id="returns-index"
-                                                        name="returns-index" checked>
-                                                    @else
-                                                    <input type="checkbox" value="1" id="returns-index"
-                                                        name="returns-index">
-                                                    @endif
-                                                    <label for="returns-index"></label>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="icheckbox_square-blue" aria-checked="false"
-                                                aria-disabled="false">
-                                                <div class="checkbox">
-                                                    @if(in_array("returns-add", $all_permission))
-                                                    <input type="checkbox" value="1" id="returns-add" name="returns-add"
-                                                        checked>
-                                                    @else
-                                                    <input type="checkbox" value="1" id="returns-add"
-                                                        name="returns-add">
-                                                    @endif
-                                                    <label for="returns-add"></label>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="icheckbox_square-blue" aria-checked="false"
-                                                aria-disabled="false">
-                                                <div class="checkbox">
-                                                    @if(in_array("returns-edit", $all_permission))
-                                                    <input type="checkbox" value="1" id="returns-edit"
-                                                        name="returns-edit" checked>
-                                                    @else
-                                                    <input type="checkbox" value="1" id="returns-edit"
-                                                        name="returns-edit">
-                                                    @endif
-                                                    <label for="returns-edit"></label>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="icheckbox_square-blue" aria-checked="false"
-                                                aria-disabled="false">
-                                                <div class="checkbox">
-                                                    @if(in_array("returns-delete", $all_permission))
-                                                    <input type="checkbox" value="1" id="returns-delete"
-                                                        name="returns-delete" checked>
-                                                    @else
-                                                    <input type="checkbox" value="1" id="returns-delete"
-                                                        name="returns-delete">
-                                                    @endif
-                                                    <label for="returns-delete"></label>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-
                                     <tr class="purchase-return-row">
                                         <td>{{trans('file.Purchase Return')}}</td>
                                         <td class="text-center">
@@ -1523,22 +1459,6 @@
                                                         @endif
                                                         <label for="purchase-report" class="padding05">
                                                             {{trans('file.Purchase Report')}} &nbsp;&nbsp;</label>
-                                                    </div>
-                                                </div>
-                                            </span>
-                                            <span>
-                                                <div aria-checked="false" aria-disabled="false">
-                                                    <div class="checkbox">
-                                                        @if(in_array("sale-report", $all_permission))
-                                                        <input type="checkbox" value="1" id="sale-report"
-                                                            name="sale-report" checked>
-                                                        @else
-                                                        <input type="checkbox" value="1" id="sale-report"
-                                                            name="sale-report">
-                                                        @endif
-                                                        <label for="sale-report"
-                                                            class="padding05">{{trans('file.Sale Report')}}
-                                                            &nbsp;&nbsp;</label>
                                                     </div>
                                                 </div>
                                             </span>
@@ -2426,6 +2346,59 @@
 											</span>
 										</td>
 									</tr>
+                                    <tr class="sale-report-row">
+                                        <td>{{trans('Order Reporting')}}</td>
+                                        <td class="report-permissions" colspan="5">
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report"
+                                                            name="sale-report" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report"
+                                                            name="sale-report">
+                                                        @endif
+                                                        <label for="sale-report"
+                                                            class="padding05">{{trans('Sale Report View')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report-edit", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report-edit"
+                                                            name="sale-report-edit" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report-edit"
+                                                            name="sale-report-edit">
+                                                        @endif
+                                                        <label for="sale-report-edit"
+                                                            class="padding05">{{trans('Sale Report Edit')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report-delete", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report-delete"
+                                                            name="sale-report-delete" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report-delete"
+                                                            name="sale-report-delete">
+                                                        @endif
+                                                        <label for="sale-report-delete"
+                                                            class="padding05">{{trans('Sale Report Delete')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

@@ -43,7 +43,7 @@ class ReturnController extends Controller
     {
         $user = Auth::user();
         $role = Role::find($user->role_id);
-        if ($role->hasPermissionTo('returns-index')) {
+        if ($role->hasPermissionTo('sale-report')) {
             $permissions = Role::findByName($role->name)->permissions;
             foreach ($permissions as $permission)
                 $all_permission[] = $permission->name;
@@ -217,7 +217,7 @@ class ReturnController extends Controller
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
             }
 
-            if($role->hasPermissionTo('sale-report')){ // important
+            if($role->hasPermissionTo('sale-report-edit') || $role->hasPermissionTo('sale-report-delete')){ // important
                 $nestedData['options'] = 
                     '<div class="btn-group">
                         <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
@@ -231,12 +231,12 @@ class ReturnController extends Controller
                             <li>
                                 <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
                             </li>';
-                    if (in_array("returns-edit", $request['all_permission'])) {
+                if ($role->hasPermissionTo("sale-report-edit")){
                     $nestedData['options'] .= '<li>
                             <a href="#" class="btn btn-link" onclick="editx(' . $returns->sale_id . ')"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
                         </li>';
                 }
-                if (in_array("returns-delete", $request['all_permission'])){
+                if ($role->hasPermissionTo("sale-report-delete")){
                     $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
                             <li>
                                 <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>

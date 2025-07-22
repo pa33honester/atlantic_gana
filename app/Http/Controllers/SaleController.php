@@ -708,8 +708,12 @@ class SaleController extends Controller
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark print-waybill"> Print Waybill </button>';
             } 
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
-                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
-                $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                if($role->hasPermissionTo('shipped-sign')){
+                    $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
+                }
+                if($role->hasPermissionTo('shipped-return')){
+                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                }
             } 
             else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="return_ship(' . $sale->id . ')">return</button>';

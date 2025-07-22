@@ -830,15 +830,6 @@ class RoleController extends Controller
         else
             $role->revokePermissionTo('monthly-purchase');
 
-        if($request->has('sale-report')){
-            $permission = Permission::firstOrCreate(['name' => 'sale-report']);
-            if(!$role->hasPermissionTo('sale-report')){
-                $role->givePermissionTo($permission);
-            }
-        }
-        else
-            $role->revokePermissionTo('sale-report');
-
         if($request->has('payment-report')){
             $permission = Permission::firstOrCreate(['name' => 'payment-report']);
             if(!$role->hasPermissionTo('payment-report')){
@@ -1354,17 +1345,24 @@ class RoleController extends Controller
         }
 
         $permissions = [
+            // order permission
             'unpaid-confirm',
             'unpaid-edit',
             'unpaid-cancel',
             'shipped-sign',
             'shipped-return',
-
             'return-receiving',
+
+            // reporting order permissions
+            'sale-report',
+            'sale-report-edit',
+            'sale-report-delete',
+
             'inbound-index',
             'inbound-add',
             'inbound-edit',
             'inbound-delete',
+
             'outbound-index',
             'outbound-add',
             'outbound-edit',

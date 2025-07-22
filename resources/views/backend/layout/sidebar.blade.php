@@ -176,9 +176,7 @@
             @endif
 
             <?php
-                $sale_return_index_permission_active = $role_has_permissions_list->where('name', 'returns-index')->first();
-
-                $purchase_return_index_permission_active = $role_has_permissions_list->where('name', 'purchase-return-index')->first();
+                $sale_return_index_permission_active = $role_has_permissions_list->where('name', 'sale-report')->first();
             ?>
             @if($sale_return_index_permission_active)
                 <li id="sale-return-menu"><a href="{{route('return-sale.index')}}"><i class="dripicons-return"></i><span>{{trans('Reported Order')}}</span></a></li>
