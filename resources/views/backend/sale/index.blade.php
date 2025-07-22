@@ -784,22 +784,6 @@
             <div class="modal-body">
                 {!! Form::open(['route' => 'sale.update-status', 'method' => 'post', 'files' => true, 'class' => 'cancel_order']) !!}
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p class="dr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p class="sr_num"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Name')}}</label>
-                        <p class="customer_name"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('Customer Address')}}</label>
-                        <p class="customer_address"></p>
-                    </div>
                     <div class="col-md-12 form-group" id="res_reason">
                         <label>{{trans('Reason for Cancellation')}} *</label>
                         <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
@@ -1375,28 +1359,21 @@
         });
     });
 
-
-
     function cancel_order(id){
         $.get('delivery/create/'+id, function(data) {
-                $('.dr_num').text(data[0]);
-                $('.sr_num').text(data[1]);
-                $('.customer_name').text(data[5]);
-                $('.customer_address').text(data[6]);
-                
-                $('input[name="reference_no"]').val(data[0]);
-                $('input[name="sale_id"]').val(id);
-                $('input[name="order_type"]').val("cancel_order");
-                //$(".ajax-status").html(data);
-                $("#orderCancel").text("Cancel Order");
-                $("#orderCancelLabel").text("Are you sure to cancel this order ?");
+            $('input[name="reference_no"]').val(data[0]);
+            $('input[name="sale_id"]').val(id);
+            $('input[name="order_type"]').val("cancel_order");
+            //$(".ajax-status").html(data);
+            $("#orderCancel").text("Cancel Order");
+            $("#orderCancelLabel").text("Are you sure to cancel this order ?");
 
-                var res_reason = $('select[name="res_reason_1"]').val();
-                check_validation("select", "res_reason", res_reason_2);
-                var res_info = $('textarea[name="res_info"]').val();
-                check_validation("textarea", "res_info", res_info);
-            });
-            $('#cancel-order').modal('show');
+            var res_reason = $('select[name="res_reason_1"]').val();
+            check_validation("select", "res_reason", res_reason_2);
+            var res_info = $('textarea[name="res_info"]').val();
+            check_validation("textarea", "res_info", res_info);
+        });
+        $('#cancel-order').modal('show');
     }
 
     $(".order_cancel_btn").on("click", function(){
