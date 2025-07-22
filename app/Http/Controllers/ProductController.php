@@ -16,6 +16,7 @@ use App\Models\Supplier;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Product_Warehouse;
+use App\Models\ProductAdjustment;
 use App\Models\Product_Supplier;
 use App\Models\CustomField;
 use Auth;
@@ -435,6 +436,14 @@ class ProductController extends Controller
                 $stock = $data['stock'][$key];
                 if ($stock > 0) {
                     $this->autoPurchase($lims_product_data, $warehouse_id, $stock);
+                    ProductAdjustment::create([
+                        'product_id'        => $lims_product_data->id,
+                        'warehouse_id'      => $warehouse_id,
+                        'variant_id'        => null,
+                        'adjustment_id'     => 0,
+                        'qty'               => $stock,
+                        'action'            => '+'
+                    ]);
                     $initial_stock += $stock;
                 }
             }
