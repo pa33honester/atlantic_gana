@@ -170,9 +170,6 @@
                     <th>{{trans('Customer Address')}}</th>                
                     <th>{{trans('Update Time')}}</th>   
                     <th>{{trans('Location')}}</th>
-                    @foreach($custom_fields as $fieldName)
-                    <th>{{$fieldName}}</th>
-                    @endforeach
                     <th class="not-exported" style="width:200px !important;">{{trans('file.Action')}}</th>
                 </tr>
             </thead>
@@ -1149,7 +1146,7 @@
     
     function update_status(el){
         var data = JSON.parse(el.getAttribute('data-confirm'));
-
+        
         $('#update-status .order_number').text(data['order_number']);
         $('#update-status .order_time').text(data['order_time']);
         $('#update-status .product_amount').text(data['product_amount']);
@@ -2060,7 +2057,6 @@
             },
             "columns": columns,
             "language": {
-                // 'search': '{{trans("file.Search")}}',
                 'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
                 "info": '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
                 'paginate': {
@@ -2068,7 +2064,6 @@
                     'next': '<i class="dripicons-chevron-right"></i>'
                 }
             },
-            // "searching" : false,
             "dom": '<"datatable-controls-wrapper"<"left-section"l><"middle-section"><"right-section"B>>rtip',
             "order":[['1', 'desc']],
             'columnDefs': [
@@ -2082,7 +2077,7 @@
                             data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
                         }
 
-                    return data;
+                        return data;
                     },
                     'checkboxes': {
                     'selectRow': true,

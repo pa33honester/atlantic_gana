@@ -10,7 +10,8 @@
 
                 $stock_count_active = $role_has_permissions_list->where('name', 'stock_count')->first();
 
-                $adjustment_active = $role_has_permissions_list->where('name', 'adjustment')->first();
+                $inbound_active = $role_has_permissions_list->where('name', 'inbound-index')->first();
+                $outbound_active = $role_has_permissions_list->where('name', 'outbound-index')->first();
             ?>
             @if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active)
             <li><a href="#product" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-list"></i><span>{{__('file.product')}}</span><span></a>
@@ -30,9 +31,11 @@
                 @if($print_barcode_active)
                 <li id="printBarcode-menu"><a href="{{route('product.printBarcode')}}">{{__('file.print_barcode')}}</a></li>
                 @endif
-                @if($adjustment_active)
-                <li id="adjustment-list-menu"><a href="{{route('qty_adjustment.index')}}">{{trans('file.Adjustment List')}}</a></li>
-                <li id="adjustment-create-menu"><a href="{{route('qty_adjustment.create')}}">{{trans('file.Add Adjustment')}}</a></li>
+                @if($inbound_active)
+                <li id="inbound-list-menu"><a href="{{route('adjustment.index', ['type'=>'inbound'])}}">{{trans('Inbound List')}}</a></li>
+                @endif
+                @if($outbound_active)
+                <li id="outbound-list-menu"><a href="{{route('adjustment.index', ['type'=>'outbound'])}}">{{trans('Outbound List')}}</a></li>
                 @endif
                 @if($stock_count_active)
                 <li id="stock-count-menu"><a href="{{route('stock-count.index')}}">{{trans('file.Stock Count')}}</a></li>
@@ -82,20 +85,18 @@
                 <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('Order List')}}</a></li>
                 @endif                
                 @if($packing_slip_challan_active)
-                <li id="packing-list-menu"><a href="{{route('packingSlip.index')}}">{{trans('file.Packing Slip List')}}</a></li>
-                <li id="challan-list-menu"><a href="{{route('challan.index')}}">{{trans('file.Challan List')}}</a></li>
+              
                 @endif
                 @if($delivery_permission_active)
-                <li id="delivery-menu"><a href="{{route('delivery.index')}}">{{trans('file.Delivery List')}}</a></li>
+            
                 @endif
                 @if($gift_card_permission_active)
-                <li id="gift-card-menu"><a href="{{route('gift_cards.index')}}">{{trans('file.Gift Card List')}}</a> </li>
+              
                 @endif
                 @if($coupon_permission_active)
-                <li id="coupon-menu"><a href="{{route('coupons.index')}}">{{trans('file.Coupon List')}}</a> </li>
+               
                 @endif
-                <li id="courier-menu"><a href="{{route('couriers.index')}}">{{trans('file.Courier List')}}</a> </li>
-                <li><a href="{{route('sale.pos')}}">POS</a></li>
+              
             </ul>
             </li>
             @endif
@@ -576,7 +577,7 @@
                     @if($warehouse_permission_active)
                     <li id="warehouse-menu"><a href="{{route('warehouse.index')}}">{{trans('file.Warehouse')}}</a></li>
                     @endif
-                    <li id="table-menu"><a href="{{route('tables.index')}}">{{trans('file.Tables')}}</a></li>
+                   
                     @if($customer_group_permission_active)
                     <li id="customer-group-menu"><a href="{{route('customer_group.index')}}">{{trans('file.Customer Group')}}</a></li>
                     @endif
@@ -611,14 +612,14 @@
                     @if($sms_setting_permission_active)
                     <li id="sms-setting-menu"><a href="{{route('setting.sms')}}">{{trans('file.SMS Setting')}}</a></li>
                     @endif
-                    <li id="payment-gateway-setting-menu"><a href="{{route('setting.gateway')}}">{{trans('file.Payment Gateways')}}</a></li>
+                 
                     @if($pos_setting_permission_active)
-                    <li id="pos-setting-menu"><a href="{{route('setting.pos')}}">POS {{trans('file.settings')}}</a></li>
+                 
                     @endif
                     @if($hrm_setting_permission_active)
                     <li id="hrm-setting-menu"><a href="{{route('setting.hrm')}}"> {{trans('file.HRM Setting')}}</a></li>
                     @endif
-                    <li id="barcode-setting-menu"><a href="{{route('barcodes.index')}}"> {{trans('file.Barcode Settings')}}</a></li>
+                   
                     <li id="languages"><a href="{{url('languages/')}}"> {{trans('file.Languages')}}</a></li>
                 </ul>
             </li>

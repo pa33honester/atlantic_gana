@@ -1,16 +1,13 @@
-@extends('backend.layout.main')
+@extends('backend.layout.ajax')
 @section('content')
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header d-flex align-items-center">
-                        <h4>{{trans('file.Add Adjustment')}}</h4>
-                    </div>
                     <div class="card-body">
                         <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
-                        {!! Form::open(['route' => 'qty_adjustment.store', 'method' => 'post', 'files' => true, 'id' => 'adjustment-form']) !!}
+                        {!! Form::open(['route' => 'adjustment.store', 'method' => 'post', 'files' => true, 'id' => 'adjustment-form']) !!}
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="row">
@@ -49,7 +46,6 @@
                                                     <tr>
                                                         <th>{{trans('file.name')}}</th>
                                                         <th>{{trans('file.Code')}}</th>
-                                                        <th>{{trans('file.Unit Cost')}}</th>
                                                         <th>{{trans('file.Quantity')}}</th>
                                                         <th>{{trans('file.action')}}</th>
                                                         <th><i class="dripicons-trash"></i></th>
@@ -58,7 +54,7 @@
                                                 <tbody>
                                                 </tbody>
                                                 <tfoot class="tfoot active">
-                                                    <th colspan="3">{{trans('file.Total')}}</th>
+                                                    <th colspan="2">{{trans('file.Total')}}</th>
                                                     <th id="total-qty" colspan="2">0</th>
                                                     <th><i class="dripicons-trash"></i></th>
                                                 </tfoot>
@@ -82,9 +78,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <input type="submit" value="{{trans('file.submit')}}" class="btn btn-primary" id="submit-button">
-                                </div>
+                                <input type="hidden" name="adjustment_action" value = "{{ $action }}" />
                             </div>
                         </div>
                         {!! Form::close() !!}
@@ -94,13 +88,11 @@
         </div>
     </div>
 </section>
-
 @endsection
+
 @push('scripts')
 <script type="text/javascript">
-	$("ul#product").siblings('a').attr('aria-expanded','true');
-    $("ul#product").addClass("show");
-    $("ul#product #adjustment-create-menu").addClass("active");
+
     // array data depend on warehouse
     var lims_product_array = [];
     var product_code = [];
@@ -112,11 +104,9 @@
 	    style: 'btn-link',
 	});
 
-
-
 	$('select[name="warehouse_id"]').on('change', function() {
 	    var id = $(this).val();
-	    $.get('getproduct/' + id, function(data) {
+	    $.get('../getproduct/' + id, function(data) {
 	        lims_product_array = [];
 	        product_code = data[0];
 	        product_name = data[1];
@@ -161,25 +151,6 @@
 	    calculateTotal();
 	});
 
-	$(window).keydown(function(e){
-	    if (e.which == 13) {
-	        var $targ = $(e.target);
-	        if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
-	            var focusNext = false;
-	            $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
-	                if (this === e.target) {
-	                    focusNext = true;
-	                }
-	                else if (focusNext){
-	                    $(this).focus();
-	                    return false;
-	                }
-	            });
-	            return false;
-	        }
-	    }
-	});
-
 	$('#adjustment-form').on('submit',function(e){
 	    var rownumber = $('table.order-list tbody tr:last').index();
 	    if (rownumber < 0) {
@@ -191,7 +162,7 @@
 	function productSearch(data){
 		$.ajax({
             type: 'GET',
-            url: 'lims_product_search',
+            url: '../lims_product_search',
             data: {
                 data: data
             },
@@ -213,9 +184,16 @@
                     var cols = '';
                     cols += '<td>' + data[0] + '</td>';
                     cols += '<td>' + data[1] + '</td>';
-                    cols += '<td>' + data[4] + '<input type="hidden" name="unit_cost[]" value="'+data[4]+'" /></td>';
                     cols += '<td><input type="number" class="form-control qty" name="qty[]" value="1" required step="any" /></td>';
-                    cols += '<td class="action"><select name="action[]" class="form-control act-val"><option value="-">{{trans("file.Subtraction")}}</option><option value="+">{{trans("file.Addition")}}</option></select></td>';
+                    cols += `<td class="action">
+                                <select name="action[]" class="form-control act-val">
+                                @if($action == 'inbound')
+                                    <option value="+">{{trans("file.Addition")}}</option>
+                                @else
+                                    <option value="-">{{trans("file.Subtraction")}}</option>
+                                @endif
+                                </select>
+                            </td>`;
                     cols += '<td><button type="button" class="ibtnDel btn btn-md btn-danger">{{trans("file.delete")}}</button></td>';
                     cols += '<input type="hidden" class="product-code" name="product_code[]" value="' + data[1] + '"/>';
                     cols += '<input type="hidden" class="product-id" name="product_id[]" value="' + data[2] + '"/>';

@@ -131,7 +131,7 @@
                                     <div class="row mt-4">
                                         <div class="col-md-8">
                                             <label><strong>Paper Size *</strong></label>
-                                            {!! Form::select('barcode_setting', $barcode_settings, !empty($default) ? $default->id : null, ['class' => 'form-control']); !!}
+                                            {!! Form::select('barcode_setting', $barcode_settings, !empty($default) ? $default->id : null, ['class' => 'form-control']) !!}
 
                                             {{-- <select class="form-control" name="paper_size" required id="paper-size">
                                                 <option value="0">Select paper size...</option>

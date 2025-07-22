@@ -1,4 +1,4 @@
-@extends('backend.layout.main')
+@extends('backend.layout.ajax')
 @section('content')
 <section class="forms">
     <div class="container-fluid">
@@ -56,61 +56,22 @@
                                                     <tr>
                                                         <th>{{trans('file.name')}}</th>
                                                         <th>{{trans('file.Code')}}</th>
-                                                        <th>{{trans('file.Unit Cost')}}</th>
                                                         <th>{{trans('file.Quantity')}}</th>
                                                         <th>{{trans('file.action')}}</th>
-                                                        <th><i class="dripicons-trash"></i></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                	@foreach($lims_product_adjustment_data as $product_adjustment_data)
                                                 	<tr>
-                                                	<?php
-                                                	   $product = DB::table('products')->find($product_adjustment_data->product_id);
-                                                       if($product_adjustment_data->variant_id) {
-                                                            $product_variant = \App\Models\ProductVariant::select('id', 'item_code')->FindExactProduct($product_adjustment_data->product_id, $product_adjustment_data->variant_id)->first();
-                                                            $product->code = $product_variant->item_code;
-                                                            $product_variant_id = $product_variant->id;
-                                                       }
-                                                       else
-                                                            $product_variant_id = null;
-                                                	?>
-                                                	<td>{{$product->name}}</td>
-                                                	<td>{{$product->code}}</td>
-                                                    <td>{{$product_adjustment_data->unit_cost}}<input type="hidden" name="unit_cost[]" value="{{$product_adjustment_data->unit_cost}}" /></td>
-                                                	<td><input type="number" class="form-control qty" name="qty[]" value="{{$product_adjustment_data->qty}}" required step="any" /></td>
-                                                	<td class="action">
-                                                		<select name="action[]" class="form-control act-val">
-                                                			@if($product_adjustment_data->action == '+')
-                                                			<option value="+">{{trans("file.Addition")}}</option>
-                                                			<option value="-">{{trans("file.Subtraction")}}</option>
-                                                			@else
-                                                			<option value="-">{{trans("file.Subtraction")}}</option><option value="+">{{trans("file.Addition")}}</option>
-                                                			@endif
-                                                		</select>
-                                                	</td>
-                                                	<td><button type="button" class="ibtnDel btn btn-md btn-danger">{{trans("file.delete")}}</button>
-                                                	<input type="hidden" name="product_code[]" class="product-code" value="{{$product->code}}" />
-                                                	<input type="hidden" class="product-id" name="product_id[]" value="{{$product->id}}" />
-                                                    <input type="hidden" name="product_variant_id[]" value="{{$product_variant_id}}" />
-                                                	</td>
-                                                	@endforeach
+                                                	    <td></td>
+                                                	    <td></td>
+                                                	    <td></td>
+                                                	    <td></td>
+                                                	    <td>
+
+                                                        </td>
                                                 	</tr>
                                                 </tbody>
-                                                <tfoot class="tfoot active">
-                                                    <th colspan="3">{{trans('file.Total')}}</th>
-                                                    <th id="total-qty" colspan="2">0</th>
-                                                    <th><i class="dripicons-trash"></i></th>
-                                                </tfoot>
                                             </table>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <input type="hidden" name="total_qty" />
-                                            <input type="hidden" name="item" />
                                         </div>
                                     </div>
                                 </div>
@@ -139,25 +100,24 @@
 
 @push('scripts')
 <script type="text/javascript">
-    $("ul#product").siblings('a').attr('aria-expanded','true');
-    $("ul#product").addClass("show");
-// array data depend on warehouse
-var lims_product_array = [];
-var product_code = [];
-var product_name = [];
-var product_qty = [];
-var unit_cost = [];
 
-var exist_code = [];
-var exist_qty = [];
+    // array data depend on warehouse
+    var lims_product_array = [];
+    var product_code = [];
+    var product_name = [];
+    var product_qty = [];
+    var unit_cost = [];
 
-var rownumber = $('table.order-list tbody tr:last').index();
+    var exist_code = [];
+    var exist_qty = [];
 
-for(rowindex  =0; rowindex <= rownumber; rowindex++){
-    exist_code.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text());
-    var quantity = parseFloat($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val());
-    exist_qty.push(quantity);
-}
+    var rownumber = $('table.order-list tbody tr:last').index();
+
+    for(rowindex  = 0; rowindex <= rownumber; rowindex++){
+        exist_code.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text());
+        var quantity = parseFloat($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val());
+        exist_qty.push(quantity);
+    }
 
 	$('.selectpicker').selectpicker({
 	    style: 'btn-link',
@@ -240,25 +200,6 @@ for(rowindex  =0; rowindex <= rownumber; rowindex++){
 	    calculateTotal();
 	});
 
-    $(window).keydown(function(e){
-        if (e.which == 13) {
-            var $targ = $(e.target);
-            if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
-                var focusNext = false;
-                $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
-                    if (this === e.target) {
-                        focusNext = true;
-                    }
-                    else if (focusNext){
-                        $(this).focus();
-                        return false;
-                    }
-                });
-                return false;
-            }
-        }
-    });
-
     $('#adjustment-form').on('submit',function(e){
         var rownumber = $('table.order-list tbody tr:last').index();
         if (rownumber < 0) {
@@ -339,5 +280,6 @@ for(rowindex  =0; rowindex <= rownumber; rowindex++){
 	    $('input[name="total_qty"]').val(total_qty);
 	    $('input[name="item"]').val($('table.order-list tbody tr:last').index() + 1);
 	}
+
 </script>
 @endpush

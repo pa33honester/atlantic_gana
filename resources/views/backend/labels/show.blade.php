@@ -22,7 +22,7 @@
                                                         <span class="input-group-addon">
                                                             <i class="fa fa-search"></i>
                                                         </span>
-                                                        {!! Form::text('search_product', null, ['class' => 'form-control', 'id' => 'search_product_for_label', 'placeholder' => __('lang_v1.enter_product_name_to_print_labels'), 'autofocus']); !!}
+                                                        {!! Form::text('search_product', null, ['class' => 'form-control', 'id' => 'search_product_for_label', 'placeholder' => __('lang_v1.enter_product_name_to_print_labels'), 'autofocus']) !!}
                                                     </div>
                                                 </div>
                                             </div>
@@ -56,7 +56,7 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <label><strong>Paper Size *</strong></label>
-						                {!! Form::select('barcode_setting', $barcode_settings, !empty($default) ? $default->id : null, ['class' => 'form-control']); !!}
+						                {!! Form::select('barcode_setting', $barcode_settings, !empty($default) ? $default->id : null, ['class' => 'form-control']) !!}
                                     </div>
                                 </div>
                                 <div class="row">

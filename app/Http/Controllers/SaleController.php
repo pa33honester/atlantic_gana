@@ -259,9 +259,9 @@ class SaleController extends Controller
         Sale::where('id', $saleId)->update($saleDetails);
 
         return response()->json([
-                                "code"  => 200,
-                                "msg"   => "Update Status Success!"
-                            ]);
+                "code"  => 200,
+                "msg"   => "Update Status Success!"
+            ]);
     }
 
     private function returnSale($sale_id)
@@ -321,12 +321,7 @@ class SaleController extends Controller
         switch ($orderType) {
             case "delivery":
                 $sale_details["sale_status"] = 12;
-                Sale::whereIn('id', $sale_id)->update($sale_details);
-                return response()->json([
-                    "code"  => 200,
-                    "msg"   => "success"
-                ]);
-
+                break;
             case "shipped":
                 $sale_details["sale_status"] = 8;
                 break;
@@ -346,7 +341,7 @@ class SaleController extends Controller
             case "return_ship":
                 $sale_details["sale_status"] = 14; // return receiving
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
-                $this->returnSale($sale_id);
+                // $this->returnSale($sale_id);
                 break;
             
             case "return_receiving":
@@ -811,7 +806,7 @@ class SaleController extends Controller
                             'sale_status' => 14,
                             'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
-                        $this->returnSale($sale->id); // added 7.17
+                        // $this->returnSale($sale->id); // added 7.17 - removed 7.20
                     }
                     else if ($status == 14 && $sale->sale_status == 14) { // return receiving -> return
                         // $delivery_fee = 

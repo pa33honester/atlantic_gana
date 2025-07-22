@@ -19,21 +19,21 @@
                                         <input type="hidden" name="is_custom" value="1">
                                         {!! Form::label('name', __('file.Sticker Sheet setting Name') . ':*') !!}
                                         {!! Form::text('name', null, ['class' => 'form-control', 'required',
-                                        'placeholder' => __('file.Sticker Sheet setting Name')]); !!}
+                                        'placeholder' => __('file.Sticker Sheet setting Name')]) !!}
                                     </div>
                                     </div>
                                     <div class="col-sm-12">
                                     <div class="form-group">
                                         {!! Form::label('description', __('file.Sticker Sheet setting Description') ) !!}
                                         {!! Form::textarea('description', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Sticker Sheet setting Description'), 'rows' => 3]); !!}
+                                        'placeholder' => __('file.Sticker Sheet setting Description'), 'rows' => 3]) !!}
                                     </div>
                                     </div>
                                     <div class="col-sm-12">
                                     <div class="form-group">
                                         <div class="">
                                         <label>
-                                            {!! Form::checkbox('is_continuous', 1, false, ['id' => 'is_continuous']); !!} @lang('file.Continuous feed or rolls')</label>
+                                            {!! Form::checkbox('is_continuous', 1, false, ['id' => 'is_continuous']) !!} @lang('file.Continuous feed or rolls')</label>
                                         </div>
                                     </div>
                                     </div>
@@ -45,7 +45,7 @@
                                             <span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>
                                         </span>
                                         {!! Form::number('top_margin', 0, ['class' => 'form-control',
-                                        'placeholder' => __('file.top_margin'), 'min' => 0, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.top_margin'), 'min' => 0, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -57,7 +57,7 @@
                                             <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
                                         </span>
                                         {!! Form::number('left_margin', 0, ['class' => 'form-control',
-                                        'placeholder' => __('file.Additional left margin'), 'min' => 0, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Additional left margin'), 'min' => 0, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -68,7 +68,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('width', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Width of sticker'), 'min' => 0.1, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Width of sticker'), 'min' => 0.1, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -78,7 +78,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('height', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Height of sticker'), 'min' => 0.1, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Height of sticker'), 'min' => 0.1, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -89,7 +89,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('paper_width', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Paper width'), 'min' => 0.1, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Paper width'), 'min' => 0.1, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -99,7 +99,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('paper_height', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Paper height'), 'min' => 0.1, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Paper height'), 'min' => 0.1, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -109,7 +109,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('stickers_in_one_row', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.Stickers in one row'), 'min' => 1, 'required']); !!}
+                                        'placeholder' => __('file.Stickers in one row'), 'min' => 1, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -120,7 +120,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('row_distance', 0, ['class' => 'form-control',
-                                        'placeholder' => __('file.Distance between two rows'), 'min' => 0, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Distance between two rows'), 'min' => 0, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -130,7 +130,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('col_distance', 0, ['class' => 'form-control',
-                                        'placeholder' => __('file.Distance between two columns'), 'min' => 0, 'step' => 0.00001, 'required']); !!}
+                                        'placeholder' => __('file.Distance between two columns'), 'min' => 0, 'step' => 0.00001, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -141,7 +141,7 @@
                                         <div class="input-group">
 
                                         {!! Form::number('stickers_in_one_sheet', null, ['class' => 'form-control',
-                                        'placeholder' => __('file.No. of Stickers per sheet'), 'min' => 1, 'required']); !!}
+                                        'placeholder' => __('file.No. of Stickers per sheet'), 'min' => 1, 'required']) !!}
                                         </div>
                                     </div>
                                     </div>
@@ -150,7 +150,7 @@
                                     <div class="form-group">
                                         <div class="">
                                         <label>
-                                            {!! Form::checkbox('is_default', 1); !!} @lang('file.Set as default')</label>
+                                            {!! Form::checkbox('is_default', 1) !!} @lang('file.Set as default')</label>
                                         </div>
                                     </div>
                                     </div>

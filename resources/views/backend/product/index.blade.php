@@ -482,12 +482,6 @@
                             logoStyle: '',
                             title: '<h3>Product List</h3>'
                         }
-                        /*customize: function ( win ) {
-                            $(win.document.body)
-                                .prepend(
-                                    '<img src="http://datatables.net/media/images/logo-fade.png" style="margin:10px;" />'
-                                );
-                        }*/
                     }, 
                     {
                         extend: 'colvis',

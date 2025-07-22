@@ -1353,52 +1353,36 @@ class RoleController extends Controller
                 $role->revokePermissionTo('returned');
         }
 
-        if($request->has('unpaid-confirm')) {
-            $permission = Permission::firstOrCreate(['name' => 'unpaid-confirm']);
-            if(!$role->hasPermissionTo('unpaid-confirm')) {
-                $role->givePermissionTo($permission);
-            }
-        }
-        else {
-            $permission = Permission::where('name', 'unpaid-confirm')->first();
-            if($permission)
-                $role->revokePermissionTo('unpaid-confirm');
-        }
+        $permissions = [
+            'unpaid-confirm',
+            'unpaid-edit',
+            'unpaid-cancel',
+            'shipped-sign',
+            'shipped-return',
 
-        if($request->has('unpaid-edit')) {
-            $permission = Permission::firstOrCreate(['name' => 'unpaid-edit']);
-            if(!$role->hasPermissionTo('unpaid-edit')) {
-                $role->givePermissionTo($permission);
-            }
-        }
-        else {
-            $permission = Permission::where('name', 'unpaid-edit')->first();
-            if($permission)
-                $role->revokePermissionTo('unpaid-edit');
-        }
+            'return-receiving',
+            'inbound-index',
+            'inbound-add',
+            'inbound-edit',
+            'inbound-delete',
+            'outbound-index',
+            'outbound-add',
+            'outbound-edit',
+            'outbound-delete'
+        ];
 
-        if($request->has('unpaid-cancel')) {
-            $permission = Permission::firstOrCreate(['name' => 'unpaid-cancel']);
-            if(!$role->hasPermissionTo('unpaid-cancel')) {
-                $role->givePermissionTo($permission);
+        foreach($permissions as $permission){
+            if($request->has($permission)) {
+                $permission = Permission::firstOrCreate(['name' => $permission]);
+                if(!$role->hasPermissionTo($permission)) {
+                    $role->givePermissionTo($permission);
+                }
             }
-        }
-        else {
-            $permission = Permission::where('name', 'unpaid-cancel')->first();
-            if($permission)
-                $role->revokePermissionTo('unpaid-cancel');
-        }
-
-        if($request->has('return-receiving')) {
-            $permission = Permission::firstOrCreate(['name' => 'return-receiving']);
-            if(!$role->hasPermissionTo('return-receiving')) {
-                $role->givePermissionTo($permission);
+            else {
+                $permission = Permission::where('name', $permission)->first();
+                if($permission)
+                    $role->revokePermissionTo($permission);
             }
-        }
-        else {
-            $permission = Permission::where('name', 'return-receiving')->first();
-            if($permission)
-                $role->revokePermissionTo('return-receiving');
         }
 
         cache()->forget('permissions');

@@ -102,7 +102,132 @@
                                             </div>
                                         </td>
                                     </tr>
-
+                                    <tr>
+                                        <td>{{trans('Inbound')}}</td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("inbound-index", $all_permission))
+                                                    <input type="checkbox" value="1" id="inbound-index"
+                                                        name="inbound-index" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="inbound-index"
+                                                        name="inbound-index">
+                                                    @endif
+                                                    <label for="inbound-index"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("inbound-add", $all_permission))
+                                                    <input type="checkbox" value="1" id="inbound-add"
+                                                        name="inbound-add" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="inbound-add"
+                                                        name="inbound-add">
+                                                    @endif
+                                                    <label for="inbound-add"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("inbound-edit", $all_permission))
+                                                    <input type="checkbox" value="1" id="inbound-edit"
+                                                        name="inbound-edit" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="inbound-edit"
+                                                        name="inbound-edit">
+                                                    @endif
+                                                    <label for="inbound-edit"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("inbound-delete", $all_permission))
+                                                    <input type="checkbox" value="1" id="inbound-delete"
+                                                        name="inbound-delete" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="inbound-delete"
+                                                        name="inbound-delete">
+                                                    @endif
+                                                    <label for="inbound-delete"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{trans('Outbound')}}</td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("outbound-index", $all_permission))
+                                                    <input type="checkbox" value="1" id="outbound-index"
+                                                        name="outbound-index" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="outbound-index"
+                                                        name="outbound-index">
+                                                    @endif
+                                                    <label for="outbound-index"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("outbound-add", $all_permission))
+                                                    <input type="checkbox" value="1" id="outbound-add"
+                                                        name="outbound-add" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="outbound-add"
+                                                        name="outbound-add">
+                                                    @endif
+                                                    <label for="outbound-add"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("outbound-edit", $all_permission))
+                                                    <input type="checkbox" value="1" id="outbound-edit"
+                                                        name="outbound-edit" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="outbound-edit"
+                                                        name="outbound-edit">
+                                                    @endif
+                                                    <label for="outbound-edit"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="icheckbox_square-blue" aria-checked="false"
+                                                aria-disabled="false">
+                                                <div class="checkbox">
+                                                    @if(in_array("outbound-delete", $all_permission))
+                                                    <input type="checkbox" value="1" id="outbound-delete"
+                                                        name="outbound-delete" checked>
+                                                    @else
+                                                    <input type="checkbox" value="1" id="outbound-delete"
+                                                        name="outbound-delete">
+                                                    @endif
+                                                    <label for="outbound-delete"></label>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
                                     <tr>
                                         <td>{{trans('file.Purchase')}}</td>
                                         <td class="text-center">
@@ -1975,22 +2100,6 @@
                                                     </div>
                                                 </div>
                                             </span>
-                                            <span class="adjustment-section">
-                                                <div aria-checked="false" aria-disabled="false">
-                                                    <div class="checkbox">
-                                                        @if(in_array("adjustment", $all_permission))
-                                                        <input type="checkbox" value="1" id="adjustment"
-                                                            name="adjustment" checked>
-                                                        @else
-                                                        <input type="checkbox" value="1" id="adjustment"
-                                                            name="adjustment">
-                                                        @endif
-                                                        <label for="adjustment"
-                                                            class="padding05">{{trans('file.Adjustment')}}
-                                                            &nbsp;&nbsp;</label>
-                                                    </div>
-                                                </div>
-                                            </span>
                                             <span>
                                                 <div aria-checked="false" aria-disabled="false">
                                                     <div class="checkbox">
@@ -2281,6 +2390,36 @@
 															name="return-receiving">
 														@endif
 														<label for="return-receiving" class="padding05">Returned Receiving
+															&nbsp;&nbsp;</label>
+													</div>
+												</div>
+											</span>
+                                            <span>
+												<div aria-checked="false" aria-disabled="false">
+													<div class="checkbox">
+														@if(in_array("shipped-sign", $all_permission))
+														<input type="checkbox" value="1" id="shipped-sign"
+															name="shipped-sign" checked>
+														@else
+														<input type="checkbox" value="1" id="shipped-sign"
+															name="shipped-sign">
+														@endif
+														<label for="shipped-sign" class="padding05">Sign Shipped
+															&nbsp;&nbsp;</label>
+													</div>
+												</div>
+											</span>
+                                            <span>
+												<div aria-checked="false" aria-disabled="false">
+													<div class="checkbox">
+														@if(in_array("shipped-return", $all_permission))
+														<input type="checkbox" value="1" id="shipped-return"
+															name="shipped-return" checked>
+														@else
+														<input type="checkbox" value="1" id="shipped-return"
+															name="shipped-return">
+														@endif
+														<label for="shipped-return" class="padding05">Return Shipped
 															&nbsp;&nbsp;</label>
 													</div>
 												</div>

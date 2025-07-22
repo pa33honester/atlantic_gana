@@ -14,6 +14,7 @@
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\AddonInstallController;
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\OutboundController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BillerController;
 use App\Http\Controllers\BrandController;
@@ -437,15 +438,18 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
     });
     Route::resource('transfers', TransferController::class);
 
-
-
     Route::controller(AdjustmentController::class)->group(function () {
-        Route::get('qty_adjustment/getproduct/{id}', 'getProduct')->name('adjustment.getproduct');
-        Route::get('qty_adjustment/lims_product_search', 'limsProductSearch')->name('product_adjustment.search');
-        Route::post('qty_adjustment/deletebyselection', 'deleteBySelection');
+        Route::prefix('adjustment')->group(function () {
+            Route::get('lims_product_search', 'limsProductSearch')->name('product_adjustment.search');
+            Route::post('get_table', 'get_table')->name('adjustment.get_table');
+            Route::get('create/{type}', 'create')->name('adjustment.create');
+            Route::post('/', 'store')->name('adjustment.store');
+            Route::post('update', 'update')->name('adjustment.update');
+            Route::delete('/{id}', 'destroy')->name('adjustment.delete');
+            Route::get('getproduct/{id}', 'getProduct')->name('adjustment.getproduct');
+            Route::get('/{type}', 'index')->name('adjustment.index');
+        });
     });
-    Route::resource('qty_adjustment', AdjustmentController::class);
-
 
     Route::controller(ReturnController::class)->group(function () {
         Route::prefix('return-sale')->group(function () {
