@@ -450,7 +450,7 @@ class SaleController extends Controller
             $smsTemplates = SmsTemplate::all();
             $can_scanner = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
                     || ($role->hasPermissionTo('receiving') && $sale_status == 12)
-                    || ($role->hasPermissionTo('shipped') && $sale_status == 8);
+                    || ($role->hasPermissionTo('shipped-return') && $sale_status == 8);
             return view('backend.sale.index', compact(
                 'starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 
                 'sale_type', 'supplier_id', 'lims_gift_card_list', 
