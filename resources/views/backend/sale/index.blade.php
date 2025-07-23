@@ -661,6 +661,10 @@
                                 <input class="form-check-input" type="radio" name="res_reason_2" id="reason_call_on" value="Call-On" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').removeClass('d-none');">
                                 <label class="form-check-label ml-2" for="reason_call_on" style="margin-left: 0.5rem;">{{trans('Call On')}}</label>
                             </div>
+                            <div class="form-check form-check-inline" style="display: flex; align-items: center;">
+                                <input class="form-check-input" type="radio" name="res_reason_2" id="reason_out_of_stock" value="Out-of-Stock" onchange="reset_validation('select', 'res_reason_2');$('#call_on_date_picker').addClass('d-none');">
+                                <label class="form-check-label ml-2" for="reason_out_of_stock" style="margin-left: 0.5rem;">{{trans('Out-of-Stock')}}</label>
+                            </div>
                         </div>
                         <div id="call_on_date_picker" class="mt-2 d-none">
                             <label for="call_on_date">{{ trans('Select Call On Date') }}</label>
