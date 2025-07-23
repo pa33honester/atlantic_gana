@@ -69,9 +69,13 @@ class SettingController extends Controller
             \App\Models\ProductReturn::truncate();
             \App\Models\ProductBatch::truncate();
             \App\Models\ProductVariant::truncate();
+            \App\Models\ProductPurchase::truncate();
 
+            \App\Models\Sale::truncate();
+            \App\Models\Purchase::truncate();
             \App\Models\Returns::truncate();
-            \App\Models\Customers::truncate();
+            Customer::truncate();
+            CustomerGroup::truncate();
             \App\Models\Tax::truncate();
 
             DB::commit();
@@ -81,7 +85,7 @@ class SettingController extends Controller
             DB::rollBack();
             return response()->json([
                 'code'  => 400,
-                'msg'   => 'Server Error!'
+                'msg'   => $e
             ]);
         }
 

@@ -174,8 +174,8 @@ class ReturnController extends Controller
 
             $nestedData['return_note'] = $returns->return_note;
             
-            $nestedData['item'] = 0;
-            $nestedData['grand_total'] = 0;
+            $nestedData['item'] = $returns->products->pluck('pivot.qty')->sum();
+            $nestedData['grand_total'] = $returns->product->pluck('pivot.net_unit_price')->sum();
             // added 6.28 @dorian
             {
                 $sale = Sale::with([
@@ -212,7 +212,6 @@ class ReturnController extends Controller
                     // @7.13
                     $nestedData['item'] += $temp['qty'];   
                     $nestedData['grand_total'] += $temp['amount'];
-
                 }
                 $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
             }
@@ -298,6 +297,10 @@ class ReturnController extends Controller
         );
 
         echo json_encode($json_data);
+    }
+
+    public function reportSale($sale_id) {
+        
     }
 
     public function create(Request $request)
@@ -1190,10 +1193,6 @@ class ReturnController extends Controller
                 } else
                     $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($product_return_data->product_id, $lims_return_data->warehouse_id)->first();
 
-                // $lims_product_data->qty -= $quantity;
-                // $lims_product_warehouse_data->qty -= $quantity;
-                // $lims_product_data->save();
-                // $lims_product_warehouse_data->save();
             }
             //deduct imei number if available
             if ($product_return_data->imei_number) {

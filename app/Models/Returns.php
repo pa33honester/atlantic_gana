@@ -37,11 +37,6 @@ class Returns extends Model
         return $this->belongsTo('App\Models\Sale');
     }
 
-    public function biller()
-    {
-    	return $this->belongsTo('App\Models\Biller');
-    }
-
     public function customer()
     {
     	return $this->belongsTo('App\Models\Customer');
@@ -59,6 +54,7 @@ class Returns extends Model
 
    public function products()
     {
-        return $this->belongsToMany(\App\Models\Product::class, 'product_returns', 'return_id', 'product_id');
+        return $this->belongsToMany('\App\Models\Product', 'product_returns')
+                    ->withPivot( 'qty', 'net_unit_price', 'tax');
     }
 }

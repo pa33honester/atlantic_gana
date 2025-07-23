@@ -639,7 +639,7 @@ class SaleController extends Controller
 
             // RBAC and options
             $role = Role::find($user->role_id);
-            // Permission::create(['name'  => 'return-receiving']);
+
             $nestedData['options'] = ' ';
             if ($sale->sale_status == 1) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
@@ -721,7 +721,7 @@ class SaleController extends Controller
             } 
             else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-danger" onclick="reset_order(' . $sale->id . ')"><i class="fa fa-refresh"></i> Confirm</button>';
-            } 
+            }
             else if ($sale->sale_status == 12 && $role->hasPermissionTo('receiving')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_status_filters_shipped(' . $sale->id . ')">shipped</button>';
             }
@@ -916,14 +916,6 @@ class SaleController extends Controller
 
         $data['user_id'] = Auth::id();
         $data['payment_status'] = 1;
-        $cash_register_data = CashRegister::where([
-            ['user_id', $data['user_id']],
-            ['warehouse_id', $data['warehouse_id']],
-            ['status', true]
-        ])->first();
-
-        if ($cash_register_data)
-            $data['cash_register_id'] = $cash_register_data->id;
 
         if (isset($data['created_at']))
             $data['created_at'] = date("Y-m-d", strtotime(str_replace("/", "-", $data['created_at']))) . ' ' . date("H:i:s");
