@@ -383,7 +383,7 @@
                 @endif
                 @if($empty_database_permission_active)
                 <li>
-                  <a onclick="return confirm('Are you sure want to delete? If you do this all of your data will be lost.')" href="{{route('setting.emptyDatabase')}}"><i class="dripicons-stack"></i> {{trans('file.Empty Database')}}</a>
+                  <a onclick="emptyDatabase()" href="#"><i class="dripicons-stack"></i> {{trans('file.Empty Database')}}</a>
                 </li>
                 @endif
                 <li>
@@ -1345,6 +1345,34 @@
         timeOut: 5000,
         extendedTimeOut: 1000,
     };
+
+    function emptyDatabase() {
+        Swal.fire({
+            title: 'Are you sure want to delete?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{route('setting.emptyDatabase')}}",
+                    type: "GET",
+                    success: function(response){
+                        if(response.code == 200){
+                            toastr.success(response.msg);
+                            location.reload();
+                        }
+                        else {
+                          toastr.error(response.msg);
+                        }
+                    }
+                });
+            }
+        });
+    }
 
 
     setInterval(function() {

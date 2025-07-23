@@ -39,37 +39,56 @@ class SettingController extends Controller
     {
         if(!env('USER_VERIFIED'))
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
-        //clearing all the cached queries
-        $this->cacheForget('biller_list');
-        $this->cacheForget('brand_list');
-        $this->cacheForget('category_list');
-        $this->cacheForget('coupon_list');
-        $this->cacheForget('customer_list');
-        $this->cacheForget('customer_group_list');
-        $this->cacheForget('product_list');
-        $this->cacheForget('product_list_with_variant');
-        $this->cacheForget('warehouse_list');
-        $this->cacheForget('tax_list');
-        $this->cacheForget('currency');
-        $this->cacheForget('general_setting');
-        $this->cacheForget('pos_setting');
-        $this->cacheForget('user_role');
-        $this->cacheForget('permissions');
-        $this->cacheForget('role_has_permissions');
-        $this->cacheForget('role_has_permissions_list');
 
-        $tables = DB::select('SHOW TABLES');
-        if(!config('database.connections.saleprosaas_landlord'))
-            $database_name = env('DB_DATABASE');
-        else
-            $database_name = env('DB_PREFIX').$this->getTenantId();
-        $str = 'Tables_in_'.$database_name;
-        foreach ($tables as $table) {
-            if($table->$str != 'accounts' && $table->$str != 'general_settings' && $table->$str != 'hrm_settings' && $table->$str != 'languages' && $table->$str != 'migrations' && $table->$str != 'password_resets' && $table->$str != 'permissions' && $table->$str != 'pos_setting' && $table->$str != 'roles' && $table->$str != 'role_has_permissions' && $table->$str != 'users' && $table->$str != 'currencies' && $table->$str != 'reward_point_settings' && $table->$str != 'ecommerce_settings' && $table->$str != 'external_services') {
-                DB::table($table->$str)->truncate();
-            }
+        DB::beginTransaction();
+        try{
+                    //clearing all the cached queries
+            $this->cacheForget('biller_list');
+            $this->cacheForget('brand_list');
+            $this->cacheForget('category_list');
+            $this->cacheForget('coupon_list');
+            $this->cacheForget('customer_list');
+            $this->cacheForget('customer_group_list');
+            $this->cacheForget('product_list');
+            $this->cacheForget('product_list_with_variant');
+            $this->cacheForget('warehouse_list');
+            $this->cacheForget('tax_list');
+            $this->cacheForget('currency');
+            $this->cacheForget('general_setting');
+            $this->cacheForget('pos_setting');
+            $this->cacheForget('user_role');
+            $this->cacheForget('permissions');
+            $this->cacheForget('role_has_permissions');
+            $this->cacheForget('role_has_permissions_list');
+
+            \App\Models\Product::truncate();
+            \App\Models\Product_Sale::truncate();
+            \App\Models\Product_Warehouse::truncate();
+            \App\Models\ProductAdjustment::truncate();
+            \App\Models\ProductAdjustment::truncate();
+            \App\Models\ProductReturn::truncate();
+            \App\Models\ProductBatch::truncate();
+            \App\Models\ProductVariant::truncate();
+
+            \App\Models\Returns::truncate();
+            \App\Models\Customers::truncate();
+            \App\Models\Tax::truncate();
+
+            DB::commit();
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+            return response()->json([
+                'code'  => 400,
+                'msg'   => 'Server Error!'
+            ]);
         }
-        return redirect()->back()->with('message', 'Database cleared successfully');
+
+        return response()->json([
+            'code'      => 200,
+            'msg'       => 'DataBase empty successful'
+        ]);
     }
 
     public function generalSetting()
