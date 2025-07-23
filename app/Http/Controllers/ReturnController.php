@@ -99,7 +99,7 @@ class ReturnController extends Controller
         $dir = $request->input('order.0.dir', 'desc');
         $search = $request->input('search.value');
 
-        $baseQuery = Returns::with(['biller', 'customer', 'warehouse', 'user' , 'products', 'sale'])
+        $baseQuery = Returns::with(['customer', 'warehouse', 'user' , 'products', 'sale'])
             ->whereDate('created_at', '>=', $request->input('starting_date'))
             ->whereDate('created_at', '<=', $request->input('ending_date'))
             ->when($user->role_id > 2 && config('staff_access') == 'own', function ($q) {
@@ -175,7 +175,7 @@ class ReturnController extends Controller
             $nestedData['return_note'] = $returns->return_note;
             
             $nestedData['item'] = $returns->products->pluck('pivot.qty')->sum();
-            $nestedData['grand_total'] = $returns->product->pluck('pivot.net_unit_price')->sum();
+            $nestedData['grand_total'] = $returns->products->pluck('pivot.net_unit_price')->sum();
             // added 6.28 @dorian
             {
                 $sale = Sale::with([

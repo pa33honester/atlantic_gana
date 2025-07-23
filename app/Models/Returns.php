@@ -54,7 +54,7 @@ class Returns extends Model
 
    public function products()
     {
-        return $this->belongsToMany('\App\Models\Product', 'product_returns')
-                    ->withPivot( 'qty', 'net_unit_price', 'tax');
+        return $this->belongsToMany('\App\Models\Product', 'product_returns', 'return_id')
+                    ->withPivot('qty', 'net_unit_price', 'tax');
     }
 }

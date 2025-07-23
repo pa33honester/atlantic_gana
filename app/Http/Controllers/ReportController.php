@@ -1989,7 +1989,7 @@ class ReportController extends Controller
                 else {
                     $nestedData['key'] = count($data);
                     $nestedData['name'] = $product->name.'<br>'.$product->code;
-                    $nestedData['category'] = $product->category->name;
+                    $nestedData['category'] = $product->category->name ?? 'Product';
 
                     //sale data
                     $nestedData['sold_amount'] = Product_Sale::where('product_id', $product->id)->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('total');
