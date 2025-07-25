@@ -1926,13 +1926,20 @@ class SaleController extends Controller
         for($i = 1; $i < $rows ; $i ++){
             $row = $products[0][$i];
 
-            $lims_product_data = Product::with(['warehouse'])
-                    ->where('code', $row[1])
-                    ->whereHas('warehouse', function($query) use($warehouse_id) {
-                        $query->where('warehouse_id', $warehouse_id);
-                    })
-                    ->first();
-            if(!$lims_product_data){
+            if($row[0] == null) continue;
+
+            $product = Product::with('warehouse')->where('code', $row[1])->first();
+
+            if(!$product){
+                return response()->json([
+                    'code'      => 400,
+                    'msg'       => $row[0].' does not exist in product',
+                ]);
+            }
+
+            $warehouse = $product->warehouse->firstWhere('id', $warehouse_id);
+
+            if(!$warehouse){
                 return response()->json([
                     'code'      => 400,
                     'msg'       => $row[0].' does not exist in warehouse'
@@ -1948,16 +1955,14 @@ class SaleController extends Controller
             for($i = 1; $i < $rows; $i ++){    
                 $row = $products[0][$i];
 
+                if($row[0] == null) continue;
+
                 $price = floatval($row[2]);
                 $qty = floatval($row[3]);
                 $total = $price * $qty;
 
-                $lims_product_data = Product::with(['warehouse'])
-                                    ->where('code', $row[1])
-                                    ->whereHas('warehouse', function($query) use($warehouse_id) {
-                                        $query->where('warehouse_id', $warehouse_id);
-                                    })
-                                    ->first();
+                $product = Product::with('warehouse')->where('code', $row[1])->first();
+
                 $customer = Customer::create([
                     'customer_group_id' => 1,
                     'name'          => $row[4],
@@ -1992,9 +1997,9 @@ class SaleController extends Controller
                 $result []= $lims_sale_data;
                 
                 Product_Sale::create([
-                    'supplier_id'      => $lims_product_data->supplier_id,
+                    'supplier_id'      => $product->supplier_id,
                     'sale_id'          => $lims_sale_data->id,
-                    'product_id'       => $lims_product_data->id,
+                    'product_id'       => $product->id,
                     'net_unit_price'   => $price,
                     'qty'              => $qty,
                     'discount'         => $order_discount ?? 0,
@@ -2011,7 +2016,7 @@ class SaleController extends Controller
                     'reference_no'       => $lims_sale_data->reference_no,
                     'user_id'           => $lims_sale_data->user_id,
                     'warehouse_id'      => $lims_sale_data->warehouse_id,
-                    'supplier_id'       => $lims_product_data->supplier_id,
+                    'supplier_id'       => $product->supplier_id,
                     'currency_id'       => 1,
                     'exchange_rate'     => 0,
                     'item'              => $lims_sale_data->item,
@@ -2033,7 +2038,7 @@ class SaleController extends Controller
 
                 ProductPurchase::create([
                     'purchase_id'       => $lims_purchase_data->id,
-                    'product_id'        => $lims_product_data->id,
+                    'product_id'        => $product->id,
                     'qty'               => $qty,
                     'product_batch_id'  => 0,
                     'variant_id'        => 0,
