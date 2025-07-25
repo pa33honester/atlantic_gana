@@ -170,6 +170,9 @@
                     <th>{{trans('Customer Address')}}</th>                
                     <th>{{trans('Update Time')}}</th>   
                     <th>{{trans('Location')}}</th>
+                    @if($sale_status == 11)
+                    <th>{{trans('Cancel Reason')}}</th>
+                    @endif
                     <th class="not-exported" style="width:200px !important;">{{trans('file.Action')}}</th>
                 </tr>
             </thead>
@@ -189,9 +192,6 @@
                 <th></th>
                 <th></th>
                 <th></th>
-                @foreach($custom_fields as $fieldName)
-                <th></th>
-                @endforeach
                 <th style="width:100px !important;">
                     <button id="print-waybill-btn" class="btn btn-danger" style="display:none;">Print Waybill</button>
                 </th>
@@ -640,10 +640,11 @@
                         </div>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_1">
-                        <label>{{trans('Reporting Reason')}} *</label>
+                        <label>{{trans('Cancel Reason')}} *</label>
                         <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
+                            <option value="No-Answer">{{trans('No Answer')}}</option>
                             <option value="Rejected">{{trans('Rejected')}}</option>
-                            <option value="Other">{{trans('Other Reason')}}</option>
+                            <option value="Out-of-Stock">{{trans('Out of Stock')}}</option>
                         </select>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_2">
@@ -1000,7 +1001,11 @@
         {"data": "customer_info"},
         {"data": "customer_address"},
         {"data": "updated_date"}, 
-        {"data" : "location"}];
+        {"data" : "location"},
+        @if($sale_status == 11)
+        {"data" : "res_reason"},
+        @endif
+    ];
     
     var field_name = <?php echo json_encode($field_name) ?>;
     for(i = 0; i < field_name.length; i++) {

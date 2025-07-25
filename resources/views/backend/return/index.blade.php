@@ -45,7 +45,7 @@
             <thead>
                 <tr>
                     <th class="not-exported"></th>
-                    <th>{{trans('Order ID')}}</th>
+                    <th>{{trans('Order Number')}}</th>
                     <th>{{trans('Reporting Reason')}}</th>      
                     <th>{{trans('Reporting Time')}}</th>      
                     <th>{{trans('Expected Call On')}}</th>      
@@ -198,6 +198,14 @@
                                 <input type="radio" name="res_type" id="report" value="report" onchange="order_reason(this.id);reset_validation('input', 'res_type');"> Report Order
                             </label>
                         </div>
+                    </div>
+                    <div class="col-md-12 form-group" id="res_reason_1">
+                        <label>{{trans('Cancel Reason')}} *</label>
+                        <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
+                            <option value="No-Answer">{{trans('No Answer')}}</option>
+                            <option value="Rejected">{{trans('Rejected')}}</option>
+                            <option value="Out-of-Stock">{{trans('Out of Stock')}}</option>
+                        </select>
                     </div>
                     <div class="col-md-12 form-group" id="res_reason_2">
                         <label>{{trans('Reporting Reason')}} *</label>

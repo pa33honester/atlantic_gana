@@ -107,6 +107,7 @@ class SaleController extends Controller
         $resType = $data['res_type'];
         $location = $data['location'];
         $resReason = $data['res_reason_2'] ?? "";
+        $cancelReason = $data['res_reason_1'] ?? "";
         $resInfo = $data['res_info'];
 
         // Prepare sale details for update
@@ -157,7 +158,7 @@ class SaleController extends Controller
                 break;
 
             case 'cancel':
-                $saleDetails['res_reason'] = $resReason;
+                $saleDetails['res_reason'] = $cancelReason;
                 $saleDetails['sale_status'] = 11;
                 if ($returnData) {
                     (new ReturnController())->destroy($returnData->id);
@@ -459,10 +460,19 @@ class SaleController extends Controller
                     || ($role->hasPermissionTo('receiving') && $sale_status == 12)
                     || ($role->hasPermissionTo('shipped-return') && $sale_status == 8);
             return view('backend.sale.index', compact(
-                'starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'location', 
-                'sale_type', 'supplier_id', 'lims_gift_card_list', 
-                'lims_pos_setting_data', 'lims_reward_point_setting_data', 
-                'lims_account_list', 'lims_warehouse_list', 'all_permission', 'options', 
+                'starting_date', 
+                'ending_date', 
+                'warehouse_id', 
+                'sale_status', 
+                'payment_status', 'location', 
+                'sale_type', 'supplier_id', 
+                'lims_gift_card_list', 
+                'lims_pos_setting_data', 
+                'lims_reward_point_setting_data', 
+                'lims_account_list', 
+                'lims_warehouse_list', 
+                'all_permission', 
+                'options', 
                 'numberOfInvoice', 
                 'custom_fields', 
                 'field_name', 
@@ -627,7 +637,8 @@ class SaleController extends Controller
                 'customer_info' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
                 'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
                 'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
-                'location' => $sale->location
+                'location' => $sale->location,
+                'res_reason'    => $sale->res_reason
             ];
 
             switch($sale->location){
