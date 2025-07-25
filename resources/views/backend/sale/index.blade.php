@@ -792,8 +792,9 @@
                     <div class="col-md-12 form-group" id="res_reason">
                         <label>{{trans('Reason for Cancellation')}} *</label>
                         <select name="res_reason_1" required class="form-control selectpicker" onchange="reset_validation('select', 'res_reason_1');">
+                            <option value="No-Answer">{{trans('No Answer')}}</option>
                             <option value="Rejected">{{trans('Rejected')}}</option>
-                            <option value="Other">{{trans('Other Reason')}}</option>
+                            <option value="Out-of-Stock">{{trans('Out of Stock')}}</option>
                         </select>
                     </div>                    
                     <div class="col-md-12 form-group">
