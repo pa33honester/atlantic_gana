@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 
+use Doctrine\DBAL\Driver\OCI8\Exception\Error;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -1911,17 +1912,19 @@ class SaleController extends Controller
             }
         }, $request->file('file'));
 
-        $field_name = $products[0];
+        $field_name = $products[0][0];
         $field_count = sizeof($field_name);
         
         $warehouse_id = $request->input('warehouse_id');
-        $sale_note = $request->input('sale_note');
-        $staff_note = $request->input('staff_note');
-        $order_tax_rate = $request->input('order_tax_rate');
+        $sale_note = $request->input('sale_note') ?? "N/A";
+        $staff_note = $request->input('staff_note') ?? "N/A";
+        $order_tax_rate = $request->input('order_tax_rate') ?? 0;
+        $order_discount = $request->input('order_discount') ?? 0;
+        $shipping_cost = $request->input('shipping_cost') ?? 0;
 
-        $rows = sizeof($products);
-        for($i = 1; $i < $rows - 1; $i ++){
-            $row = $products[$i];
+        $rows = sizeof($products[0]);
+        for($i = 1; $i < $rows ; $i ++){
+            $row = $products[0][$i];
 
             $lims_product_data = Product::with(['warehouse'])
                     ->where('code', $row[1])
@@ -1942,8 +1945,8 @@ class SaleController extends Controller
         $result = [];
         DB::beginTransaction();
         try{
-            for($i = 1; $i < $rows - 1; $i ++){    
-                $row = $products[$i];
+            for($i = 1; $i < $rows; $i ++){    
+                $row = $products[0][$i];
 
                 $price = floatval($row[2]);
                 $qty = floatval($row[3]);
@@ -1956,6 +1959,7 @@ class SaleController extends Controller
                                     })
                                     ->first();
                 $customer = Customer::create([
+                    'customer_group_id' => 1,
                     'name'          => $row[4],
                     'phone_number'  => $row[5],
                     'address'       => $row[6],
@@ -1965,10 +1969,18 @@ class SaleController extends Controller
                 $data = [
                     'user_id'       => Auth::id(),
                     'payment_status'=> 1,
-                    'customer_id'   => $customer->id,
                     'created_at'    => date("Y-m-d H:i:s"),
                     'reference_no'  => 'E' . date('dmy') . time(),
                     'sale_status'   => 6,
+                    'customer_id'   => $customer->id,
+                    'warehouse_id'  => $warehouse_id,
+                    'item'          => $qty,
+                    'total_qty'     => $qty,
+                    'total_discount'=> $order_discount * $qty,
+                    'total_tax'     => 0,
+                    'total_price'   => $qty * $price,
+                    'grand_total'   => $qty * ($price - $order_discount),
+                    'order_discount'=> $order_discount,
                     'sale_note'     => $sale_note,
                     'staff_note'    => $staff_note,
                     'order_tax_rate'=> $order_tax_rate,
@@ -1985,7 +1997,7 @@ class SaleController extends Controller
                     'product_id'       => $lims_product_data->id,
                     'net_unit_price'   => $price,
                     'qty'              => $qty,
-                    'discount'         => $lims_sale_data->order_discount,
+                    'discount'         => $order_discount ?? 0,
                     'tax_rate'         => $lims_sale_data->order_tax_rate,
                     'sale_unit_id'     => 1,
                     'variant_id'        => null,
@@ -2051,7 +2063,8 @@ class SaleController extends Controller
         return response()->json([
             'code'      => 200,
             'msg'       => 'Creating Order Successful',
-            'data'  => $result
+            'data'  => $result,
+            'rows'  => $products
         ]);
     }
 

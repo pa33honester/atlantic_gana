@@ -193,7 +193,7 @@ $(document).ready(function(){
             console.log('Success:', data);
             if(data.code == 200){
                 toastr.success(data.msg);
-                // location.href = "{{ route('sales.index') }}";
+                location.href = "{{ route('sales.index') }}";
             }
             else {
                 toastr.error(data.msg);
