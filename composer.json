@@ -21,7 +21,7 @@
         "laravel/tinker": "^2.8",
         "laravel/ui": "^4.0",
         "laravelcollective/html": "^6.2",
-        "maatwebsite/excel": "^3.1.48",
+        "maatwebsite/excel": "^3.1",
         "milon/barcode": "^10.0",
         "nwidart/laravel-modules": "^8.3",
         "orangehill/iseed": "^3.0",

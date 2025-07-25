@@ -1283,7 +1283,6 @@
                 "_token" : $('meta[name="csrf-token"]').attr('content')
             },
             success:function(data) {
-                console.log(data);
                 $('#confirm-print').modal('hide');
                 location.reload();
             }

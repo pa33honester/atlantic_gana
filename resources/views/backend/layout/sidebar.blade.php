@@ -1,15 +1,10 @@
         <ul id="side-main-menu" class="side-menu list-unstyled d-print-none">
             <li><a href="{{url('/dashboard')}}"> <i class="dripicons-meter"></i><span>{{ __('file.dashboard') }}</span></a></li>
             <?php
-
                 $index_permission_active = $role_has_permissions_list->where('name', 'products-index')->first();
-
                 $category_permission_active = $role_has_permissions_list->where('name', 'category')->first();
-
                 $print_barcode_active = $role_has_permissions_list->where('name', 'print_barcode')->first();
-
                 $stock_count_active = $role_has_permissions_list->where('name', 'stock_count')->first();
-
                 $inbound_active = $role_has_permissions_list->where('name', 'inbound-index')->first();
                 $outbound_active = $role_has_permissions_list->where('name', 'outbound-index')->first();
             ?>
@@ -62,52 +57,21 @@
             @endif
             <?php
                 $sale_index_permission_active = $role_has_permissions_list->where('name', 'sales-index')->first();
-
-                $packing_slip_challan_active = $role_has_permissions_list->where('name', 'packing_slip_challan')->first();
-
-                $gift_card_permission_active = $role_has_permissions_list->where('name', 'gift_card')->first();
-
                 $coupon_permission_active = $role_has_permissions_list->where('name', 'coupon')->first();
-
-                $delivery_permission_active = $role_has_permissions_list->where('name', 'delivery')->first();
-
                 $sale_add_permission_active = $role_has_permissions_list->where('name', 'sales-add')->first();
             ?>
-            @if($sale_index_permission_active || $packing_slip_challan_active || $gift_card_permission_active || $coupon_permission_active || $delivery_permission_active)
+            @if($sale_index_permission_active || $coupon_permission_active)
             <li><a href="#sale" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-cart"></i><span>{{trans('file.Order')}}</span></a>
-            <ul id="sale" class="collapse list-unstyled ">
-                @if($sale_add_permission_active)
-                
-                <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{trans('Add Order')}}</a></li>
-                <!-- <li id="sale-import-menu"><a href="{{url('sales/sale_by_csv')}}">{{trans('Import Order By CSV')}}</a></li> -->
-                @endif
-                @if($sale_index_permission_active)
-                <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('Order List')}}</a></li>
-                @endif                
-                @if($packing_slip_challan_active)
-              
-                @endif
-                @if($delivery_permission_active)
-            
-                @endif
-                @if($gift_card_permission_active)
-              
-                @endif
-                @if($coupon_permission_active)
-               
-                @endif
-              
-            </ul>
-            </li>
-            @endif
-            @if (in_array('manufacturing',explode(',',$general_setting->modules)))
-            <!-- <li>
-                <a href="#manufacturing" aria-expanded="false" data-toggle="collapse"> <i class="fa fa-industry"></i><span>{{trans('file.Manufacturing')}}</span></a>
-                <ul id="manufacturing" class="collapse list-unstyled ">
-                    <li id="production-list-menu"><a href="{{route('productions.index')}}">{{trans('file.Production List')}}</a></li>
-                    <li id="production-create-menu"><a href="{{route('productions.create')}}">{{trans('file.Add Production')}}</a></li>
+                <ul id="sale" class="collapse list-unstyled ">
+                    @if($sale_add_permission_active)
+                    <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{trans('Add Order')}}</a></li>
+                    <li id="sale-import-menu"><a href="{{url('sales/sale_by_csv')}}">{{trans('Import Orders ')}}</a></li>
+                    @endif
+                    @if($sale_index_permission_active)
+                    <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('Order List')}}</a></li>
+                    @endif                
                 </ul>
-            </li> -->
+            </li>
             @endif
             <?php
             $index_permission_active = $role_has_permissions_list->where('name', 'expenses-index')->first();
