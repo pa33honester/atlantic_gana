@@ -175,7 +175,10 @@ class ReturnController extends Controller
             $nestedData['return_note'] = $returns->return_note;
             
             $nestedData['item'] = $returns->products->pluck('pivot.qty')->sum();
-            $nestedData['grand_total'] = $returns->products->pluck('pivot.net_unit_price')->sum();
+            $nestedData['grand_total'] = 0;
+            foreach($returns->products as $return_product){
+                $nestedData['grand_total'] += $return_product->pivot->qty * $return_product->pivot->net_unit_price;
+            }
             // added 6.28 @dorian
             {
                 $sale = Sale::with([
