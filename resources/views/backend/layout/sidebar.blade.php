@@ -59,12 +59,15 @@
                 $sale_index_permission_active = $role_has_permissions_list->where('name', 'sales-index')->first();
                 $coupon_permission_active = $role_has_permissions_list->where('name', 'coupon')->first();
                 $sale_add_permission_active = $role_has_permissions_list->where('name', 'sales-add')->first();
+                $sale_import_permission_active = $role_has_permissions_list->where('name', 'sales-import')->first();
             ?>
             @if($sale_index_permission_active || $coupon_permission_active)
             <li><a href="#sale" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-cart"></i><span>{{trans('file.Order')}}</span></a>
                 <ul id="sale" class="collapse list-unstyled ">
                     @if($sale_add_permission_active)
                     <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{trans('Add Order')}}</a></li>
+                    @endif
+                    @if($sale_import_permission_active)
                     <li id="sale-import-menu"><a href="{{url('sales/sale_by_csv')}}">{{trans('Import Orders ')}}</a></li>
                     @endif
                     @if($sale_index_permission_active)
