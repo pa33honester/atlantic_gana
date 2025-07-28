@@ -271,23 +271,14 @@
             <?php
 
                 $profit_loss_active = $role_has_permissions_list->where('name', 'profit-loss')->first();
-
                 $best_seller_active = $role_has_permissions_list->where('name', 'best-seller')->first();
-
                 $warehouse_report_active = $role_has_permissions_list->where('name', 'warehouse-report')->first();
-
                 $warehouse_stock_report_active = $role_has_permissions_list->where('name', 'warehouse-stock-report')->first();
-
                 $product_report_active = $role_has_permissions_list->where('name', 'product-report')->first();
-
                 $daily_sale_active = $role_has_permissions_list->where('name', 'daily-sale')->first();
-
                 $monthly_sale_active = $role_has_permissions_list->where('name', 'monthly-sale')->first();
-
                 $daily_purchase_active = $role_has_permissions_list->where('name', 'daily-purchase')->first();
-
                 $monthly_purchase_active = $role_has_permissions_list->where('name', 'monthly-purchase')->first();
-
                 $purchase_report_active = $role_has_permissions_list->where('name', 'purchase-report')->first();
 
                 $sale_report_active = $role_has_permissions_list->where('name', 'sale-report')->first();

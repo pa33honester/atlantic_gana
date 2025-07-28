@@ -1683,20 +1683,26 @@
                         $.ajax({
                             type:'POST',
                             url:'{{route('products.store')}}',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
                             data: formData,
                             contentType: false,
                             processData: false,
                             success:function(response) {
-                                //console.log(response);
                                 location.href = '../products';
                             },
                             error:function(response) {
-                              if(response.responseJSON.errors.name) {
-                                  $("#name-error").text(response.responseJSON.errors.name);
-                              }
-                              else if(response.responseJSON.errors.code) {
-                                  $("#code-error").text(response.responseJSON.errors.code);
-                              }
+                                if(response.responseJSON.errors.name) {
+                                    console.log(response.responseJSON.errors.name);
+                                    alert(response.responseJSON.errors.name[0]);
+                                    $("#name-error").text(response.responseJSON.errors.name[0]);
+                                }
+                                else if(response.responseJSON.errors.code) {
+                                    $("#code-error").text(response.responseJSON.errors.code);
+                                }
+
+                                $('#submit-btn').attr('enabled','true').html('Name Error! Try Again');
                             },
                         });
                     }
@@ -1818,7 +1824,7 @@
     });
     // Tax Ajax Create
         // category create ajax start
-        $('.tax-submit-btn').on("click", function() {
+    $('.tax-submit-btn').on("click", function() {
         $.ajax({
             type:'POST',
             url:'{{route('tax.store')}}',

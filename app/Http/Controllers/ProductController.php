@@ -300,7 +300,7 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        //return $request;
+        $supplier_id = $request->input('supplier_id');
         $this->validate($request, [
             'code' => [
                 'max:255',
@@ -310,8 +310,8 @@ class ProductController extends Controller
             ],
             'name' => [
                 'max:255',
-                Rule::unique('products')->where(function ($query) {
-                    return $query->where('is_active', 1);
+                Rule::unique('products')->where(function ($query) use($supplier_id) {
+                    return $query->where('is_active', 1)->where('supplier_id', $supplier_id);
                 }),
             ]
         ]);

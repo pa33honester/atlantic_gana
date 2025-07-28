@@ -1926,7 +1926,7 @@ class SaleController extends Controller
         for($i = 1; $i < $rows ; $i ++){
             $row = $products[0][$i];
 
-            if($row[0] == null) continue;
+            if($row[0] == null) break;
 
             $product = Product::with('warehouse')->where('code', $row[1])->first();
 
@@ -1955,7 +1955,7 @@ class SaleController extends Controller
             for($i = 1; $i < $rows; $i ++){    
                 $row = $products[0][$i];
 
-                if($row[0] == null) continue;
+                if($row[0] == null) break;
 
                 $price = floatval($row[2]);
                 $qty = floatval($row[3]);
