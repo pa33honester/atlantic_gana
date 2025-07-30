@@ -1572,19 +1572,19 @@
     function createBillHtml(sale){
         return (`
             <div class="sale-details" style="line-height: 1.6; font-size: 20px; font-weight:500; margin: 20px auto; width: 80%">
-                <p> <strong> Order Number : </strong> ${sale[1]} </p>
-                <p> <strong> Name: </strong>${sale[9]} </p>
-                <p> <strong> Number: </strong> ${sale[10]} </p> 
-                <p class="m-b-2"> <strong> Address: </strong> ${sale[11]} </p>
-                <p> <strong> Date: </strong>${sale[0]} </p>
-                <p> <strong> Product : </strong>${sale[3]} </p>
-                <p> <strong> Qty : </strong> ${sale[33]} </p>
-                <p> <strong> Amount : </strong> ${sale[21]} </p>
-                <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale[34]} </p>
+                <p> <strong> Order Number : </strong> ${sale['reference_no']} </p>
+                <p> <strong> Name: </strong>${sale['customer_name']} </p>
+                <p> <strong> Number: </strong> ${sale['customer_phone_number']} </p> 
+                <p class="m-b-2"> <strong> Address: </strong> ${sale['customer_address']} </p>
+                <p> <strong> Date: </strong>${sale['date']} </p>
+                <p> <strong> Product : </strong>${sale['product_name']} </p>
+                <p> <strong> SKU: </strong> ${sale['product_code']}, <strong> Qty : </strong> ${sale['total_qty']}</p>
+                <p> <strong> Amount : </strong> ${sale['total_price']} </p>
+                <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale['location']} </p>
                 <div class="barcode-wrapper">
-                    <svg id="barcode-${sale[1]}" class="barcode" style="margin:20px auto;display:block;width:220px;height:60px;"></svg>
+                    <svg id="barcode-${sale['reference_no']}" class="barcode" style="margin:20px auto;display:block;width:220px;height:60px;"></svg>
                 </div>
-                <input type="hidden" name="sale_id[]" value="${sale[13]}">
+                <input type="hidden" name="sale_id[]" value="${sale['sale_id']}">
             </div>
         `);
     }
@@ -1597,7 +1597,7 @@
         $('#sale-details .modal-body').html(htmltext);
 
         // After generating the barcode
-        JsBarcode(`#barcode-${sale[1]}`, sale[1], {
+        JsBarcode(`#barcode-${sale['reference_no']}`, sale['reference_no'], {
             height: 60,
             displayValue: true,
             class: "d-print-none"

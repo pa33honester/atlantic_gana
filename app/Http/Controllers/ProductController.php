@@ -1023,11 +1023,12 @@ class ProductController extends Controller
         if (!env('USER_VERIFIED')) {
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
         } else {
+            $supplier_id = $request->input('supplier_id');
             $this->validate($request, [
                 'name' => [
                     'max:255',
-                    Rule::unique('products')->ignore($request->input('id'))->where(function ($query) {
-                        return $query->where('is_active', 1);
+                    Rule::unique('products')->ignore($request->input('id'))->where(function ($query) use($supplier_id) {
+                        return $query->where('is_active', 1)->where('supplier_id', $supplier_id);
                     }),
                 ],
 

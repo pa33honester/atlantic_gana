@@ -637,7 +637,7 @@ class SaleController extends Controller
                 'delivery_fee' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? $sale->shipping_cost : $sale->return_shipping_cost,
                 'customer_info' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
                 'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
-                'updated_date' => date(config('date_format') . ' h:i:s', strtotime($sale->updated_at)),
+                'updated_date' => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
                 'location' => $sale->location,
                 'res_reason'    => $sale->res_reason
             ];
@@ -748,49 +748,23 @@ class SaleController extends Controller
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_receiving_sign(' . $sale->id . ')">sign</button>';
             }
 
-            // Sale details for one-click view
-            $coupon = Coupon::find($sale->coupon_id);
-            $coupon_code = $coupon ? $coupon->code : null;
-            $currency_code = $sale->currency_id ? Currency::select('code')->find($sale->currency_id)->code : 'N/A';
-            $sale_status = $sale->sale_status;
-
-            $nestedData['sale'] = [
-                '[ "' . date(config('date_format'), strtotime($sale->created_at->toDateString())) . '"',
-                ' "' . $sale->reference_no . '"',
-                ' "' . $sale_status . '"',
-                ' "' . $nestedData['product_name'] . '"',
-                ' "" ',
-                ' "" ',
-                ' "" ',
-                ' "" ',
-                ' "" ',
-                ' "' . $sale->customer->name . '"',
-                ' "' . $sale->customer->phone_number . '"',
-                ' "' . $sale->customer->address . '"',
-                ' "' . $sale->customer->city . '"',
-                ' "' . $sale->id . '"',
-                ' "' . $sale->total_tax . '"',
-                ' "' . $sale->total_discount . '"',
-                ' "' . $sale->total_price . '"',
-                ' "' . $sale->order_tax . '"',
-                ' "' . $sale->order_tax_rate . '"',
-                ' "' . $sale->order_discount . '"',
-                ' "' . ($filters['sale_status'] != 4 ? $sale->shipping_cost : $sale->return_shipping_cost) . '"',
-                ' "' . $nestedData['total_price'] . '"',
-                ' "' . $nestedData['total_price'] . '"',
-                ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->sale_note) . '"',
-                ' "' . preg_replace('/[\\n\\r]/', '<br>', $sale->staff_note) . '"',
-                ' "' . $sale->user->name . '"',
-                ' "' . $sale->user->email . '"',
-                ' "' . $sale->warehouse->name . '"',
-                ' "' . $coupon_code . '"',
-                ' "' . $sale->coupon_discount . '"',
-                ' "' . $sale->document . '"',
-                ' "' . $currency_code . '"',
-                ' "' . $sale->exchange_rate . '"',
-                ' "' . $sale->total_qty . '"',
-                ' "' . $nestedData['location'] . '"]'
-            ];
+            // sale-details
+            $nestedData['sale'] = json_encode([
+                'sale_id'               => $sale->id,
+                'reference_no'          => $sale->reference_no,
+                'sale_status'           => $sale->sale_status,
+                'product_name'          => $nestedData['product_name'],
+                'product_code'          => $nestedData['product_code'],
+                'warehouse'             => $sale->warehouse->name,
+                'customer_name'         => $sale->customer->name,
+                'customer_phone_number' => $sale->customer->phone_number,
+                'customer_address'      => $sale->customer->address,
+                'date'                  => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
+                'customer_city'         => $sale->customer->city,
+                'total_qty'             => $sale->total_qty,
+                'total_price'           => $nestedData['total_price'],
+                'location'              => $nestedData['location'],
+            ]);
 
             $data[] = $nestedData;
         }

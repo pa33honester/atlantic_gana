@@ -382,18 +382,28 @@
                                                     <th>{{trans('file.qty')}}</th>
                                                 </tr>
                                                 @foreach($lims_warehouse_list as $warehouse)
-                                                <?php  foreach($lims_product_warehouse_list as $wp){
-                                                    if(($warehouse->id === $wp->warehouse_id)){
-                                                ?>
-                                                <tr>
-                                                    <td>
-                                                        <input type="hidden" name="stock_warehouse_id[]" value="{{$warehouse->id}}">
-                                                        {{$warehouse->name}}
-                                                    </td>
-                                                    <td><input type="number" name="stock[]" min="0" value="{{$wp->qty}}" class="form-control"></td>
-                                                </tr>
-                                                <?php }
-                                                } ?>
+                                                    @if (sizeof($lims_product_warehouse_list) > 0)
+                                                        <?php  foreach($lims_product_warehouse_list as $wp){
+                                                            if(($warehouse->id === $wp->warehouse_id)){
+                                                        ?>
+                                                        <tr>
+                                                            <td>
+                                                                <input type="hidden" name="stock_warehouse_id[]" value="{{$warehouse->id}}">
+                                                                {{$warehouse->name}}
+                                                            </td>
+                                                            <td><input type="number" name="stock[]" min="0" value="{{$wp->qty}}" class="form-control"></td>
+                                                        </tr>
+                                                        <?php }
+                                                        } ?>
+                                                    @else
+                                                        <tr>
+                                                            <td>
+                                                                <input type="hidden" name="stock_warehouse_id[]" value="{{$warehouse->id}}">
+                                                                {{$warehouse->name}}
+                                                            </td>
+                                                            <td><input type="number" name="stock[]" min="0" value="0" class="form-control"></td>
+                                                        </tr>
+                                                    @endif
                                                 @endforeach
                                             </thead>
                                             <tbody>
@@ -658,6 +668,9 @@
             </div>
         </div>
     </div>
+    <h3>
+        {{ json_encode($lims_product_warehouse_list) }}
+    </h3>
 </section>
 
 @endsection
@@ -685,7 +698,7 @@
             $('.track_inventory').css('display','none');
             $("#track_inventory").prop('checked') == false
         }
-    })
+    });
 
     @if(in_array('ecommerce',explode(',',$general_setting->modules)))
     $('#search_products').on('input', function() {
