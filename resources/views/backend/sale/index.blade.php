@@ -1578,7 +1578,7 @@
                 <p class="m-b-2"> <strong> Address: </strong> ${sale['customer_address']} </p>
                 <p> <strong> Date: </strong>${sale['date']} </p>
                 <p> <strong> Product : </strong>${sale['product_name']} </p>
-                <p> <strong> SKU: </strong> ${sale['product_code']}, <strong> Qty : </strong> ${sale['total_qty']}</p>
+                <p> <strong> SKU: </strong> ${sale['product_code']}&nbsp;<strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Qty : </strong> ${sale['total_qty']}</p>
                 <p> <strong> Amount : </strong> ${sale['total_price']} </p>
                 <p style="margin-bottom: 1rem"> <strong> Location : </strong> ${sale['location']} </p>
                 <div class="barcode-wrapper">
@@ -1640,7 +1640,7 @@
         $('#confirm-print .modal-body').html(htmltext);
         // salelist is a javascript array
         saleList.forEach(function(e){
-            JsBarcode(`#barcode-${e[1]}`, e[1], {
+            JsBarcode(`#barcode-${e['reference_no']}`, e['reference_no'], {
                 format: "CODE128",
                 lineColor: "#000",
                 width: 2,

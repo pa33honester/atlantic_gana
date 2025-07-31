@@ -353,7 +353,7 @@
                 <a href="{{url('report/monthly_purchase/'.date('Y'))}}">{{trans('file.Monthly Purchase')}}</a>
                 </li>
                 @endif
-                @if($sale_report_active)
+                @if($sale_report_active = false)
                 <li id="sale-report-menu">
                 {!! Form::open(['route' => 'report.sale', 'method' => 'post', 'id' => 'sale-report-form']) !!}
                 <input type="hidden" name="start_date" value="{{date('Y-m').'-'.'01'}}" />

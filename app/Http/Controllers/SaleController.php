@@ -1929,7 +1929,7 @@ class SaleController extends Controller
             for($i = 1; $i < $rows; $i ++){    
                 $row = $products[0][$i];
 
-                if($row[0] == null) break;
+                if($row[0] == null || $row[0] == "") break;
 
                 $price = floatval($row[2]);
                 $qty = floatval($row[3]);
@@ -1949,7 +1949,7 @@ class SaleController extends Controller
                     'user_id'       => Auth::id(),
                     'payment_status'=> 1,
                     'created_at'    => date("Y-m-d H:i:s"),
-                    'reference_no'  => 'E' . date('dmy') . time(),
+                    'reference_no'  => uniqid('E-'),
                     'sale_status'   => 6,
                     'customer_id'   => $customer->id,
                     'warehouse_id'  => $warehouse_id,
