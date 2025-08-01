@@ -60,7 +60,6 @@
                     </p>
                 @endif
               </div>
-
               <div class="form-group-material">
                 <input id="login-password" type="password" name="password" required class="input-material" value="">
                 <label for="login-password" class="label-material">{{trans('file.Password')}}</label>
@@ -80,8 +79,6 @@
             <br><br>
             @endif
             <a href="{{ route('password.request') }}" class="forgot-pass">{{trans('file.Forgot Password?')}}</a>
-            <p class="register-section">{{trans('file.Do not have an account?')}}</p>
-            <a href="{{url('register')}}" class="signup register-section">{{trans('file.Register')}}</a>
           </div>
           <div class="copyrights text-center">
             <p>{{trans('file.Developed By')}} <span class="external">{{$general_setting->developed_by}}</span></p>
