@@ -92,14 +92,15 @@ class ReturnController extends Controller
         );
 
         $warehouse_id = $request->input('warehouse_id');
-        $supplier_id = $request->input('supplier_id') ?? 0;
+        $supplier_id = $user->supplier_id ?? $request->input('supplier_id');
         $start = $request->input('start', 0);
         $limit = $request->input('length', 10);
-        $order = 'returns.' . ($columns[$request->input('order.0.column')] ?? 'created_at');
+        $order = ($columns[$request->input('order.0.column')] ?? 'created_at');
         $dir = $request->input('order.0.dir', 'desc');
         $search = $request->input('search.value');
 
-        $baseQuery = Returns::with(['customer', 'warehouse', 'user' , 'products', 'sale'])
+        $baseQuery = Sale::with(['customer', 'warehouse', 'user' , 'products'])
+            ->where('sale_status', 13) // reported orders
             ->whereDate('created_at', '>=', $request->input('starting_date'))
             ->whereDate('created_at', '<=', $request->input('ending_date'))
             ->when($user->role_id > 2 && config('staff_access') == 'own', function ($q) {
@@ -111,29 +112,19 @@ class ReturnController extends Controller
             ->when($warehouse_id != 0, function ($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             });
+    
         
-        if($user->role_id == 8){ // supplier role
-            $baseQuery->whereHas('products', function($q) use ($user) {
-                $q->where('supplier_id', $user->supplier_id);
-            });
-        }
-        
-        if ($user->role_id == 1 && $supplier_id > 0) {
+        if ($supplier_id > 0) {
             $baseQuery->whereHas('products', function($q) use ($supplier_id) {
                 $q->where('supplier_id', $supplier_id);
             });
         }
                 
         $totalData = $baseQuery->count();
-
         $filteredQuery = clone $baseQuery;
 
         if ($search) {
-            $filteredQuery = $filteredQuery->where(function ($q) use ($search) {
-                $q->whereHas('sale', function ($q2) use ($search) {
-                    $q2->where('reference_no', 'LIKE', "%{$search}%");
-                });
-            });
+            $filteredQuery = $filteredQuery->where('reference_no', 'LIKE', "%{$search}%");
         }
 
         $totalFiltered = $filteredQuery->count();
@@ -166,58 +157,46 @@ class ReturnController extends Controller
             $nestedData['product_name'] = implode(',', $product_names);
             $nestedData['product_code'] = implode(',', $product_codes);
 
-            $sales_data = Sale::select('created_at')->find($returns->sale_id);
-            $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($sales_data->created_at));
 
+            $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->created_at));
             $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->updated_at));
             $nestedData['customer_address'] = $returns->customer->address . '<br>' . $returns->customer->city;
 
-            $nestedData['return_note'] = $returns->return_note;
+            $nestedData['return_note'] = $returns->sale_note;
             
             $nestedData['item'] = $returns->products->pluck('pivot.qty')->sum();
             $nestedData['grand_total'] = 0;
-            foreach($returns->products as $return_product){
-                $nestedData['grand_total'] += $return_product->pivot->qty * $return_product->pivot->net_unit_price;
-            }
+
             // added 6.28 @dorian
-            {
-                $sale = Sale::with([
-                    'customer',
-                    'warehouse',
-                    'user',
-                    'products.supplier'
-                ])->find($returns->sale_id);
                     
-                $confirm_data = [
-                    'id'                => $sale->id,
-                    'order_number'      => $sale->reference_no,
-                    'order_time'        => $sale->created_at,
-                    'customer_id'       => $sale->customer->id,
-                    'customer_name'     => $sale->customer->name,
-                    'customer_phone'    => $sale->customer->phone_number,
-                    'customer_address'  => $sale->customer->address,
-                    'location'          => $sale->location,
-                    'product_amount'    => 0,
+            $confirm_data = [
+                'id'                => $returns->id,
+                'order_number'      => $returns->reference_no,
+                'order_time'        => $returns->created_at,
+                'customer_id'       => $returns->customer->id,
+                'customer_name'     => $returns->customer->name,
+                'customer_phone'    => $returns->customer->phone_number,
+                'customer_address'  => $returns->customer->address,
+                'location'          => $returns->location,
+                'products'          => [],
+                'product_amount'    => 0,
+
+            ];
+            foreach($returns->products as $product){
+                $temp = [
+                    'id'            => $product->id,
+                    'product_sale_id'=> $product->pivot->id,
+                    'product_name'  => $product->name,
+                    'img'           => explode(',', $product->image),
+                    'price'         => $product->price,
+                    'qty'           => $product->pivot->qty - $product->pivot->return_qty,
+                    'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
                 ];
-                foreach($sale->products as $product){
-                    $temp = [
-                        'id'            => $product->id,
-                        'product_sale_id'=> $product->pivot->id,
-                        'product_name'  => $product->name,
-                        'img'           => explode(',', $product->image),
-                        'price'         => $product->price,
-                        'qty'           => $product->pivot->qty - $product->pivot->return_qty,
-                        'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
-                    ];
-                    $confirm_data['products'] []= $temp;
-                    $confirm_data['product_amount'] += $temp['amount'];
-                    
-                    // @7.13
-                    $nestedData['item'] += $temp['qty'];   
-                    $nestedData['grand_total'] += $temp['amount'];
-                }
-                $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
+                $confirm_data['products'] []= $temp;
+                $confirm_data['product_amount'] += $temp['amount'];
+                $nestedData['grand_total'] += $product->pivot->qty * $product->pivot->net_unit_price;
             }
+            $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
 
             if($role->hasPermissionTo('sale-report-edit') || $role->hasPermissionTo('sale-report-delete')){ // important
                 $nestedData['options'] = 
@@ -231,15 +210,15 @@ class ReturnController extends Controller
                                 <a href="#" class="update-status btn btn-link text-success" data-confirm="' . $confirm_json . '"onclick="update_status(this)"><i class="dripicons-checkmark "></i> confirm</a>
                             </li>
                             <li>
-                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->sale_id . ')"><i class="dripicons-return"></i> cancel</a>
+                                <a href="#" class="update-status btn btn-link text-danger" onclick="cancel_order(' . $returns->id . ')"><i class="dripicons-return"></i> cancel</a>
                             </li>';
                 if ($role->hasPermissionTo("sale-report-edit")){
                     $nestedData['options'] .= '<li>
-                            <a href="#" class="btn btn-link" onclick="editx(' . $returns->sale_id . ')"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
+                            <a href="#" class="btn btn-link" onclick="editx(' . $returns->id . ')"><i class="dripicons-document-edit"></i> ' . trans('file.edit') . '</a>
                         </li>';
                 }
                 if ($role->hasPermissionTo("sale-report-delete")){
-                    $nestedData['options'] .= \Form::open(["route" => ["return-sale.destroy", $returns->id], "method" => "DELETE"]) . '
+                    $nestedData['options'] .= \Form::open(["route" => ["sale.destroy", $returns->id], "method" => "DELETE"]) . '
                             <li>
                                 <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
                             </li>' . \Form::close() . '

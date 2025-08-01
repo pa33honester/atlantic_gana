@@ -112,157 +112,90 @@ class SaleController extends Controller
         $resInfo = $data['res_info'];
 
         // Prepare sale details for update
-        $saleDetails = [
-            'res_type' => $resType,
-            'location' => $location,
-            'res_info' => $resInfo,
-        ];
 
-        // Check if a return record exists for this sale
-        $returnData = Returns::where('sale_id', $saleId)->select('id', 'call_on', 'report_times')->first();
+        $sale_data = Sale::with([
+            'products'
+        ])->find($saleId);
+        
+        $sale_data->resType = $resType;
 
         // Handle each response type
         switch ($resType) {
             case 'confirm':
-                $saleDetails['sale_status'] = 7;
-                if ($returnData) {
-                    (new ReturnController())->destroy($returnData->id);
-                }
-                else {
-                    // deduct product quantity
-                    $sale_data = Sale::with([
-                        'products'
-                    ])->find($saleId);
+                if($location)
+                    $sale_data->location = $location;
 
-                    foreach($sale_data->products as $prod) {
-                        $product_warehouse_data = Product_Warehouse::where([
-                            ['product_id', $prod->id],
-                            ['warehouse_id', $sale_data->warehouse_id]
-                        ])
-                        ->select('id', 'qty')
-                        ->first();
-                        
-                        $stock = $product_warehouse_data->qty;
-                        $qty = $prod->pivot->qty - $prod->pivot->return_qty;
-                        if($stock > 0 && $stock >= $qty) {
-                            $product_warehouse_data->qty -= $qty;
-                            $product_warehouse_data->save();
-                        }
-                        else {
-                            return response()->json([
-                                "code"  => 400,
-                                "msg"   => "Cannot confirm order, product stock insufficient"
-                            ]);
-                        }
+                $sale_data->sale_status = 7;
+
+                // deduct qty from warehouse
+                foreach($sale_data->products as $prod) {
+                    $product_warehouse_data = Product_Warehouse::where([
+                        ['product_id', $prod->id],
+                        ['warehouse_id', $sale_data->warehouse_id]
+                    ])
+                    ->select('id', 'qty')
+                    ->first();
+
+                    $stock = $product_warehouse_data->qty;
+                    $qty = $prod->pivot->qty - $prod->pivot->return_qty;
+
+                    if($stock <= 0 || $stock < $qty) {
+                        return response()->json([
+                            "code"  => 400,
+                            "msg"   => "Cannot confirm order, product stock insufficient"
+                        ]);
                     }
+                }
+
+                foreach($sale_data->products as $prod) {
+                    $product_warehouse_data = Product_Warehouse::where([
+                        ['product_id', $prod->id],
+                        ['warehouse_id', $sale_data->warehouse_id]
+                    ])
+                    ->select('id', 'qty')
+                    ->first();
+
+                    $stock = $product_warehouse_data->qty;
+                    $qty = $prod->pivot->qty - $prod->pivot->return_qty;
+                    $product_warehouse_data->qty -= $qty;
+                    $product_warehouse_data->save();
                 }
                 break;
 
             case 'cancel':
-                $saleDetails['res_reason'] = $cancelReason;
-                $saleDetails['sale_status'] = 11;
-                if ($returnData) {
-                    (new ReturnController())->destroy($returnData->id);
-                }
+                $sale_data->update([
+                    'res_reason'    => $cancelReason,
+                    'sale_status'   => 11,
+                ]);
                 break;
 
             case 'report':
-                $saleDetails['res_reason'] = $resReason;
-                $saleDetails['sale_status'] = 13; // report
-                
-                if ($returnData) {
+                if ($sale_data->sale_status == 13) {
                     // If a return already exists, do nothing further, but update call-on-date & report-times
                     if(isset($data['call_on_date'])) {
-                        $returnData['call_on'] = $data['call_on_date'];
+                        $sale_data->call_on = $data['call_on_date'];
                     }
                     if($resReason){
-                        $returnData['return_note'] = $resReason;
+                        $sale_data->sale_note = $resReason;
                     }
-                    $returnData['report_times'] = ($returnData->report_times ?? 0) + 1;
-                    $returnData->save();
+                    $sale_data->report_times = ($sale_data->report_times ?? 0) + 1;
                 }
                 else {
-                    // Prepare data for creating a new return
-                    $requestData = [
-                        'sale_id' => $saleId,
-                        'total_qty' => 0,
-                        'total_discount' => 0,
-                        'total_tax' => 0,
-                        'total_price' => 0,
-                        'item' => 0,
-                        'order_tax' => 0,
-                        'grand_total' => 0,
-                        'change_sale_status' => '1',
-                        'return_note' => $resReason,
+                    $sale_data->update([
+                        'res_type'  => $resType,
+                        'sale_status' => 13,
+                        'sale_note' => $resReason,
                         'staff_note' => $resInfo,
                         "report_times"=> 1,
                         "call_on"   => $data['call_on_date'] ?? null,
-                    ];
-    
-    
-                    $productSales = Product_Sale::where('sale_id', $saleId)->get();
-                    foreach ($productSales as $productSale) {
-                        $product = DB::table('products')->find($productSale->product_id);
-    
-                        // Get product variant if exists
-                        if ($productSale->variant_id) {
-                            $variant = ProductVariant::select('id', 'item_code')
-                                ->FindExactProduct($product->id, $productSale->variant_id)
-                                ->first();
-                            $productVariantId = $variant->id;
-                            $product->code = $variant->item_code;
-                        } else {
-                            $productVariantId = null;
-                        }
-    
-                        // Calculate product price based on tax method
-                        if ($product->tax_method == 1) {
-                            $productPrice = $productSale->net_unit_price + ($productSale->discount / $productSale->qty);
-                        } elseif ($product->tax_method == 2) {
-                            $productPrice = ($productSale->total / $productSale->qty) + ($productSale->discount / $productSale->qty);
-                        } else {
-                            $productPrice = 0;
-                        }
-    
-                        // Get unit name
-                        if ($product->type == 'standard') {
-                            $unit = DB::table('units')->select('unit_name')->find($productSale->sale_unit_id);
-                            $unitName = $unit ? $unit->unit_name : 'n/a';
-                        } else {
-                            $unitName = 'n/a';
-                        }
-    
-                        // Get product batch id
-                        $batch = ProductBatch::select('batch_no')->find($productSale->product_batch_id);
-                        $batchId = $batch ? $productSale->product_batch_id : 0;
-    
-                        // Fill request data arrays
-                        $requestData['product_batch_id'][] = $batchId;
-                        $requestData['actual_qty'][] = $productSale->qty - $productSale->return_qty;
-                        $requestData['qty'][] = $productSale->qty - $productSale->return_qty;
-                        $requestData['is_return'][] = $productSale->id;
-                        $requestData['product_code'][] = $product->code;
-                        $requestData['product_sale_id'][] = $productSale->id;
-                        $requestData['product_id'][] = $product->id;
-                        $requestData['product_variant_id'][] = $productVariantId;
-                        $requestData['product_price'][] = $productPrice;
-                        $requestData['sale_unit'][] = $unitName;
-                        $requestData['net_unit_price'][] = $productSale->net_unit_price;
-                        $requestData['discount'][] = $productSale->discount;
-                        $requestData['tax_rate'][] = $productSale->tax_rate;
-                        $requestData['tax'][] = $productSale->tax;
-                        $requestData['subtotal'][] = $productSale->total;
-                        $requestData['imei_number'][] = '';
-                    }
-                    // Store the return
-                    (new ReturnController())->store(new Request($requestData));
+                    ]);
                 }
 
             default: break;
         }
 
         // Update the sale record
-        Sale::where('id', $saleId)->update($saleDetails);
+        $sale_data->save();
 
         return response()->json([
                 "code"  => 200,
@@ -634,7 +567,7 @@ class SaleController extends Controller
                 'sale_status' => $sale->sale_status,
                 'total_qty' => $sale->total_qty,
                 'total_price' => number_format($sale->total_price, config('decimal')),
-                'delivery_fee' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? $sale->shipping_cost : $sale->return_shipping_cost,
+                'delivery_fee' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? ($sale->shipping_cost ?? 0) : ($sale->return_shipping_cost ?? 0),
                 'customer_info' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
                 'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
                 'updated_date' => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
@@ -725,7 +658,7 @@ class SaleController extends Controller
             }
             else if ($sale->sale_status == 7 && $role->hasPermissionTo('confirmed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-dark print-waybill"> Print Waybill </button>';
-            } 
+            }
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                 if($role->hasPermissionTo('shipped-sign')){
                     $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
@@ -1875,7 +1808,7 @@ class SaleController extends Controller
     public function importSale(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
         $products = Excel::toArray(
@@ -1981,50 +1914,9 @@ class SaleController extends Controller
                     'sale_unit_id'     => 1,
                     'variant_id'        => null,
                     'product_batch_id'  => null,
-                    'imei_number'      => null,
-                    'tax'              => 0,
-                    'total'            => $total
-                ]);
-
-                $lims_purchase_data = Purchase::create([
-                    'reference_no'       => $lims_sale_data->reference_no,
-                    'user_id'           => $lims_sale_data->user_id,
-                    'warehouse_id'      => $lims_sale_data->warehouse_id,
-                    'supplier_id'       => $product->supplier_id,
-                    'currency_id'       => 1,
-                    'exchange_rate'     => 0,
-                    'item'              => $lims_sale_data->item,
-                    'total_qty'         => $lims_sale_data->total_qty,
-                    'total_discount'    => $lims_sale_data->total_discount,
-                    'total_tax'         => $lims_sale_data->total_tax,
-                    'total_cost'        => $lims_sale_data->total_price,
-                    'order_tax_rate'    => $lims_sale_data->order_tax_rate,
-                    'order_tax'         => 0,
-                    'order_discount'    => 0,
-                    'shipping_cost'     => 0,
-                    'grand_total'       => $lims_sale_data->grand_total,
-                    'paid_amount'       => 0,
-                    'status'            => 2,
-                    'payment_status'    => $lims_sale_data->payment_status,
-                    'document'          => $lims_sale_data->document,
-                    'note'              => $lims_sale_data->sale_note              
-                ]);
-
-                ProductPurchase::create([
-                    'purchase_id'       => $lims_purchase_data->id,
-                    'product_id'        => $product->id,
-                    'qty'               => $qty,
-                    'product_batch_id'  => 0,
-                    'variant_id'        => 0,
-                    'imei_number'       => 0,
-                    'recieved'          => 0,
-                    'return_qty'        => 0,
-                    'purchase_unit_id'  => 0,
-                    'net_unit_cost'     => 0,
-                    'discount'          => 0,
-                    'tax_rate'          => 0,
-                    'order_tax'         => 0,
+                    'imei_number'       => null,
                     'tax'               => 0,
+                    'shipping_cost'     => $shipping_cost,
                     'total'             => $total
                 ]);
             }

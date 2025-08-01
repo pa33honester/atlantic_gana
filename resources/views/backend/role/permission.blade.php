@@ -2346,6 +2346,59 @@
 											</span>
 										</td>
 									</tr>
+                                    <tr class="sale-report-row">
+                                        <td>{{trans('Order Reporting')}}</td>
+                                        <td class="report-permissions" colspan="5">
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report"
+                                                            name="sale-report" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report"
+                                                            name="sale-report">
+                                                        @endif
+                                                        <label for="sale-report"
+                                                            class="padding05">{{trans('Sale Report View')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report-edit", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report-edit"
+                                                            name="sale-report-edit" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report-edit"
+                                                            name="sale-report-edit">
+                                                        @endif
+                                                        <label for="sale-report-edit"
+                                                            class="padding05">{{trans('Sale Report Edit')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sale-report-delete", $all_permission))
+                                                        <input type="checkbox" value="1" id="sale-report-delete"
+                                                            name="sale-report-delete" checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sale-report-delete"
+                                                            name="sale-report-delete">
+                                                        @endif
+                                                        <label for="sale-report-delete"
+                                                            class="padding05">{{trans('Sale Report Delete')}}
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

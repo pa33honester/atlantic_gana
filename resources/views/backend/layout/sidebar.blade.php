@@ -281,8 +281,6 @@
                 $monthly_purchase_active = $role_has_permissions_list->where('name', 'monthly-purchase')->first();
                 $purchase_report_active = $role_has_permissions_list->where('name', 'purchase-report')->first();
 
-                $sale_report_active = $role_has_permissions_list->where('name', 'sale-report')->first();
-
                 $sale_report_chart_active = $role_has_permissions_list->where('name', 'sale-report-chart')->first();
 
                 $payment_report_active = $role_has_permissions_list->where('name', 'payment-report')->first();
@@ -306,7 +304,7 @@
                 $supplier_due_report_active = $role_has_permissions_list->where('name', 'supplier-due-report')->first();
 
             ?>
-            @if($profit_loss_active || $best_seller_active || $warehouse_report_active || $warehouse_stock_report_active || $product_report_active || $daily_sale_active || $monthly_sale_active || $daily_purchase_active || $monthly_purchase_active || $purchase_report_active || $sale_report_active || $sale_report_chart_active || $payment_report_active || $product_expiry_report_active || $product_qty_alert_active || $dso_report_active || $user_report_active || $biller_report_active || $customer_report_active || $supplier_report_active || $due_report_active || $supplier_due_report_active)
+            @if($profit_loss_active || $best_seller_active || $warehouse_report_active || $warehouse_stock_report_active || $product_report_active || $daily_sale_active || $monthly_sale_active || $daily_purchase_active || $monthly_purchase_active || $purchase_report_active || $sale_report_chart_active || $payment_report_active || $product_expiry_report_active || $product_qty_alert_active || $dso_report_active || $user_report_active || $biller_report_active || $customer_report_active || $supplier_report_active || $due_report_active || $supplier_due_report_active)
             <li><a href="#report" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-document-remove"></i><span>{{trans('file.Reports')}}</span></a>
             <ul id="report" class="collapse list-unstyled ">
                 @if($profit_loss_active)
@@ -351,16 +349,6 @@
                 @if($monthly_purchase_active)
                 <li id="monthly-purchase-report-menu">
                 <a href="{{url('report/monthly_purchase/'.date('Y'))}}">{{trans('file.Monthly Purchase')}}</a>
-                </li>
-                @endif
-                @if($sale_report_active = false)
-                <li id="sale-report-menu">
-                {!! Form::open(['route' => 'report.sale', 'method' => 'post', 'id' => 'sale-report-form']) !!}
-                <input type="hidden" name="start_date" value="{{date('Y-m').'-'.'01'}}" />
-                <input type="hidden" name="end_date" value="{{date('Y-m-d')}}" />
-                <input type="hidden" name="warehouse_id" value="0" />
-                <a id="sale-report-link" href="">{{trans('file.Sale Report')}}</a>
-                {!! Form::close() !!}
                 </li>
                 @endif
                 @if($sale_report_chart_active)
