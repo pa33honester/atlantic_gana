@@ -729,7 +729,6 @@
                 <div class="row">
                     <div class="col-md-12"><p class="ajax-status">Shipping Cost</p></div>
                     <div class="col-md-6 form-group text-left">
-                        <input type="hidden" name="reference_no">
                         <input type="hidden" name="sale_id">
                         <input type="hidden" name="order_type">
                         <select name="shipping_cost" class="form-control">
@@ -1296,29 +1295,23 @@
     });
 
     function update_shipping_fee(id, shipping_cost){
-        $.get('delivery/create/'+id, function(data) {
-            // console.log(data);
-            $('.dr_num').text(data[0]);
-                $('.sr_num').text(data[1]);
-                $('.customer_name').text(data[5]);
-                $('.customer_address').text(data[6]);
-                
-                $('input[name="reference_no"]').val(data[0]);
-                $('input[name="sale_id"]').val(id);
-                $('input[name="order_type"]').val("shipping");
-                $('input[name="shipping_cost"]').val(shipping_cost);
-
-                $("#updateShippingLabel").text("Please check shipping fee before return delivery ?");
-            });
-            $('#update-shipping-fee').modal('show');
+        // $.get('delivery/create/'+id, function(data) {
+        //     // console.log(data);
+        //     $('.dr_num').text(data[0]);
+        //     $('.sr_num').text(data[1]);
+        //     $('.customer_name').text(data[5]);
+        //     $('.customer_address').text(data[6]);
+            
+        //     $('input[name="reference_no"]').val(data[0]);
+        
+        //     $("#updateShippingLabel").text("Please check shipping fee before return delivery ?");
+        // });
+        $('input[name="sale_id"]').val(id);
+        $('input[name="order_type"]').val("shipping");
+        $('#update-shipping-fee').modal('show');
     }
 
     $(".update_shipping_fee_btn").on("click", function(){
-
-        var sale_id = $('input[name="sale_id"]').val();
-        var reference_no = $('input[name="reference_no"]').val();
-        var shipping_cost = $('input[name="shipping_cost"]').val();
-
         $.ajax({
             url: '../../sales/updatestatusfilters',
             type: "POST",

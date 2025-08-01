@@ -4765,11 +4765,6 @@ class ReportController extends Controller
 
         foreach ($sales as $key => $purchase)
         {
-            $paid = 0;
-            foreach($purchase->products as $product){
-                $paid += $product->price * $product->pivot->qty;
-            }
-            $purchase->grand_total = $purchase->total_price = $paid;
             $nestedData = [
                 'id'                    => $purchase->id,
                 'key'                   => $key,
@@ -4780,11 +4775,10 @@ class ReportController extends Controller
                 'return_shipping_cost'  => $purchase->return_shipping_cost,
                 'product'               => $purchase->products->pluck('name')->toArray(),
                 'qty'                   => $purchase->products->pluck('pivot.qty')->toArray(),
-                'paid'                  => number_format($paid, cache()->get('general_setting')->decimal),
+                'paid'                  => number_format($purchase->total_price, cache()->get('general_setting')->decimal),
                 'balance'               => number_format($purchase->grand_total -  $purchase->shipping_cost, cache()->get('general_setting')->decimal),
                 'grand_total'           => number_format($purchase->grand_total, cache()->get('general_setting')->decimal)
             ];
-            $purchase->save();
             $data[] = $nestedData;
         }
 

@@ -117,7 +117,7 @@ class SaleController extends Controller
             'products'
         ])->find($saleId);
         
-        $sale_data->resType = $resType;
+        $sale_data->res_type = $resType;
 
         // Handle each response type
         switch ($resType) {
@@ -259,7 +259,6 @@ class SaleController extends Controller
 
         switch ($orderType) {
             case "delivery":
-                $sale_details["sale_status"] = 12;
                 Sale::whereIn('id', $sale_id)->update([
                     'sale_status'       => 12
                 ]);
@@ -271,19 +270,12 @@ class SaleController extends Controller
             case "shipping":
                 $sale_details["sale_status"] = 9;
                 $sale_details["shipping_cost"] = $data["shipping_cost"];
-                $reference_no = Sale::select('reference_no')->find($sale_id)->reference_no;
                 // Update shipping cost in purchase and sale tables
-                Purchase::where('reference_no', $reference_no)->update([
-                    'shipping_cost' => $data["shipping_cost"],
-                    'status'        => 9,
-                ]);
-                Sale::where('reference_no', $reference_no)->update(['shipping_cost' => $data["shipping_cost"]]);
                 break;
 
             case "return_ship":
                 $sale_details["sale_status"] = 14; // return receiving
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
-                // $this->returnSale($sale_id);
                 break;
             
             case "return_receiving":
@@ -849,7 +841,7 @@ class SaleController extends Controller
             $data['created_at'] = date("Y-m-d H:i:s");
 
         if (!isset($data['reference_no']))
-            $data['reference_no'] = 'E' . date('dmy') . time();
+            $data['reference_no'] = 'E'.base_convert(uniqid(), 16, 10);
 
         $document = $request->document;
         if ($document) {
@@ -1820,7 +1812,7 @@ class SaleController extends Controller
         }, $request->file('file'));
 
         $field_name = $products[0][0];
-        $field_count = sizeof($field_name);
+
         
         $warehouse_id = $request->input('warehouse_id');
         $sale_note = $request->input('sale_note') ?? "N/A";
@@ -1882,7 +1874,7 @@ class SaleController extends Controller
                     'user_id'       => Auth::id(),
                     'payment_status'=> 1,
                     'created_at'    => date("Y-m-d H:i:s"),
-                    'reference_no'  => uniqid('E-'),
+                    'reference_no'  => 'E'.base_convert(uniqid(), 16, 10),
                     'sale_status'   => 6,
                     'customer_id'   => $customer->id,
                     'warehouse_id'  => $warehouse_id,
@@ -1941,8 +1933,9 @@ class SaleController extends Controller
 
     public function edit($id)
     {
+
         $role = Role::find(Auth::user()->role_id);
-        if ($role->hasPermissionTo('sales-edit')) {
+        if ($role->hasPermissionTo('unpaid-edit')) {
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_biller_list = Biller::where('is_active', true)->get();
             $lims_tax_list = Tax::where('is_active', true)->get();
@@ -1956,7 +1949,7 @@ class SaleController extends Controller
             $custom_fields = CustomField::where('belongs_to', 'sale')->get();
             return view('backend.sale.edit', compact('lims_customer_data', 'lims_warehouse_list', 'lims_biller_list', 'lims_tax_list', 'lims_sale_data', 'lims_product_sale_data', 'currency_exchange_rate', 'custom_fields'));
         } else
-            return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
+            return  response()->view('errors.403', [], 403);
     }
 
     public function editx($id)

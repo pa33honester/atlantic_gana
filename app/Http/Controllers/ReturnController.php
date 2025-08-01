@@ -116,7 +116,7 @@ class ReturnController extends Controller
         
         if ($supplier_id > 0) {
             $baseQuery->whereHas('products', function($q) use ($supplier_id) {
-                $q->where('supplier_id', $supplier_id);
+                $q->where('products.supplier_id', $supplier_id);
             });
         }
                 
@@ -141,9 +141,8 @@ class ReturnController extends Controller
             $nestedData['id'] = $returns->id;
             $nestedData['key'] = $key;
             $nestedData['date'] = date(config('date_format'), strtotime($returns->created_at->toDateString()));
-            $nestedData['reference_no'] = $returns->reference_no;
-            
-            $nestedData['sale_reference'] = $returns->sale->reference_no ?? 'N/A';
+         
+            $nestedData['sale_reference'] = $returns->reference_no ?? 'N/A';
             $nestedData['warehouse'] = $returns->warehouse->name;
             $nestedData['customer'] = $returns->customer->name . '<br>(' . $returns->customer->phone_number. ')';
             $nestedData['call_on'] = $returns->call_on;
@@ -218,7 +217,7 @@ class ReturnController extends Controller
                         </li>';
                 }
                 if ($role->hasPermissionTo("sale-report-delete")){
-                    $nestedData['options'] .= \Form::open(["route" => ["sale.destroy", $returns->id], "method" => "DELETE"]) . '
+                    $nestedData['options'] .= \Form::open(["route" => ["sales.destroy", $returns->id], "method" => "DELETE"]) . '
                             <li>
                                 <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> ' . trans("file.delete") . '</button>
                             </li>' . \Form::close() . '

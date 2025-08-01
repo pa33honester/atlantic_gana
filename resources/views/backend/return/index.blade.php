@@ -728,8 +728,14 @@
             data: $(".update_status").serializeArray(),
             success:function(data) {
                 //alert(data);
-                $('#update-status').modal('hide');
-                location.reload();
+                if(data.code == 200){
+                    toastr.success(data.msg);
+                    $('#update-status').modal('hide');
+                    location.reload();
+                }
+                else {
+                    toastr.error(data.msg);
+                }
             }
         });
     }); 
