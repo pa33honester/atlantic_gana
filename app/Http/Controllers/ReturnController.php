@@ -66,12 +66,12 @@ class ReturnController extends Controller
             if ($request->input('supplier_id'))
                 $supplier_id = $request->input('supplier_id');
             else
-                $supplier_id = 0;
+                $supplier_id = $user->supplier_id ?? 0;
 
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
 
-            if($user->supplier_id){
-                $lims_supplier_list = Supplier::where('id', $user->supplier_id)->get();
+            if($user->role_id > 1){
+                $lims_supplier_list = Supplier::where('id', $user->supplier_id)->get() ?? [];
             }
             else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
@@ -119,12 +119,17 @@ class ReturnController extends Controller
                 $q->where('products.supplier_id', $supplier_id);
             });
         }
-                
+
         $totalData = $baseQuery->count();
         $filteredQuery = clone $baseQuery;
 
         if ($search) {
-            $filteredQuery = $filteredQuery->where('reference_no', 'LIKE', "%{$search}%");
+            $filteredQuery = $filteredQuery
+                            ->where('reference_no', 'LIKE', "%{$search}%")
+                            ->orWhereHas('customer', function($q2) use ($search) {
+                                $q2->where('name', 'LIKE', "%{$search}%")
+                                    ->orWhere('phone_number', 'LIKE', "%{$search}%");
+                            });
         }
 
         $totalFiltered = $filteredQuery->count();

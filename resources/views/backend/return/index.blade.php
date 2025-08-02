@@ -26,7 +26,9 @@
                 <div class="col-lg-3 col-md-4 mb-2">
                     <label for="supplier-id" class="font-weight-bold">{{ trans('file.Supplier') }}:</label>
                     <select id="supplier-id" class="form-control selectpicker" name="supplier_id" data-live-search="true">
+                        @if(sizeof($lims_supplier_list) > 1)
                         <option value="0">{{ trans('All') }}</option>
+                        @endif
                         @foreach($lims_supplier_list as $supplier)
                             <option value="{{ $supplier->id }}">{{ $supplier->name }} ({{ $supplier->phone_number }})</option>
                         @endforeach

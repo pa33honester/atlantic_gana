@@ -2254,6 +2254,20 @@
                                     </tr>
 									<tr>
 										<td class="report-permissions" colspan="5">
+                                            <span>
+                                                <div aria-checked="false" aria-disabled="false">
+                                                    <div class="checkbox">
+                                                        @if(in_array("sales-import", $all_permission))
+                                                        <input type="checkbox" value="1" id="sales-import" name="sales-import"
+                                                            checked>
+                                                        @else
+                                                        <input type="checkbox" value="1" id="sales-import" name="sales-import">
+                                                        @endif
+                                                        <label for="sales-import" class="padding05">Import Excel
+                                                            &nbsp;&nbsp;</label>
+                                                    </div>
+                                                </div>
+                                            </span>
 											<span>
 												<div aria-checked="false" aria-disabled="false">
 													<div class="checkbox">
