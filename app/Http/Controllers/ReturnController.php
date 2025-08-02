@@ -187,9 +187,9 @@ class ReturnController extends Controller
                     'product_sale_id'=> $product->pivot->id,
                     'product_name'  => $product->name,
                     'img'           => explode(',', $product->image),
-                    'price'         => $product->price,
+                    'price'         => $product->pivot->net_unit_price,
                     'qty'           => $product->pivot->qty - $product->pivot->return_qty,
-                    'amount'        => $product->price * ($product->pivot->qty - $product->pivot->return_qty),
+                    'amount'        => $product->pivot->net_unit_price * ($product->pivot->qty - $product->pivot->return_qty),
                 ];
                 $confirm_data['products'] []= $temp;
                 $confirm_data['product_amount'] += $temp['amount'];
