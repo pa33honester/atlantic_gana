@@ -281,6 +281,7 @@ class SaleController extends Controller
             case "return_receiving":
                 $sale_details["sale_status"] = 4; // return receiving - return
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
+                $this->returnSale($sale_id);
                 break;
 
             case "cancel_order":
@@ -728,7 +729,6 @@ class SaleController extends Controller
                             'sale_status' => 14,
                             'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
-                        // $this->returnSale($sale->id); // added 7.17 - removed 7.20
                     }
                     else if ($status == 14 && $sale->sale_status == 14) { // return receiving -> return
                         // $delivery_fee = 
@@ -738,6 +738,7 @@ class SaleController extends Controller
                             'sale_status' => 4,
                             'return_shipping_cost'  => intval($return_shipping_cost_list[0]),
                         ]);
+                        $this->returnSale($sale->id); // added 7.17 - removed 7.20
                     }
                    
                     $sale->save();

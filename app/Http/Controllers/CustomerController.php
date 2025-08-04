@@ -396,71 +396,58 @@ class CustomerController extends Controller
 
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'phone_number' => [
-                'max:255',
-                    Rule::unique('customers')->ignore($id)->where(function ($query) {
-                    return $query->where('is_active', 1);
-                }),
-            ],
-        ]);
 
         $input = $request->all();
-        $redirect = isset($input['redirect']) ? false : true;
-        $lims_customer_data = Customer::find($id);
-
-        if(isset($input['user'])) {
-            $this->validate($request, [
-                'name' => [
-                    'max:255',
-                        Rule::unique('users')->where(function ($query) {
-                        return $query->where('is_deleted', false);
-                    }),
-                ],
-                'email' => [
-                    'email',
-                    'max:255',
-                        Rule::unique('users')->where(function ($query) {
-                        return $query->where('is_deleted', false);
-                    }),
-                ],
+        if (!isset($input['customer_name'])) {
+            return response()->json([
+                'code'  => 400,
+                'msg'   => 'Please enter the customer name'
             ]);
-
-            $input['phone'] = $input['phone_number'];
-            $input['role_id'] = 5;
-            $input['is_active'] = true;
-            $input['is_deleted'] = false;
-            $input['password'] = bcrypt($input['password']);
-            $user = User::create($input);
-            $input['user_id'] = $user->id;
-            $message = 'Customer updated and user created successfully';
-        }
-        else {
-            $message = 'Customer updated successfully';
         }
 
-        $input['name'] = $input['customer_name'];
-        $lims_customer_data->update($input);
-        //update custom field data
-        $custom_field_data = [];
-        $custom_fields = CustomField::where('belongs_to', 'customer')->select('name', 'type')->get();
-        foreach ($custom_fields as $type => $custom_field) {
-            $field_name = str_replace(' ', '_', strtolower($custom_field->name));
-            if(isset($input[$field_name])) {
-                if($custom_field->type == 'checkbox' || $custom_field->type == 'multi_select')
-                    $custom_field_data[$field_name] = implode(",", $input[$field_name]);
-                else
-                    $custom_field_data[$field_name] = $input[$field_name];
-            }
+        if (!isset($input['address'])) {
+            return response()->json([
+                'code'  => 400,
+                'msg'   => 'Please enter the customer address'
+            ]);
         }
-        if(count($custom_field_data))
-            DB::table('customers')->where('id', $lims_customer_data->id)->update($custom_field_data);
-        $this->cacheForget('customer_list');
 
-        if($redirect)
-            return redirect('customer')->with('edit_message', $message);
-        else 
-            return response()->json($input);
+        if (!isset($input['phone_number'])) {
+            return response()->json([
+                'code'  => 400,
+                'msg'   => 'Please enter the phone number'
+            ]);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $lims_customer_data = Customer::find($id);
+    
+            $lims_customer_data->update([
+                'name'          => $input['customer_name'],
+                'company_name'  => $input['company_name'] ?? "",
+                'email'         => $input['email'] ?? "",
+                'phone_number'  => $input['phone_number'],
+                'address'       => $input['address'],
+                'city'          => $input['city']
+            ]);
+            $lims_customer_data->save();
+
+            DB::commit();
+        }
+        catch(Exception $e){
+            DB::rollBack();
+            return response()->json([
+                'code'  => 400,
+                'msg'   => $e
+            ]);
+        }
+        return response()->json([
+            'code'      => 200,
+            'msg'       => 'Customer Updated!',
+            'data'      => $lims_customer_data
+        ]);
     }
 
     public function importCustomer(Request $request)

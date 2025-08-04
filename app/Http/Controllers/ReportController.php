@@ -4677,7 +4677,12 @@ class ReportController extends Controller
     public function supplierReport(Request $request)
     {
         $user = Auth::user();
-        $supplier_id = $request->input('supplier_id');
+        if($user->role_id == 1){
+            $supplier_id = $request->input('supplier_id') ?? 0;
+        }
+        else {
+            $supplier_id = $user->supplier_id;
+        }
         if($request->input('start_date')) {
             $start_date = $request->input('start_date');
             $end_date = $request->input('end_date');
@@ -4698,8 +4703,7 @@ class ReportController extends Controller
 
     public function supplierPurchaseData(Request $request)
     {
-        
-         $columns = array(
+        $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
         );

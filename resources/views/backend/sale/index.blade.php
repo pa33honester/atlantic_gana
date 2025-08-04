@@ -1992,10 +1992,6 @@
         $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', false);
     });
 
-    if(all_permission.indexOf("sales-delete") == -1){
-        $('.buttons-delete').addClass('d-none');
-    }
-
     function confirmDelete() {
         if (confirm("Are you sure want to delete?")) {
             return true;
@@ -2126,6 +2122,40 @@
                     footer:true
                 },
                 {
+                    text: '<i title="delete" class="dripicons-cross"></i>',
+                    className: 'buttons-delete',
+                    action: function ( e, dt, node, config ) {
+                        if(user_verified == '1') {
+                            sale_id.length = 0;
+                            $(':checkbox:checked').each(function(i){
+                                if(i){
+                                    var sale = $(this).closest('tr').data('sale');
+                                    if(sale)
+                                        sale_id[i-1] = sale[13];
+                                }
+                            });
+                            if(sale_id.length && confirm("Are you sure want to delete?")) {
+                                $.ajax({
+                                    type:'POST',
+                                    url:'sales/deletebyselection',
+                                    data:{
+                                        saleIdArray: sale_id
+                                    },
+                                    success:function(data){
+                                        alert(data);
+                                        //dt.rows({ page: 'current', selected: true }).deselect();
+                                        dt.rows({ page: 'current', selected: true }).remove().draw(false);
+                                    }
+                                });
+                            }
+                            else if(!sale_id.length)
+                                alert('Nothing is selected!');
+                        }
+                        else
+                            alert('This feature is disable for demo!');
+                    }
+                },
+                {
                     extend: 'colvis',
                     text: '<i title="column visibility" class="fa fa-eye"></i>',
                     columns: ':gt(0)'
@@ -2134,6 +2164,9 @@
             "drawCallback": function () {
                 var api = this.api();
                 datatable_sum(api, false);
+                if(all_permission.indexOf("sales-delete") == -1){
+                    $('.buttons-delete').addClass('d-none');
+                }
             }
         });
 

@@ -624,12 +624,19 @@
             url: "{{ route('customer.update', $lims_customer_data->id) }}",
             type: "PUT",
             data : $(".update-customer-form").serializeArray(),
-            success : function(data){
-                $("#update-customer-modal").modal('hide');
-                $('#btn-customer-info').html(`${data['customer_name']} (${data['phone_number']})`);
+            success : function(res){
+                if(res.code == 200){
+                    alert(res.msg);
+                    $("#update-customer-modal").modal('hide');
+                    let data = res.data;
+                    $('#btn-customer-info').html(`${data['name']} (${data['phone_number']})`);
+                }
+                else {
+                    alert(res.msg);
+                }
             }
         });
-    }) 
+    });
 
     //assigning value
     $('select[name="customer_id"]').val($('input[name="customer_id_hidden"]').val());
