@@ -2044,7 +2044,7 @@
             'columnDefs': [
                 {
                     "orderable": false,
-                    'targets': [0, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                    'targets': [0, 4, 5, 6, 9, 10, 11, 13, 14]
                 },
                 {
                     'render': function(data, type, row, meta){
@@ -2131,7 +2131,7 @@
                                 if(i){
                                     var sale = $(this).closest('tr').data('sale');
                                     if(sale)
-                                        sale_id[i-1] = sale[13];
+                                        sale_id[i-1] = sale['sale_id'];
                                 }
                             });
                             if(sale_id.length && confirm("Are you sure want to delete?")) {

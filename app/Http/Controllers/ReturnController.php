@@ -87,15 +87,17 @@ class ReturnController extends Controller
         $user = Auth::user();
         $role = Role::find($user->role_id);
         $columns = array(
-            1 => 'updated_at',
-            2 => 'reference_no',
+            1   => 'sales.reference_no',
+            9   => 'sales.total_qty',
+            10   => 'sales.total_price',
+            13  => 'sales.report_times',
         );
 
         $warehouse_id = $request->input('warehouse_id');
         $supplier_id = $user->supplier_id ?? $request->input('supplier_id');
         $start = $request->input('start', 0);
         $limit = $request->input('length', 10);
-        $order = ($columns[$request->input('order.0.column')] ?? 'created_at');
+        $order = ($columns[$request->input('order.0.column')] ?? 'sales.updated_at');
         $dir = $request->input('order.0.dir', 'desc');
         $search = $request->input('search.value');
 
@@ -168,8 +170,8 @@ class ReturnController extends Controller
 
             $nestedData['return_note'] = $returns->sale_note;
             
-            $nestedData['item'] = $returns->products->pluck('pivot.qty')->sum();
-            $nestedData['grand_total'] = 0;
+            $nestedData['item'] = $returns->total_qty;
+            $nestedData['grand_total'] = $returns->total_price;
 
             // added 6.28 @dorian
                     
@@ -198,7 +200,6 @@ class ReturnController extends Controller
                 ];
                 $confirm_data['products'] []= $temp;
                 $confirm_data['product_amount'] += $temp['amount'];
-                $nestedData['grand_total'] += $product->pivot->qty * $product->pivot->net_unit_price;
             }
             $confirm_json = htmlspecialchars(json_encode($confirm_data), ENT_QUOTES, 'UTF-8');
 

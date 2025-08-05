@@ -424,103 +424,90 @@ class SaleController extends Controller
     {
         $user = Auth::user();
 
-        // Define columns for ordering
+
         $columns = [
-            0 => 'created_at',
-            1 => 'updated_at',
-            2 => 'reference_no',
-            3 => 'grand_total',
-            4 => 'paid_amount',
-            12=> 'updated_at'
+            1  => 'sales.reference_no',
+            2  => 'products.name',
+            3  => 'products.code',
+            4  => 'suppliers.name',
+            7  => 'sales.total_qty',
+            8  => 'sales.total_price',
+            12 => 'sales.updated_at',
+            13 => 'sales.location'
         ];
-        
-        // Extract filters
-        $filters = [
-            'warehouse_id'   => $request->input('warehouse_id'),
-            'supplier_id'    => $user->supplier_id ?? $request->input('supplier_id'),
-            'sale_status'    => $request->input('sale_status'),
-            'location'       => $request->input('location'),
-            'sale_type'      => $request->input('sale_type'),
-            'start_date'     => $request->input('starting_date'),
-            'end_date'       => $request->input('ending_date'),
-        ];
-       
-        // Use Eloquent relationships and eager loading
-        $query = Sale::with([
-            'customer',
-            'warehouse',
-            'user',
-            'products.supplier'
-        ])
-        ->whereDate('created_at', '>=', $filters['start_date'])
-        ->whereDate('created_at', '<=', $filters['end_date']);
 
-        // Apply user access restrictions
-        if ($user->role_id > 2) {
-            if (config('staff_access') == 'own') {
-                $query->where('user_id', $user->id);
-            } elseif (config('staff_access') == 'warehouse') {
-                $query->where('warehouse_id', $user->warehouse_id);
-            }
-        }
-
-        // Apply additional filters
-        foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
-            if (!empty($filters[$field])) {
-                $query->where($field, $filters[$field]);
-            }
-        }
-
-        // Filter by supplier if needed
-        if ($filters['supplier_id'] > 0) {
-            $query->whereHas('products.supplier', function($q) use ($filters) {
-                $q->where('suppliers.id', $filters['supplier_id']);
-            });
-        }
-
-        // Total records before search
-        $totalData = $query->count();
-        $totalFiltered = $totalData;
-
-        // Pagination and ordering
-        $limit = $request->input('length', 10);
-        $start = $request->input('start', 0);
-        $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
-        $orderColumn = $columns[$request->input('order.0.column')];
+        $orderColumn = $columns[$request->input('order.0.column')] ?? 'sales.updated_at';
         $orderDir = $request->input('order.0.dir', 'desc');
 
-        // Fetch custom fields for sales
-        $customFields = CustomField::where([
-            ['belongs_to', 'sale'],
-            ['is_table', true]
-        ])->pluck('name');
-        $fieldNames = [];
-        foreach ($customFields as $fieldName) {
-            $fieldNames[] = str_replace(" ", "_", strtolower($fieldName));
+        $filters = [
+            'warehouse_id' => $request->input('warehouse_id'),
+            'supplier_id'  => $user->supplier_id ?? $request->input('supplier_id'),
+            'sale_status'  => $request->input('sale_status'),
+            'location'     => $request->input('location'),
+            'sale_type'    => $request->input('sale_type'),
+            'start_date'   => $request->input('starting_date'),
+            'end_date'     => $request->input('ending_date'),
+        ];
+
+        // Base query with join for sorting + eager loading
+        $query = Sale::select('sales.*')
+            ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')
+            ->join('products', 'products.id', '=', 'product_sales.product_id')
+            ->leftJoin('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+            ->with(['customer', 'warehouse', 'user', 'products.supplier'])
+            ->whereDate('sales.created_at', '>=', $filters['start_date'])
+            ->whereDate('sales.created_at', '<=', $filters['end_date']);
+
+        // Role-based access
+        if ($user->role_id > 2) {
+            if (config('staff_access') === 'own') {
+                $query->where('sales.user_id', $user->id);
+            } elseif (config('staff_access') === 'warehouse') {
+                $query->where('sales.warehouse_id', $user->warehouse_id);
+            }
         }
 
-        // Handle search
+        // Apply basic filters
+        foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
+            if (!empty($filters[$field])) {
+                $query->where("sales.$field", $filters[$field]);
+            }
+        }
+
+        // Supplier filter via join
+        if (!empty($filters['supplier_id'])) {
+            $query->where('products.supplier_id', $filters['supplier_id']);
+        }
+
+        // Search
         $searchValue = $request->input('search.value');
-
         if (!empty($searchValue)) {
-            // Apply search filters
             $query->where(function ($q) use ($searchValue) {
-                $q->where('reference_no', 'LIKE', "%{$searchValue}%")
-                    ->orWhereHas('customer', function($q2) use ($searchValue) {
-                        $q2->where('name', 'LIKE', "%{$searchValue}%")
-                            ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
-                    });
+                $q->where('sales.reference_no', 'LIKE', "%{$searchValue}%")
+                ->orWhereHas('customer', function ($q2) use ($searchValue) {
+                    $q2->where('name', 'LIKE', "%{$searchValue}%")
+                        ->orWhere('phone_number', 'LIKE', "%{$searchValue}%");
+                });
             });
-
-            $totalFiltered = $query->count();
         }
 
-        // Fetch paginated sales
+        // Counts (clone for filtering)
+        $totalData = Sale::count();
+        $totalFiltered = (clone $query)->distinct('sales.id')->count('sales.id');
+
+        // Pagination
+        $limit = $request->input('length', 10);
+        $start = $request->input('start', 0);
+        $limit = ($limit == -1) ? $totalFiltered : $limit;
+
+        // Fetch sales
         $sales = $query
+            ->groupBy('sales.id')
+            ->orderBy($orderColumn, $orderDir)
             ->offset($start)
             ->limit($limit)
-            ->orderBy($orderColumn, $orderDir)
             ->get();
+
       
         $data = [];
         $statusMap = [
@@ -540,32 +527,26 @@ class SaleController extends Controller
             14 => ['warning',   'Return Receiving']
         ];
         foreach ($sales as $key => $sale) {
-            if(!$sale->customer) {
-                $sale->customer = (object)[
-                    "name"          => "Unknown",
-                    "address"       => "",
-                    "phone_number"  => "",
-                    "city"          => ""
-                ];
-            }
 
             $nestedData = [
-                'id' => $sale->id,
-                'key'  => $sale->id,
-                'reference_no' => $sale->reference_no,
-                'product_name' => implode(",", $sale->products->pluck('name')->toArray()),
-                'product_code' => implode(",", $sale->products->pluck('code')->toArray()),
-                'supplier_name' => $sale->products->pluck('supplier.name')->filter()->unique()->toArray(),
-                'date' => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
-                'sale_status' => $sale->sale_status,
-                'total_qty' => $sale->total_qty,
-                'total_price' => number_format($sale->total_price, config('decimal')),
-                'delivery_fee' => ($filters['sale_status'] !=  14 && $filters['sale_status'] != 4) ? ($sale->shipping_cost ?? 0) : ($sale->return_shipping_cost ?? 0),
-                'customer_info' => ($sale->customer->name ?? "") . '<br>' . ($sale->customer->phone_number ?? ""),
-                'customer_address' => ($sale->customer->address ?? "") . '<br>' . ($sale->customer->city ?? ""),
-                'updated_date' => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
-                'location' => $sale->location,
-                'res_reason'    => $sale->res_reason
+                'id'               => $sale->id,
+                'key'              => $sale->id,
+                'reference_no'     => $sale->reference_no,
+                'product_name'     => implode(', ', $sale->products->pluck('name')->toArray()),
+                'product_code'     => implode(', ', $sale->products->pluck('code')->toArray()),
+                'supplier_name'    => implode(', ', $sale->products->pluck('supplier.name')->filter()->unique()->toArray()),
+                'date'             => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
+                'sale_status'      => $sale->sale_status,
+                'total_qty'        => $sale->total_qty,
+                'total_price'      => number_format($sale->total_price, config('decimal')),
+                'delivery_fee'     => ($filters['sale_status'] != 14 && $filters['sale_status'] != 4)
+                                        ? ($sale->shipping_cost ?? 0)
+                                        : ($sale->return_shipping_cost ?? 0),
+                'customer_info'    => ($sale->customer->name ?? '') . '<br>' . ($sale->customer->phone_number ?? ''),
+                'customer_address' => ($sale->customer->address ?? '') . '<br>' . ($sale->customer->city ?? ''),
+                'updated_date'     => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
+                'location'         => $sale->location,
+                'res_reason'       => $sale->res_reason,
             ];
 
             switch($sale->location){
@@ -577,10 +558,6 @@ class SaleController extends Controller
 
             list($badgeClass, $statusText) = $statusMap[$sale->sale_status] ?? ['secondary', 'Undefined'];
             $nestedData['sale_status'] = '<div class="badge badge-' . $badgeClass . '">' . trans($statusText) . '</div>';
-
-            foreach ($fieldNames as $fieldName) {
-                $nestedData[$fieldName] = $sale->$fieldName;
-            }
 
             // RBAC and options
             $role = Role::find($user->role_id);
@@ -700,7 +677,7 @@ class SaleController extends Controller
             "recordsTotal" => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data" => $data,
-            "role" => config('staff_access'),
+            "sales"=> $sales,
         ];
 
         return response()->json($json_data);
@@ -3017,134 +2994,27 @@ class SaleController extends Controller
         $sale_id = $request['saleIdArray'];
         foreach ($sale_id as $id) {
             $lims_sale_data = Sale::find($id);
-            $return_ids = Returns::where('sale_id', $id)->pluck('id')->toArray();
-            if (count($return_ids)) {
-                ProductReturn::whereIn('return_id', $return_ids)->delete();
-                Returns::whereIn('id', $return_ids)->delete();
-            }
+
             $lims_product_sale_data = Product_Sale::where('sale_id', $id)->get();
-            $lims_delivery_data = Delivery::where('sale_id', $id)->first();
-            if ($lims_sale_data->sale_status == 3)
-                $message = 'Draft deleted successfully';
-            else
-                $message = 'Sale deleted successfully';
+
             foreach ($lims_product_sale_data as $product_sale) {
                 $lims_product_data = Product::find($product_sale->product_id);
-                //adjust product quantity
-                if (($lims_sale_data->sale_status == 1) && ($lims_product_data->type == 'combo')) {
-                    if (!in_array('manufacturing', explode(',', config('addons')))) {
-                        $product_list = explode(",", $lims_product_data->product_list);
-                        if ($lims_product_data->variant_list)
-                            $variant_list = explode(",", $lims_product_data->variant_list);
-                        else
-                            $variant_list = [];
-                        $qty_list = explode(",", $lims_product_data->qty_list);
-
-                        foreach ($product_list as $index => $child_id) {
-                            $child_data = Product::find($child_id);
-                            if (count($variant_list) && $variant_list[$index]) {
-                                $child_product_variant_data = ProductVariant::where([
-                                    ['product_id', $child_id],
-                                    ['variant_id', $variant_list[$index]]
-                                ])->first();
-
-                                $child_warehouse_data = Product_Warehouse::where([
-                                    ['product_id', $child_id],
-                                    ['variant_id', $variant_list[$index]],
-                                    ['warehouse_id', $lims_sale_data->warehouse_id],
-                                ])->first();
-
-                                $child_product_variant_data->qty += $product_sale->qty * $qty_list[$index];
-                                $child_product_variant_data->save();
-                            } else {
-                                $child_warehouse_data = Product_Warehouse::where([
-                                    ['product_id', $child_id],
-                                    ['warehouse_id', $lims_sale_data->warehouse_id],
-                                ])->first();
-                            }
-
-                            $child_data->qty += $product_sale->qty * $qty_list[$index];
-                            $child_warehouse_data->qty += $product_sale->qty * $qty_list[$index];
-
-                            $child_data->save();
-                            $child_warehouse_data->save();
-                        }
-                    }
-                } elseif (($lims_sale_data->sale_status == 1) && ($product_sale->sale_unit_id != 0)) {
-                    $lims_sale_unit_data = Unit::find($product_sale->sale_unit_id);
-                    if ($lims_sale_unit_data->operator == '*')
-                        $product_sale->qty = $product_sale->qty * $lims_sale_unit_data->operation_value;
-                    else
-                        $product_sale->qty = $product_sale->qty / $lims_sale_unit_data->operation_value;
-                    if ($product_sale->variant_id) {
-                        $lims_product_variant_data = ProductVariant::select('id', 'qty')->FindExactProduct($lims_product_data->id, $product_sale->variant_id)->first();
-                        $lims_product_warehouse_data = Product_Warehouse::FindProductWithVariant($lims_product_data->id, $product_sale->variant_id, $lims_sale_data->warehouse_id)->first();
-                        $lims_product_variant_data->qty += $product_sale->qty;
-                        $lims_product_variant_data->save();
-                    } elseif ($product_sale->product_batch_id) {
-                        $lims_product_batch_data = ProductBatch::find($product_sale->product_batch_id);
-                        $lims_product_warehouse_data = Product_Warehouse::where([
-                            ['product_batch_id', $product_sale->product_batch_id],
+                $lims_product_warehouse_data = Product_Warehouse::where([
+                            ['product_id', $product_sale->product_id],
                             ['warehouse_id', $lims_sale_data->warehouse_id]
                         ])->first();
+                        
+                //adjust product quantity
+                $lims_product_data->qty += $product_sale->qty;
+                $lims_product_warehouse_data->qty += $product_sale->qty;
+                $lims_product_data->save();
+                $lims_product_warehouse_data->save();
 
-                        $lims_product_batch_data->qty -= $product_sale->qty;
-                        $lims_product_batch_data->save();
-                    } else {
-                        $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($lims_product_data->id, $lims_sale_data->warehouse_id)->first();
-                    }
-
-                    $lims_product_data->qty += $product_sale->qty;
-                    $lims_product_warehouse_data->qty += $product_sale->qty;
-                    $lims_product_data->save();
-                    $lims_product_warehouse_data->save();
-
-                    //restore imei numbers
-                    if ($product_sale->imei_number) {
-                        if ($lims_product_warehouse_data->imei_number)
-                            $lims_product_warehouse_data->imei_number .= ',' . $product_sale->imei_number;
-                        else
-                            $lims_product_warehouse_data->imei_number = $product_sale->imei_number;
-                        $lims_product_warehouse_data->save();
-                    }
-                }
                 $product_sale->delete();
             }
-            $lims_payment_data = Payment::where('sale_id', $id)->get();
-            foreach ($lims_payment_data as $payment) {
-                if ($payment->paying_method == 'Gift Card') {
-                    $lims_payment_with_gift_card_data = PaymentWithGiftCard::where('payment_id', $payment->id)->first();
-                    $lims_gift_card_data = GiftCard::find($lims_payment_with_gift_card_data->gift_card_id);
-                    $lims_gift_card_data->expense -= $payment->amount;
-                    $lims_gift_card_data->save();
-                    $lims_payment_with_gift_card_data->delete();
-                } elseif ($payment->paying_method == 'Cheque') {
-                    $lims_payment_cheque_data = PaymentWithCheque::where('payment_id', $payment->id)->first();
-                    $lims_payment_cheque_data->delete();
-                } elseif ($payment->paying_method == 'Credit Card') {
-                    $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $payment->id)->first();
-                    $lims_payment_with_credit_card_data->delete();
-                } elseif ($payment->paying_method == 'Paypal') {
-                    $lims_payment_paypal_data = PaymentWithPaypal::where('payment_id', $payment->id)->first();
-                    if ($lims_payment_paypal_data)
-                        $lims_payment_paypal_data->delete();
-                } elseif ($payment->paying_method == 'Deposit') {
-                    $lims_customer_data = Customer::find($lims_sale_data->customer_id);
-                    $lims_customer_data->expense -= $payment->amount;
-                    $lims_customer_data->save();
-                }
-                $payment->delete();
-            }
-            if ($lims_delivery_data)
-                $lims_delivery_data->delete();
-            if ($lims_sale_data->coupon_id) {
-                $lims_coupon_data = Coupon::find($lims_sale_data->coupon_id);
-                $lims_coupon_data->used -= 1;
-                $lims_coupon_data->save();
-            }
+
             $lims_sale_data->delete();
             $this->fileDelete(public_path('documents/sale/'), $lims_sale_data->document);
-
         }
         return 'Sale deleted successfully!';
     }
