@@ -47,17 +47,18 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-1 @if(!in_array('ecommerce',explode(',',$general_setting->modules))) d-none @endif">
+                    <div class="col-md-1">
                         <div class="form-group">
-                            <label><strong>{{trans('file.Sale Type')}}</strong></label>
-                            <select id="sale-type" class="form-control" name="sale_type">
-                                <option value="0">{{trans('file.All')}}</option>
-                                <option value="pos">{{trans('file.POS')}}</option>
-                                <option value="online">{{trans('file.eCommerce')}}</option>
+                            <label><strong>{{trans('Product')}}</strong></label>
+                            <select id="product_code" class="form-control" name="product_code" data-live-search="true">
+                                <option value="0">All</option>
+                                @foreach($lims_product_codes as $row)
+                                    <option value="{{$row['code']}}">{{$row['code']}}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-7">
+                    <div class="col-md-6">
                         <div class="form-group">
                         <label><strong>{{trans('file.Order Status')}}</strong></label><br>
                             <div class="btn-group btn-group-toggle" data-toggle="buttons">
@@ -1030,6 +1031,7 @@
     var _location = <?php echo json_encode($location); ?>;
     var sale_type = <?php echo json_encode($sale_type); ?>;
     var supplier_id = <?php echo json_encode($supplier_id); ?>;
+    var product_code = <?php echo json_encode($product_code); ?>;
     var balance = <?php echo json_encode($balance) ?>;
     var expired_date = <?php echo json_encode($expired_date) ?>;
     var current_date = <?php echo json_encode(date("Y-m-d")) ?>;
@@ -1056,6 +1058,7 @@
     $("#location").val(_location);
     $("#sale-type").val(sale_type);
     $("#supplier-id").val(supplier_id);
+    $("#product_code").val(product_code);
 
     $(".daterangepicker-field").daterangepicker({
       callback: function(startDate, endDate, period){
@@ -2022,6 +2025,7 @@
                     payment_status: payment_status,
                     location : _location,
                     supplier_id: supplier_id,
+                    product_code: product_code
                 },
                 dataType: "json",
                 type:"post"

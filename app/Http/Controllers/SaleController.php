@@ -338,10 +338,26 @@ class SaleController extends Controller
             else
                 $sale_type = 0;
 
-            if ($request->input('supplier_id'))
+            if ($request->input('supplier_id')){
                 $supplier_id = $request->input('supplier_id');
-            else
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                                ->where('product_sales.supplier_id', $supplier_id)
+                                                ->select('products.code')
+                                                ->distinct()
+                                                ->get();
+            }
+            else {
                 $supplier_id = 0;
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                                ->select('products.code')
+                                                ->distinct()
+                                                ->get();
+            }
+
+            if ($request->input('product_code'))
+                $product_code = $request->input('product_code');
+            else
+                $product_code = 0;
 
             if ($request->input('starting_date')) {
                 $starting_date = $request->input('starting_date');
@@ -350,7 +366,6 @@ class SaleController extends Controller
                 $starting_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d'))))));
                 $ending_date = date("Y-m-d");
             }
-
 
             if($user->supplier_id) {
                 $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
@@ -386,29 +401,34 @@ class SaleController extends Controller
             $can_scanner = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
                     || ($role->hasPermissionTo('receiving') && $sale_status == 12)
                     || ($role->hasPermissionTo('shipped-return') && $sale_status == 8);
-            return view('backend.sale.index', compact(
-                'starting_date', 
-                'ending_date', 
-                'warehouse_id', 
-                'sale_status', 
-                'payment_status', 'location', 
-                'sale_type', 'supplier_id', 
-                'lims_gift_card_list', 
-                'lims_pos_setting_data', 
-                'lims_reward_point_setting_data', 
-                'lims_account_list', 
-                'lims_warehouse_list', 
-                'all_permission', 
-                'options', 
-                'numberOfInvoice', 
-                'custom_fields', 
-                'field_name', 
-                'lims_courier_list', 
-                'lims_supplier_list',
-                'lims_shipping_cost_list', 
-                'lims_return_shipping_cost_list', 
-                'can_scanner',
-                'smsTemplates'));
+            return view('backend.sale.index', 
+            compact(
+              'starting_date', 
+             'ending_date', 
+                        'warehouse_id', 
+                        'sale_status', 
+                        'payment_status', 'location', 
+                        'sale_type', 'supplier_id', 
+                        'lims_gift_card_list', 
+                        'lims_pos_setting_data', 
+                        'lims_reward_point_setting_data', 
+                        'lims_account_list', 
+                        'lims_warehouse_list', 
+                        'all_permission', 
+                        'options', 
+                        'numberOfInvoice', 
+                        'custom_fields', 
+                        'field_name', 
+                        'product_code',
+                        'lims_product_codes',
+                        'lims_courier_list', 
+                        'lims_supplier_list',
+                        'lims_shipping_cost_list', 
+                        'lims_return_shipping_cost_list', 
+                        'can_scanner',
+                        'smsTemplates'
+                )
+            );
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -442,6 +462,7 @@ class SaleController extends Controller
         $filters = [
             'warehouse_id' => $request->input('warehouse_id'),
             'supplier_id'  => $user->supplier_id ?? $request->input('supplier_id'),
+            'product_code' => $request->input('product_code') ?? 0,
             'sale_status'  => $request->input('sale_status'),
             'location'     => $request->input('location'),
             'sale_type'    => $request->input('sale_type'),
@@ -477,6 +498,10 @@ class SaleController extends Controller
         // Supplier filter via join
         if (!empty($filters['supplier_id'])) {
             $query->where('products.supplier_id', $filters['supplier_id']);
+        }
+
+        if($filters['product_code']) {
+            $query->where('products.code', $filters['product_code']);
         }
 
         // Search
