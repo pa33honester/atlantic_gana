@@ -63,21 +63,60 @@ class ReturnController extends Controller
                 $ending_date = date("Y-m-d");
             }
 
-            if ($request->input('supplier_id'))
-                $supplier_id = $request->input('supplier_id');
-            else
-                $supplier_id = $user->supplier_id ?? 0;
-
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
 
-            if($user->role_id > 1){
-                $lims_supplier_list = Supplier::where('id', $user->supplier_id)->get() ?? [];
+            if ($request->input('supplier_id')){
+                $supplier_id = $request->input('supplier_id');
+            }
+            else {
+                $supplier_id = 0;
+            }
+
+            if($user->supplier_id) {
+                $supplier_id = $user->supplier_id;
+                $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
             }
             else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
             }
 
-            return view('backend.return.index', compact('starting_date', 'ending_date', 'warehouse_id', 'supplier_id', 'all_permission', 'lims_warehouse_list', 'lims_supplier_list'));
+            if ($request->input('product_code'))
+                $product_code = $request->input('product_code');
+            else
+                $product_code = 0;
+
+            if($supplier_id > 0){
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                    ->join('sales', 'sales.id', '=', 'product_sales.sale_id')
+                                    ->where('sales.sale_status', 4)
+                                    ->where('product_sales.supplier_id', $supplier_id)
+                                    ->select('products.code')
+                                    ->distinct()
+                                    ->get();
+            }
+            else {
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                    ->join('sales', 'sales.id', '=', 'product_sales.sale_id')
+                                    ->where('sales.sale_status', 4)
+                                    ->select('products.code')
+                                    ->distinct()
+                                    ->get();
+            }
+
+
+            return view('backend.return.index', 
+            compact(
+                'starting_date', 
+               'ending_date', 
+                          'warehouse_id', 
+                          'supplier_id',
+                          'product_code',
+                          'all_permission', 
+                          'lims_warehouse_list', 
+                          'lims_supplier_list',
+                          'lims_product_codes'
+                        )
+                    );
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -136,11 +175,13 @@ class ReturnController extends Controller
 
         $totalFiltered = $filteredQuery->count();
 
-        $returnss = $filteredQuery
-                    ->orderBy($order, $dir)
-                    ->offset($start)
-                    ->limit($limit)
-                    ->get();
+        $filteredQuery = $filteredQuery->orderBy($order, $dir);
+
+        if ($limit != -1){
+            $filteredQuery = $filteredQuery->offset($start)->limit($limit);
+        }
+
+        $returnss = $filteredQuery->get();
 
         $data = array();
         foreach ($returnss as $key => $returns) {

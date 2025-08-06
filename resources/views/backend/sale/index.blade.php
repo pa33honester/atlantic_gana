@@ -308,234 +308,6 @@
     </div>
 </div>
 
-<div id="view-payment" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.All')}} {{trans('file.Payment')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                <table class="table table-hover payment-list">
-                    <thead>
-                        <tr>
-                            <th>{{trans('file.date')}}</th>
-                            <th>{{trans('file.reference')}}</th>
-                            <th>{{trans('file.Account')}}</th>
-                            <th>{{trans('file.Amount')}}</th>
-                            <th>{{trans('file.Paid By')}}</th>
-                            <th>{{trans('file.action')}}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="add-payment" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Add Payment')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                {!! Form::open(['route' => 'sale.add-payment', 'method' => 'post', 'files' => true, 'class' => 'payment-form' ]) !!}
-                    <div class="row">
-                        <input type="hidden" name="balance">
-                        <div class="col-md-6">
-                            <label>{{trans('file.Recieved Amount')}} *</label>
-                            <input type="text" name="paying_amount" class="form-control numkey" step="any" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label>{{trans('file.Paying Amount')}} *</label>
-                            <input type="text" id="amount" name="amount" class="form-control"  step="any" required>
-                        </div>
-                        <div class="col-md-6 mt-1">
-                            <label>{{trans('file.Change')}} : </label>
-                            <p class="change ml-2">{{number_format(0, $general_setting->decimal, '.', '')}}</p>
-                        </div>
-                        <div class="col-md-6 mt-1">
-                            <label>{{trans('file.Paid By')}}</label>
-                            <select name="paid_by_id" class="form-control">
-                                @if(in_array("cash",$options))
-                                <option value="1">Cash</option>
-                                @endif
-                                @if(in_array("gift_card",$options))
-                                <option value="2">Gift Card</option>
-                                @endif
-                                @if(in_array("card",$options))
-                                <option value="3">Credit Card</option>
-                                @endif
-                                @if(in_array("cheque",$options))
-                                <option value="4">Cheque</option>
-                                @endif
-                                @if(in_array("paypal",$options) && (strlen($lims_pos_setting_data->paypal_live_api_username)>0) && (strlen($lims_pos_setting_data->paypal_live_api_password)>0) && (strlen($lims_pos_setting_data->paypal_live_api_secret)>0))
-                                <option value="5">Paypal</option>
-                                @endif
-                                @if(in_array("deposit",$options))
-                                <option value="6">Deposit</option>
-                                @endif
-                                @if($lims_reward_point_setting_data && $lims_reward_point_setting_data->is_active)
-                                <option value="7">Points</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label>{{trans('file.Payment Receiver')}}</label>
-                            <input type="text" name="payment_receiver" class="form-control">
-                        </div>
-                    </div>
-                    <div class="gift-card form-group">
-                        <label> {{trans('file.Gift Card')}} *</label>
-                        <select id="gift_card_id" name="gift_card_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Gift Card...">
-                            @php
-                                $balance = [];
-                                $expired_date = [];
-                            @endphp
-                            @foreach($lims_gift_card_list as $gift_card)
-                            <?php
-                                $balance[$gift_card->id] = $gift_card->amount - $gift_card->expense;
-                                $expired_date[$gift_card->id] = $gift_card->expired_date;
-                            ?>
-                                <option value="{{$gift_card->id}}">{{$gift_card->card_no}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group mt-2">
-                        <div class="card-element" class="form-control">
-                        </div>
-                        <div class="card-errors" role="alert"></div>
-                    </div>
-                    <div id="cheque">
-                        <div class="form-group">
-                            <label>{{trans('file.Cheque Number')}} *</label>
-                            <input type="text" name="cheque_no" class="form-control">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label> {{trans('file.Account')}}</label>
-                        <select class="form-control selectpicker" name="account_id">
-                        @foreach($lims_account_list as $account)
-                            @if($account->is_default)
-                            <option selected value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                            @else
-                            <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                            @endif
-                        @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>{{trans('file.Payment Note')}}</label>
-                        <textarea rows="3" class="form-control" name="payment_note"></textarea>
-                    </div>
-
-                    <input type="hidden" name="sale_id">
-
-                    <button type="submit" class="btn btn-primary">{{trans('file.submit')}}</button>
-                {{ Form::close() }}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="edit-payment" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Update Payment')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                {!! Form::open(['route' => 'sale.update-payment', 'method' => 'post', 'class' => 'payment-form' ]) !!}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label>{{trans('file.Recieved Amount')}} *</label>
-                            <input type="text" name="edit_paying_amount" class="form-control numkey"  step="any" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label>{{trans('file.Paying Amount')}} *</label>
-                            <input type="text" name="edit_amount" class="form-control"  step="any" required>
-                        </div>
-                        <div class="col-md-6 mt-1">
-                            <label>{{trans('file.Change')}} : </label>
-                            <p class="change ml-2">{{number_format(0, $general_setting->decimal, '.', '')}}</p>
-                        </div>
-                        <div class="col-md-6 mt-1">
-                            <label>{{trans('file.Paid By')}}</label>
-                            <select name="edit_paid_by_id" class="form-control selectpicker">
-                                @if(in_array("cash",$options))
-                                <option value="1">Cash</option>
-                                @endif
-                                @if(in_array("gift_card",$options))
-                                <option value="2">Gift Card</option>
-                                @endif
-                                @if(in_array("card",$options))
-                                <option value="3">Credit Card</option>
-                                @endif
-                                @if(in_array("cheque",$options))
-                                <option value="4">Cheque</option>
-                                @endif
-                                @if(in_array("paypal",$options) && (strlen($lims_pos_setting_data->paypal_live_api_username)>0) && (strlen($lims_pos_setting_data->paypal_live_api_password)>0) && (strlen($lims_pos_setting_data->paypal_live_api_secret)>0))
-                                <option value="5">Paypal</option>
-                                @endif
-                                @if(in_array("deposit",$options))
-                                <option value="6">Deposit</option>
-                                @endif
-                                @if($lims_reward_point_setting_data && $lims_reward_point_setting_data->is_active)
-                                <option value="7">Points</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label>{{trans('file.Payment Receiver')}}</label>
-                            <input type="text" name="payment_receiver" class="form-control">
-                        </div>
-                    </div>
-                    <div class="gift-card form-group">
-                        <label> {{trans('file.Gift Card')}} *</label>
-                        <select id="gift_card_id" name="gift_card_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Gift Card...">
-                            @foreach($lims_gift_card_list as $gift_card)
-                                <option value="{{$gift_card->id}}">{{$gift_card->card_no}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group mt-2">
-                        <div class="card-element" class="form-control">
-                        </div>
-                        <div class="card-errors" role="alert"></div>
-                    </div>
-                    <div id="edit-cheque">
-                        <div class="form-group">
-                            <label>{{trans('file.Cheque Number')}} *</label>
-                            <input type="text" name="edit_cheque_no" class="form-control">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label> {{trans('file.Account')}}</label>
-                        <select class="form-control selectpicker" name="account_id">
-                        @foreach($lims_account_list as $account)
-                            <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                        @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>{{trans('file.Payment Note')}}</label>
-                        <textarea rows="3" class="form-control" name="edit_payment_note"></textarea>
-                    </div>
-
-                    <input type="hidden" name="payment_id">
-
-                    <button type="submit" class="btn btn-primary">{{trans('file.update')}}</button>
-                {{ Form::close() }}
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Image Preview Modal (Stacked) -->
 <div id="imageModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -846,106 +618,6 @@
     </div>
 </div>
 
-<div id="add-delivery" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Add Delivery')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                {!! Form::open(['route' => 'delivery.store', 'method' => 'post', 'files' => true]) !!}
-                <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Delivery Reference')}}</label>
-                        <p id="dr"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Sale Reference')}}</label>
-                        <p id="sr"></p>
-                    </div>
-                    <div class="col-md-12 form-group">
-                        <label>{{trans('file.Status')}} *</label>
-                        <select name="status" required class="form-control selectpicker">
-                            <option value="1">{{trans('file.Packing')}}</option>
-                            <option value="2">{{trans('file.Delivering')}}</option>
-                            <option value="3">{{trans('file.Delivered')}}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Courier')}}</label>
-                        <select name="courier_id" id="courier_id" class="selectpicker form-control" data-live-search="true" title="Select courier...">
-                            @foreach($lims_courier_list as $courier)
-                            <option value="{{$courier->id}}">{{$courier->name}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6 mt-2 form-group">
-                        <label>{{trans('file.Delivered By')}}</label>
-                        <input type="text" name="delivered_by" class="form-control">
-                    </div>
-                    <div class="col-md-6 mt-2 form-group">
-                        <label>{{trans('file.Recieved By')}} </label>
-                        <input type="text" name="recieved_by" class="form-control">
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.customer')}} *</label>
-                        <p id="customer"></p>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Attach File')}}</label>
-                        <input type="file" name="file" class="form-control">
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Address')}} *</label>
-                        <textarea rows="3" name="address" class="form-control" required></textarea>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>{{trans('file.Note')}}</label>
-                        <textarea rows="3" name="note" class="form-control"></textarea>
-                    </div>
-                </div>
-                <input type="hidden" name="reference_no">
-                <input type="hidden" name="sale_id">
-                <button type="submit" class="btn btn-primary">{{trans('file.submit')}}</button>
-                {{ Form::close() }}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="send-sms" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Send SMS')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                <form action="{{ route('sale.sendsms') }}" method="post">
-                    @csrf
-                    <div class="row">
-                        <input type="hidden" name="customer_id">
-                        <input type="hidden" name="reference_no">
-                        <input type="hidden" name="sale_status">
-                        <input type="hidden" name="payment_status">
-                        <div class="col-md-6 mt-1">
-                            <label>{{trans('file.SMS Template')}}</label>
-                            <select name="template_id" class="form-control">
-                                <option value="">Select Template</option>
-                                @foreach($smsTemplates as $template)
-                                <option value="{{ $template->id }}">{{ $template->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary mt-2">{{trans('file.submit')}}</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div id="edit-sale" tabindex="-1" role="dialog" aria-labelledby="editSale" aria-hidden="true" class="modal fade text-left">
     <div role="document" class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -1018,22 +690,15 @@
         var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
     @endif
     var all_permission = <?php echo json_encode($all_permission) ?>;
-    @if($lims_reward_point_setting_data)
-        var reward_point_setting = <?php echo json_encode($lims_reward_point_setting_data) ?>;
-    @endif
     var sale_id = [];
     var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
     var starting_date = <?php echo json_encode($starting_date); ?>;
     var ending_date = <?php echo json_encode($ending_date); ?>;
     var warehouse_id = <?php echo json_encode($warehouse_id); ?>;
     var sale_status = <?php echo json_encode($sale_status); ?>;
-    var payment_status = <?php echo json_encode($payment_status); ?>;
     var _location = <?php echo json_encode($location); ?>;
-    var sale_type = <?php echo json_encode($sale_type); ?>;
     var supplier_id = <?php echo json_encode($supplier_id); ?>;
     var product_code = <?php echo json_encode($product_code); ?>;
-    var balance = <?php echo json_encode($balance) ?>;
-    var expired_date = <?php echo json_encode($expired_date) ?>;
     var current_date = <?php echo json_encode(date("Y-m-d")) ?>;
     var payment_date = [];
     var payment_reference = [];
@@ -1054,9 +719,7 @@
 
     $("#warehouse_id").val(warehouse_id);
     $("#sale-status").val(sale_status);
-    $("#payment-status").val(payment_status);
     $("#location").val(_location);
-    $("#sale-type").val(sale_type);
     $("#supplier-id").val(supplier_id);
     $("#product_code").val(product_code);
 
@@ -1442,63 +1105,6 @@
         saleDetails(sale);
     });
 
-    $(document).on("click", ".create-packing-slip-btn", function (e) {
-        e.preventDefault();
-        id = $(this).data('id');
-        $("#packing-slip-modal input[name=sale_id]").val(id);
-        $.get('sales/get-sold-items/'+id, function (data) {
-            if(data == 'All the items of this sale has already been packed') {
-                alert(data);
-                $("#packing-slip-modal").modal('hide');
-            }
-            else {
-                $("table.product-list tbody").remove();
-                var newBody = $("<tbody>");
-                $.each(data, function(index){
-                    if(index != 'amount') {
-                        var newRow = $("<tr>");
-                        var cols = '';
-                        cols += '<td>' + data[index]['name'] + '</td>';
-                        cols += '<td>' + data[index]['code'] + '</td>';
-                        cols += '<td>' + data[index]['sold_qty'] + '</td>';
-                        cols += '<td>' + data[index]['unit_price'] + '</td>';
-                        cols += '<td class="total-price">' + data[index]['total_price'] + '</td>';
-                        if( data[index]['type'] == 'standard' && without_stock == 'no' && (data[index]['qty'] > data[index]['stock']) ) {
-                            cols += '<td>In stock: '+data[index]['stock']+'</td>';
-                        }
-                        else if( data[index]['type'] == 'combo' && without_stock == 'no' && !data[index]['combo_in_stock'] ) {
-                            cols += '<td>'+data[index]['child_info']+'</td>';
-                        }
-                        else if(data[index]['is_packing']) {
-                            cols += '<td><input type="checkbox" class="is-packing" name="is_packing[]" value="'+data[index]['product_id']+'" checked disabled /></td>';
-                        }
-                        else {
-                            cols += '<td><input type="checkbox" class="is-packing" name="is_packing[]" value="'+data[index]['product_id']+'"/></td>';
-                        }
-
-                        newRow.append(cols);
-                        newBody.append(newRow);
-                        $("table.product-list").append(newBody);
-                    }
-                });
-                $("#packing-slip-modal input[name=amount]").val(data['amount']);
-                $("#packing-slip-modal").modal();
-            }
-        });
-    });
-
-    $(document).on("change", ".is-packing", function (e) {
-        rowindex = $(this).closest('tr').index();
-        var total_price = $('table.product-list tbody tr:nth-child(' + (rowindex + 1) + ') .total-price').text();
-        var amount = $("#packing-slip-modal input[name=amount]").val();
-        if($(this).is(":checked")) {
-            $("#packing-slip-modal input[name=amount]").val(parseFloat(amount) + parseFloat(total_price));
-        }
-        else {
-            $("#packing-slip-modal input[name=amount]").val(parseFloat(amount) - parseFloat(total_price));
-        }
-    });
-
     $(document).on('submit', '.packing-slip-form', function(e) {
         $(".packing-slip-submit-btn").prop("disabled", true);
     });
@@ -1670,270 +1276,6 @@
         printDocument(selector);
     });
 
-    $(document).on("click", "table.sale-list tbody .add-payment", function() {
-        $("#cheque").hide();
-        $(".gift-card").hide();
-        $(".card-element").hide();
-        $('select[name="paid_by_id"]').val(1);
-        $('.selectpicker').selectpicker('refresh');
-        rowindex = $(this).closest('tr').index();
-        deposit = $('table.sale-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.deposit').val();
-        var sale_id = $(this).data('id').toString();
-        var balance = $('table.sale-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(12)').text();
-        balance = parseFloat(balance.replace(/,/g, ''));
-        $('input[name="paying_amount"]').val(balance);
-        $('#add-payment input[name="balance"]').val(balance);
-        $('input[name="amount"]').val(balance);
-        $('input[name="sale_id"]').val(sale_id);
-    });
-
-    $(document).on("click", "table.sale-list tbody .get-payment", function(event) {
-        rowindex = $(this).closest('tr').index();
-        deposit = $('table.sale-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.deposit').val();
-        var id = $(this).data('id').toString();
-        $.get('sales/getpayment/' + id, function(data) {
-            $(".payment-list tbody").remove();
-            var newBody = $("<tbody>");
-            payment_date  = data[0];
-            payment_reference = data[1];
-            paid_amount = data[2];
-            paying_method = data[3];
-            payment_id = data[4];
-            payment_note = data[5];
-            cheque_no = data[6];
-            gift_card_id = data[7];
-            change = data[8];
-            paying_amount = data[9];
-            account_name = data[10];
-            account_id = data[11];
-            payment_receiver = data[12];
-
-            $.each(payment_date, function(index) {
-                var newRow = $("<tr>");
-                var cols = '';
-
-                cols += '<td>' + payment_date[index] + '</td>';
-                cols += '<td>' + payment_reference[index] + '</td>';
-                cols += '<td>' + account_name[index] + '</td>';
-                cols += '<td>' + paid_amount[index] + '</td>';
-                cols += '<td>' + paying_method[index] + '</td>';
-                cols += '<td><div class="btn-group"><button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{trans("file.action")}}<span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button><ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">';
-                if(paying_method[index] != 'Paypal' && all_permission.indexOf("sale-payment-edit") != -1)
-                    cols += '<li><button type="button" class="btn btn-link edit-btn" data-id="' + payment_id[index] +'" data-clicked=false data-toggle="modal" data-target="#edit-payment"><i class="dripicons-document-edit"></i> {{trans("file.edit")}}</button></li> ';
-                if(all_permission.indexOf("sale-payment-delete") != -1)
-                    cols += '{{ Form::open(['route' => 'sale.delete-payment', 'method' => 'post'] ) }}<li><input type="hidden" name="id" value="' + payment_id[index] + '" /> <button type="submit" class="btn btn-link" onclick="return confirmPaymentDelete()"><i class="dripicons-trash"></i> {{trans("file.delete")}}</button></li>{{ Form::close() }}';
-                cols += '</ul></div></td>';
-                newRow.append(cols);
-                newBody.append(newRow);
-                $("table.payment-list").append(newBody);
-            });
-            $('#view-payment').modal('show');
-        });
-    });
-
-    $("table.payment-list").on("click", ".edit-btn", function(event) {
-        $(".edit-btn").attr('data-clicked', true);
-        $(".card-element").hide();
-        $("#edit-cheque").hide();
-        $('.gift-card').hide();
-        $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', false);
-        var id = $(this).data('id').toString();
-        $.each(payment_id, function(index){
-            if(payment_id[index] == parseFloat(id)){
-                $('input[name="payment_id"]').val(payment_id[index]);
-                $('#edit-payment select[name="account_id"]').val(account_id[index]);
-                if(paying_method[index] == 'Cash')
-                    $('select[name="edit_paid_by_id"]').val(1);
-                else if(paying_method[index] == 'Gift Card'){
-                    $('select[name="edit_paid_by_id"]').val(2);
-                    $('#edit-payment select[name="gift_card_id"]').val(gift_card_id[index]);
-                    $('.gift-card').show();
-                    $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', true);
-                }
-                else if(paying_method[index] == 'Credit Card'){
-                    $('select[name="edit_paid_by_id"]').val(3);
-                    @if($lims_pos_setting_data && (strlen($lims_pos_setting_data->stripe_public_key)>0) && (strlen($lims_pos_setting_data->stripe_secret_key )>0))
-                        $.getScript( "vendor/stripe/checkout.js" );
-                        $(".card-element").show();
-                    @endif
-                    $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', true);
-                }
-                else if(paying_method[index] == 'Cheque'){
-                    $('select[name="edit_paid_by_id"]').val(4);
-                    $("#edit-cheque").show();
-                    $('input[name="edit_cheque_no"]').val(cheque_no[index]);
-                    $('input[name="edit_cheque_no"]').attr('required', true);
-                }
-                else if(paying_method[index] == 'Deposit')
-                    $('select[name="edit_paid_by_id"]').val(6);
-                else if(paying_method[index] == 'Points'){
-                    $('select[name="edit_paid_by_id"]').val(7);
-                }
-
-                $('.selectpicker').selectpicker('refresh');
-                $("#payment_reference").html(payment_reference[index]);
-                $('input[name="edit_paying_amount"]').val(paying_amount[index]);
-                $('#edit-payment .change').text(change[index]);
-                $('input[name="edit_amount"]').val(paid_amount[index]);
-                $('textarea[name="edit_payment_note"]').val(payment_note[index]);
-                $('input[name="payment_receiver"]').val(payment_receiver[index]);
-                return false;
-            }
-        });
-        $('#view-payment').modal('hide');
-    });
-
-    $('select[name="paid_by_id"]').on("change", function() {
-        var id = $(this).val();
-        $('input[name="cheque_no"]').attr('required', false);
-        $('#add-payment select[name="gift_card_id"]').attr('required', false);
-        $(".payment-form").off("submit");
-        if(id == 2){
-            $(".gift-card").show();
-            $(".card-element").hide();
-            $("#cheque").hide();
-            $('#add-payment select[name="gift_card_id"]').attr('required', true);
-        }
-        else if (id == 3) {
-            @if($lims_pos_setting_data && (strlen($lims_pos_setting_data->stripe_public_key)>0) && (strlen($lims_pos_setting_data->stripe_secret_key )>0))
-                $.getScript( "vendor/stripe/checkout.js" );
-                $(".card-element").show();
-            @endif
-            $(".gift-card").hide();
-            $("#cheque").hide();
-        } else if (id == 4) {
-            $("#cheque").show();
-            $(".gift-card").hide();
-            $(".card-element").hide();
-            $('input[name="cheque_no"]').attr('required', true);
-        } else if (id == 5) {
-            $(".card-element").hide();
-            $(".gift-card").hide();
-            $("#cheque").hide();
-        } else {
-            $(".card-element").hide();
-            $(".gift-card").hide();
-            $("#cheque").hide();
-            if(id == 6){
-                if($('#add-payment input[name="amount"]').val() > parseFloat(deposit))
-                    alert('Amount exceeds customer deposit! Customer deposit : ' + deposit);
-            }
-            else if(id==7) {
-                pointCalculation($('#add-payment input[name="amount"]').val());
-            }
-        }
-    });
-
-    $('#add-payment select[name="gift_card_id"]').on("change", function() {
-        var id = $(this).val();
-        if(expired_date[id] < current_date)
-            alert('This card is expired!');
-        else if($('#add-payment input[name="amount"]').val() > balance[id]){
-            alert('Amount exceeds card balance! Gift Card balance: '+ balance[id]);
-        }
-    });
-
-    $('input[name="paying_amount"]').on("input", function() {
-        $(".change").text(parseFloat( $(this).val() - $('input[name="amount"]').val() ).toFixed({{$general_setting->decimal}}));
-    });
-
-    $('input[name="amount"]').on("input", function() {
-        if( $(this).val() > parseFloat($('input[name="paying_amount"]').val()) ) {
-            alert('Paying amount cannot be bigger than recieved amount');
-            $(this).val('');
-        }
-        else if( $(this).val() > parseFloat($('input[name="balance"]').val()) ) {
-            alert('Paying amount cannot be bigger than due amount');
-            $(this).val('');
-        }
-        $(".change").text(parseFloat($('input[name="paying_amount"]').val() - $(this).val()).toFixed({{$general_setting->decimal}}));
-        var id = $('#add-payment select[name="paid_by_id"]').val();
-        var amount = $(this).val();
-        if(id == 2){
-            id = $('#add-payment select[name="gift_card_id"]').val();
-            if(amount > balance[id])
-                alert('Amount exceeds card balance! Gift Card balance: '+ balance[id]);
-        }
-        else if(id == 6){
-            if(amount > parseFloat(deposit))
-                alert('Amount exceeds customer deposit! Customer deposit : ' + deposit);
-        }
-        else if(id==7) {
-            pointCalculation(amount);
-        }
-    });
-
-    $('select[name="edit_paid_by_id"]').on("change", function() {
-        var id = $(this).val();
-        $('input[name="edit_cheque_no"]').attr('required', false);
-        $('#edit-payment select[name="gift_card_id"]').attr('required', false);
-        $(".payment-form").off("submit");
-        if(id == 2){
-            $(".card-element").hide();
-            $("#edit-cheque").hide();
-            $('.gift-card').show();
-            $('#edit-payment select[name="gift_card_id"]').attr('required', true);
-        }
-        else if (id == 3) {
-            $(".edit-btn").attr('data-clicked', true);
-            @if($lims_pos_setting_data && (strlen($lims_pos_setting_data->stripe_public_key)>0) && (strlen($lims_pos_setting_data->stripe_secret_key )>0))
-                $.getScript( "vendor/stripe/checkout.js" );
-                $(".card-element").show();
-            @endif
-            $("#edit-cheque").hide();
-            $('.gift-card').hide();
-        } else if (id == 4) {
-            $("#edit-cheque").show();
-            $(".card-element").hide();
-            $('.gift-card').hide();
-            $('input[name="edit_cheque_no"]').attr('required', true);
-        } else {
-            $(".card-element").hide();
-            $("#edit-cheque").hide();
-            $('.gift-card').hide();
-            if(id == 6) {
-                if($('input[name="edit_amount"]').val() > parseFloat(deposit))
-                    alert('Amount exceeds customer deposit! Customer deposit : ' + deposit);
-            }
-            else if(id==7) {
-                pointCalculation($('input[name="edit_amount"]').val());
-            }
-        }
-    });
-
-    $('#edit-payment select[name="gift_card_id"]').on("change", function() {
-        var id = $(this).val();
-        if(expired_date[id] < current_date)
-            alert('This card is expired!');
-        else if($('#edit-payment input[name="edit_amount"]').val() > balance[id])
-            alert('Amount exceeds card balance! Gift Card balance: '+ balance[id]);
-    });
-
-    $('input[name="edit_paying_amount"]').on("input", function() {
-        $(".change").text(parseFloat( $(this).val() - $('input[name="edit_amount"]').val() ).toFixed({{$general_setting->decimal}}));
-    });
-
-    $('input[name="edit_amount"]').on("input", function() {
-        if( $(this).val() > parseFloat($('input[name="edit_paying_amount"]').val()) ) {
-            alert('Paying amount cannot be bigger than recieved amount');
-            $(this).val('');
-        }
-        $(".change").text(parseFloat($('input[name="edit_paying_amount"]').val() - $(this).val()).toFixed({{$general_setting->decimal}}));
-        var amount = $(this).val();
-        var id = $('#edit-payment select[name="gift_card_id"]').val();
-        if(amount > balance[id]){
-            alert('Amount exceeds card balance! Gift Card balance: '+ balance[id]);
-        }
-        var id = $('#edit-payment select[name="edit_paid_by_id"]').val();
-        if(id == 6){
-            if(amount > parseFloat(deposit))
-                alert('Amount exceeds customer deposit! Customer deposit : ' + deposit);
-        }
-        else if(id==7) {
-            pointCalculation(amount);
-        }
-    });
-
     $(document).on("click", "table.sale-list tbody .add-delivery", function(event) {
         var id = $(this).data('id').toString();
         $.get('delivery/create/'+id, function(data) {
@@ -1954,15 +1296,6 @@
             $('#add-delivery').modal('show');
         });
     });
-
-    function pointCalculation(amount) {
-        availablePoints = $('table.sale-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.points').val();
-        required_point = Math.ceil(amount / reward_point_setting['per_point_amount']);
-        if(required_point > availablePoints) {
-          alert('Customer does not have sufficient points. Available points: '+availablePoints+'. Required points: '+required_point);
-        }
-    }
-
    
     function datatable_sum(dt_selector, is_calling_first) {
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
@@ -1979,31 +1312,8 @@
         }
     }
 
-    $(document).on('submit', '.payment-form', function(e) {
-        if( $('input[name="paying_amount"]').val() < parseFloat($('#amount').val()) ) {
-            alert('Paying amount cannot be bigger than recieved amount');
-            $('input[name="amount"]').val('');
-            $(".change").text(parseFloat( $('input[name="paying_amount"]').val() - $('#amount').val() ).toFixed({{$general_setting->decimal}}));
-            e.preventDefault();
-        }
-        else if( $('input[name="edit_paying_amount"]').val() < parseFloat($('input[name="edit_amount"]').val()) ) {
-            alert('Paying amount cannot be bigger than recieved amount');
-            $('input[name="edit_amount"]').val('');
-            $(".change").text(parseFloat( $('input[name="edit_paying_amount"]').val() - $('input[name="edit_amount"]').val() ).toFixed({{$general_setting->decimal}}));
-            e.preventDefault();
-        }
-        $('#edit-payment select[name="edit_paid_by_id"]').prop('disabled', false);
-    });
-
     function confirmDelete() {
         if (confirm("Are you sure want to delete?")) {
-            return true;
-        }
-        return false;
-    }
-
-    function confirmPaymentDelete() {
-        if (confirm("Are you sure want to delete? If you delete this money will be refunded.")) {
             return true;
         }
         return false;
@@ -2021,8 +1331,6 @@
                     ending_date: ending_date,
                     warehouse_id: warehouse_id,
                     sale_status: sale_status,
-                    sale_type: sale_type,
-                    payment_status: payment_status,
                     location : _location,
                     supplier_id: supplier_id,
                     product_code: product_code
@@ -2066,7 +1374,7 @@
                 }
             ],
             'select': { style: 'multi',  selector: 'td:first-child'},
-            'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            'lengthMenu': [[10, 25, 50, 100], [10, 25, 50, 100]],
             "rowId": 'ObjectID',
             "buttons": [
                 {
@@ -2182,7 +1490,7 @@
                 <input type="text" id="scanner-search" class="form-control form-control-sm"
                     placeholder="Scan..." style="max-width: 200px;">
             `);
-                    // Always focus #scanner-search after it is created
+            // Always focus #scanner-search after it is created
             function focusScannerInput(delay = 3000) {
                 setTimeout(function(){
                     $('#scanner-search').focus();
@@ -2219,7 +1527,20 @@
                         },
                         success: function(response) {
                             // Handle the response from the backend
-                            data_table.search('').draw();
+                            if(response.code == 200){
+                                // ✅ Play audio on success
+                                const audio = new Audio('/sounds/success-scan.mp3'); // Adjust path as needed
+                                audio.play().catch(err => {
+                                    console.error('Audio play failed:', err);
+                                });
+                                data_table.search('').draw();
+                            }
+                            else {
+                                const errorAudio = new Audio('/sounds/fail-scan.mp3');
+                                errorAudio.play().catch(err => {
+                                    console.error('Error audio failed:', err);
+                                });
+                            }
                         },
                         error: function(error) {
                             console.error('Scan Search Error : ', error);
@@ -2281,13 +1602,6 @@
                 }
             });
         }, 2000);
-
-        $(document).on('click', '.send-sms', function(){
-            $("#send-sms input[name='customer_id']").val($(this).data('customer_id'));
-            $("#send-sms input[name='reference_no']").val($(this).data('reference_no'));
-            $("#send-sms input[name='sale_status']").val($(this).data('sale_status'));
-            $("#send-sms input[name='payment_status']").val($(this).data('payment_status'));
-        });
     });
 </script>
 <script type="text/javascript" src="https://js.stripe.com/v3/"></script>

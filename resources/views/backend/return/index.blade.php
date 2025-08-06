@@ -15,7 +15,7 @@
             {!! Form::open(['route' => 'return-sale.index', 'method' => 'get']) !!}
 
             <div class="row m-2 align-items-end">
-                <div class="col-lg-3 col-md-4 mb-2">
+                <div class="col-lg-2 col-md-3 mb-2">
                     <label for="date-range" class="font-weight-bold">{{ trans('file.Date') }}:</label>
                     <div class="input-group">
                         <input id="date-range" type="text" class="daterangepicker-field form-control" value="{{ $starting_date }} To {{ $ending_date }}" required />
@@ -23,7 +23,7 @@
                         <input type="hidden" name="ending_date" value="{{ $ending_date }}" />
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-4 mb-2">
+                <div class="col-lg-2 col-md-3 mb-2">
                     <label for="supplier-id" class="font-weight-bold">{{ trans('file.Supplier') }}:</label>
                     <select id="supplier-id" class="form-control selectpicker" name="supplier_id" data-live-search="true">
                         @if(sizeof($lims_supplier_list) > 1)
@@ -33,6 +33,17 @@
                             <option value="{{ $supplier->id }}">{{ $supplier->name }} ({{ $supplier->phone_number }})</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-lg-2 col-md-3 mb-2">
+                    <div class="form-group">
+                        <label><strong>{{trans('Product')}}</strong></label>
+                        <select id="product_code" class="form-control" name="product_code" data-live-search="true">
+                            <option value="0">All</option>
+                            @foreach($lims_product_codes as $row)
+                                <option value="{{$row['code']}}">{{$row['code']}}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="col-lg-2 col-lg-offset-4 col-md-4 mb-2 d-flex align-items-end">
                     <button class="btn btn-primary w-100" id="filter-btn" type="submit">{{ trans('file.submit') }}</button>
@@ -334,6 +345,7 @@
     var ending_date = <?php echo json_encode($ending_date); ?>;
     var supplier_id = <?php echo json_encode($supplier_id); ?>;
     var warehouse_id = <?php echo json_encode($warehouse_id); ?>;
+    var product_code = <?php echo json_encode($product_code); ?>;
 
     $.ajaxSetup({
         headers: {
@@ -347,11 +359,6 @@
         }
         return false;
     }
-
-     $(document).on("click", "tr.return-link td:not(:first-child, :last-child)", function() {
-        // var returns = $(this).parent().data('return');
-        // returnDetails(returns);
-    });
 
     $(document).on("click", ".view", function() {
         var returns = $(this).parent().parent().parent().parent().parent().data('return');
@@ -372,6 +379,8 @@
     });
 
     $("#supplier-id").val(supplier_id);
+    $("#product_code").val(product_code);
+    $('.selectpicker').selectpicker('refresh');
 
     $('#return-table').DataTable( {
         "processing": true,
@@ -383,7 +392,8 @@
                 starting_date: starting_date,
                 ending_date: ending_date,
                 warehouse_id: warehouse_id,
-                supplier_id : supplier_id
+                supplier_id : supplier_id,
+                product_code: product_code,
             },
             dataType: "json",
             type:"post"

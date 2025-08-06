@@ -323,36 +323,11 @@ class SaleController extends Controller
             else
                 $sale_status = 0;
 
-            if ($request->input('payment_status'))
-                $payment_status = $request->input('payment_status');
-            else
-                $payment_status = 0;
-
              if ($request->input('location'))
                 $location = $request->input('location');
             else
                 $location = 0;
 
-            if ($request->input('sale_type'))
-                $sale_type = $request->input('sale_type');
-            else
-                $sale_type = 0;
-
-            if ($request->input('supplier_id')){
-                $supplier_id = $request->input('supplier_id');
-                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
-                                                ->where('product_sales.supplier_id', $supplier_id)
-                                                ->select('products.code')
-                                                ->distinct()
-                                                ->get();
-            }
-            else {
-                $supplier_id = 0;
-                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
-                                                ->select('products.code')
-                                                ->distinct()
-                                                ->get();
-            }
 
             if ($request->input('product_code'))
                 $product_code = $request->input('product_code');
@@ -367,19 +342,38 @@ class SaleController extends Controller
                 $ending_date = date("Y-m-d");
             }
 
+            if ($request->input('supplier_id')){
+                $supplier_id = $request->input('supplier_id');
+            }
+            else {
+                $supplier_id = 0;
+            }
+
             if($user->supplier_id) {
+                $supplier_id = $user->supplier_id;
                 $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
             }
             else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
             }
 
-            $lims_gift_card_list = GiftCard::where("is_active", true)->get();
+            if($supplier_id > 0){
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                    ->where('product_sales.supplier_id', $supplier_id)
+                                    ->select('products.code')
+                                    ->distinct()
+                                    ->get();
+            }
+            else {
+                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                                    ->select('products.code')
+                                    ->distinct()
+                                    ->get();
+            }
+
             $lims_pos_setting_data = PosSetting::latest()->first();
-            $lims_reward_point_setting_data = RewardPointSetting::latest()->first();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_account_list = Account::where('is_active', true)->get();
-            $lims_courier_list = Courier::where('is_active', true)->get();
             $lims_general_setting_data = GeneralSetting::latest()->select('shipping_cost_list', 'return_shipping_cost_list')->first();
             $lims_shipping_cost_list = explode(',', $lims_general_setting_data->shipping_cost_list);
             $lims_return_shipping_cost_list = explode(',', $lims_general_setting_data->return_shipping_cost_list);
@@ -388,45 +382,43 @@ class SaleController extends Controller
                 $options = explode(',', $lims_pos_setting_data->payment_options);
             else
                 $options = [];
+
             $numberOfInvoice = Sale::count();
             $custom_fields = CustomField::where([
                 ['belongs_to', 'sale'],
                 ['is_table', true]
             ])->pluck('name');
+
             $field_name = [];
             foreach ($custom_fields as $fieldName) {
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
-            $smsTemplates = SmsTemplate::all();
+
             $can_scanner = ($role->hasPermissionTo('return-receiving') && $sale_status == 14)
                     || ($role->hasPermissionTo('receiving') && $sale_status == 12)
                     || ($role->hasPermissionTo('shipped-return') && $sale_status == 8);
             return view('backend.sale.index', 
             compact(
-              'starting_date', 
-             'ending_date', 
+              'starting_date',
+             'ending_date',
                         'warehouse_id', 
-                        'sale_status', 
-                        'payment_status', 'location', 
-                        'sale_type', 'supplier_id', 
-                        'lims_gift_card_list', 
-                        'lims_pos_setting_data', 
-                        'lims_reward_point_setting_data', 
-                        'lims_account_list', 
                         'lims_warehouse_list', 
-                        'all_permission', 
-                        'options', 
-                        'numberOfInvoice', 
-                        'custom_fields', 
-                        'field_name', 
+                        'sale_status', 
+                        'location', 
+                        'supplier_id', 
+                        'lims_supplier_list',
                         'product_code',
                         'lims_product_codes',
-                        'lims_courier_list', 
-                        'lims_supplier_list',
-                        'lims_shipping_cost_list', 
-                        'lims_return_shipping_cost_list', 
                         'can_scanner',
-                        'smsTemplates'
+                        'lims_shipping_cost_list', 
+                        'lims_return_shipping_cost_list',
+                        'lims_pos_setting_data', 
+                        'lims_account_list', 
+                        'options',
+                        'numberOfInvoice',
+                        'custom_fields',
+                        'field_name',
+                        'all_permission'
                 )
             );
         } else
@@ -465,7 +457,6 @@ class SaleController extends Controller
             'product_code' => $request->input('product_code') ?? 0,
             'sale_status'  => $request->input('sale_status'),
             'location'     => $request->input('location'),
-            'sale_type'    => $request->input('sale_type'),
             'start_date'   => $request->input('starting_date'),
             'end_date'     => $request->input('ending_date'),
         ];
@@ -489,7 +480,7 @@ class SaleController extends Controller
         }
 
         // Apply basic filters
-        foreach (['warehouse_id', 'sale_status', 'location', 'sale_type'] as $field) {
+        foreach (['warehouse_id', 'sale_status', 'location'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where("sales.$field", $filters[$field]);
             }
@@ -525,12 +516,14 @@ class SaleController extends Controller
         $start = $request->input('start', 0);
         $limit = ($limit == -1) ? $totalFiltered : $limit;
 
-        // Fetch sales
+        $query = $query->orderBy($orderColumn, $orderDir);
+
+        if ($limit != -1) {
+            $query = $query->offset($start)->limit($limit);
+        }
+
         $sales = $query
             ->groupBy('sales.id')
-            ->orderBy($orderColumn, $orderDir)
-            ->offset($start)
-            ->limit($limit)
             ->get();
 
       
@@ -684,11 +677,11 @@ class SaleController extends Controller
                 'product_name'          => $nestedData['product_name'],
                 'product_code'          => $nestedData['product_code'],
                 'warehouse'             => $sale->warehouse->name,
-                'customer_name'         => $sale->customer->name,
-                'customer_phone_number' => $sale->customer->phone_number,
-                'customer_address'      => $sale->customer->address,
+                'customer_name'         => $sale->customer->name ?? 'Undefined',
+                'customer_phone_number' => $sale->customer->phone_number ?? '',
+                'customer_address'      => $sale->customer->address ?? '',
+                'customer_city'         => $sale->customer->city ?? '',
                 'date'                  => \Carbon\Carbon::parse($sale->updated_at)->format('Y-m-d H:i:s'),
-                'customer_city'         => $sale->customer->city,
                 'total_qty'             => $sale->total_qty,
                 'total_price'           => $nestedData['total_price'],
                 'location'              => $nestedData['location'],
