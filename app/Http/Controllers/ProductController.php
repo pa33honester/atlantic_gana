@@ -85,11 +85,10 @@ class ProductController extends Controller
         $columns = [
             2 => 'name',
             3 => 'code',
-            4 => 'qty',
-            5 => 'volume',
-            6 => 'price',
-            7 => 'supplier_name',
-            8 => 'stock_worth'
+            6 => 'qty',
+            7 => 'volume',
+            8 => 'price',
+            9 => 'supplier_name'
         ];
 
         $warehouse_id = $request->input('warehouse_id');
