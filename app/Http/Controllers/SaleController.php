@@ -436,7 +436,6 @@ class SaleController extends Controller
     {
         $user = Auth::user();
 
-
         $columns = [
             1  => 'sales.reference_no',
             2  => 'products.name',
@@ -709,8 +708,8 @@ class SaleController extends Controller
         $sale = Sale::where('reference_no', $searchValue)->select('id', 'sale_status')->first();
         $status = $request->sale_status;
 
-        if ($searchValue) {
-            if(preg_match('/^E\d{6}\d{10}$/', $searchValue) === 1){
+        if ($searchValue) { //  E1839795360176649
+            if(preg_match('/^E\d{16}$/', $searchValue) === 1){
                 if($role->hasPermissionTo('receiving') || $role->hasPermissionTo('return-receiving') || $role->hasPermissionTo('shipped')){
                     if ($status == 12 && $sale->sale_status == 12) {  // receiving -> shipped
                         $sale->fill([

@@ -35,15 +35,13 @@
                     </select>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-2">
-                    <div class="form-group">
-                        <label><strong>{{trans('Product')}}</strong></label>
-                        <select id="product_code" class="form-control" name="product_code" data-live-search="true">
-                            <option value="0">All</option>
-                            @foreach($lims_product_codes as $row)
-                                <option value="{{$row['code']}}">{{$row['code']}}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <label for="product_code" class="font-weight-bold"><strong>{{trans('Product')}}</strong></label>
+                    <select id="product_code" class="form-control selectpicker" name="product_code" data-live-search="true">
+                        <option value="0">All</option>
+                        @foreach($lims_product_codes as $row)
+                            <option value="{{$row['code']}}">{{$row['code']}}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-lg-2 col-lg-offset-4 col-md-4 mb-2 d-flex align-items-end">
                     <button class="btn btn-primary w-100" id="filter-btn" type="submit">{{ trans('file.submit') }}</button>

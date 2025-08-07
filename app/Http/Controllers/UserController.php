@@ -121,14 +121,6 @@ class UserController extends Controller
         $data['password'] = bcrypt($data['password']);
         $data['phone'] = $data['phone_number'];
         $user_data = User::create($data);
-        
-        if($data['role_id'] == 5) { // customer role
-            $data['user_id'] = $user_data->id;
-            $data['name'] = $data['customer_name'];
-            $data['phone_number'] = $data['phone'];
-            $data['is_active'] = true;
-            Customer::create($data);
-        }
 
         return redirect('user')->with('message1', $message);
     }
@@ -173,7 +165,13 @@ class UserController extends Controller
             $input['is_active'] = false;
         if(!empty($request['password']))
             $input['password'] = bcrypt($request['password']);
+
+        if(!isset($request->supplier_id)) {
+            $input['supplier_id'] = 0;
+        }
+
         $lims_user_data = User::find($id);
+        
         $lims_user_data->update($input);
 
         cache()->forget('user_role');

@@ -3,7 +3,6 @@
 @if(session()->has('not_permitted'))
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
-<h1>hi, rona</h1>
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
@@ -201,43 +200,44 @@
     });
 
     $('select[name="role_id"]').on('change', function() {
-        if($(this).val() == 5) { // customer service
+        const selectedRole = $(this).find('option:selected').text().toLowerCase();
 
-            $('#warehouseId').hide(300);
-            $('.customer-section').show(300);
-            $('.customer-input').prop('required',true);
+        console.log(selectedRole);
+
+        if(selectedRole == 'admin'){
             $('select[name="warehouse_id"]').prop('required',false);
+            $('#warehouseId').hide(300);
 
+            $('.customer-section').hide(300);
+            $('.customer-input').prop('required',false);
 
             $('#supplier-id').hide(300);
             $('select[name="supplier_id"]').prop('required',false);
         }
-        else if($(this).val() == 8) { // supplier
+        else if(selectedRole == 'supplier'){
             $('#warehouseId').show(300);
             $('select[name="warehouse_id"]').prop('required',true);
             
             $('#supplier-id').show(300);
             $('select[name="supplier_id"]').prop('required',true);
-
+    
             $('.customer-section').hide(300);
             $('.customer-input').prop('required',false);
         }
-        else if($(this).val() > 2 && $(this).val() != 5) {
-            $('select[name="warehouse_id"]').prop('required',true);
+        else if(selectedRole == 'customer service') { // 5
+            $('#warehouseId').hide(300);
+            $('select[name="warehouse_id"]').prop('required',false);
 
-            $('#warehouseId').show(300);
-            $('.customer-section').hide(300);
-            $('.customer-input').prop('required',false);
-
+            $('.customer-section').show(300);
+            $('.customer-input').prop('required',true);
+    
             $('#supplier-id').hide(300);
             $('select[name="supplier_id"]').prop('required',false);
         }
         else {
-            $('select[name="warehouse_id"]').prop('required',false);
+            $('select[name="warehouse_id"]').prop('required',true);
 
-
-            $('#warehouseId').hide(300);
-
+            $('#warehouseId').show(300);
             $('.customer-section').hide(300);
             $('.customer-input').prop('required',false);
 
@@ -245,5 +245,6 @@
             $('select[name="supplier_id"]').prop('required',false);
         }
     });
+
 </script>
 @endpush

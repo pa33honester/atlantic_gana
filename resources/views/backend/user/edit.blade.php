@@ -82,7 +82,7 @@
                                           @endforeach
                                         </select>
                                     </div>
-                                    <div class="form-group" id="warehouseId">
+                                    <!-- <div class="form-group" id="warehouseId">
                                         <label><strong>{{trans('file.Warehouse')}} *</strong></label>
                                         <input type="hidden" name="warehouse_id_hidden" value="{{$lims_user_data->warehouse_id}}">
                                         <select name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Warehouse...">
@@ -90,7 +90,7 @@
                                               <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
                                           @endforeach
                                         </select>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         {!! Form::close() !!}
@@ -106,32 +106,32 @@
 <script type="text/javascript">
     $("ul#people").siblings('a').attr('aria-expanded','true');
     $("ul#people").addClass("show");
-    $('#supplier-id').hide();
     $('#warehouseId').hide();
-
-    $('select[name=role_id]').val($("input[name='role_id_hidden']").val());
-    if($('select[name=role_id]').val() > 2){
-        $('#warehouseId').show();
-        $('select[name=warehouse_id]').val($("input[name='warehouse_id_hidden']").val());
-        $('#supplier-id').show();
-        $('select[name=supplier_id]').val($("input[name='supplier_id_hidden']").val());
-    }
-    $('.selectpicker').selectpicker('refresh');
+    $('select[name="warehouse_id"]').prop('required',false);
 
     $('select[name="role_id"]').on('change', function() {
-        if($(this).val() > 2){
-            $('select[name="warehouse_id"]').prop('required',true);
+        const selectedRole = $(this).find('option:selected').text().toLowerCase();
+
+        console.log(selectedRole);
+
+        if(selectedRole == 'supplier'){
+            
+            $('#supplier-id').show(300);
             $('select[name="supplier_id"]').prop('required',true);
-            $('#supplier-id').show();
-            $('#warehouseId').show();
         }
-        else{
-            $('select[name="warehouse_id"]').prop('required',false);
+        else {
+
+            $('#supplier-id').hide(300);
             $('select[name="supplier_id"]').prop('required',false);
-            $('#supplier-id').hide();
-            $('#warehouseId').hide();
         }
     });
+
+    
+    $('select[name=role_id]')
+    .val($("input[name='role_id_hidden']").val())
+    .trigger('change'); // Trigger change event;
+    
+    $('.selectpicker').selectpicker('refresh');
 
     $('#genbutton').on("click", function(){
       $.get('../genpass', function(data){
