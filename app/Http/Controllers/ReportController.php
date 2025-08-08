@@ -4698,7 +4698,27 @@ class ReportController extends Controller
         else {
             $lims_supplier_list = Supplier::where('is_active', true)->get();
         }
-        return view('backend.report.supplier_report',compact('start_date', 'end_date', 'supplier_id', 'lims_supplier_list'));
+
+        if($supplier_id == 0){
+            $supplier_id = $lims_supplier_list[0]->id;
+        }
+        
+        $signed_data = Sale::where('sale_status', 9)
+                    ->whereHas('products', fn($q) => $q->where('products.supplier_id', $supplier_id))
+                    ->selectRaw('SUM(sales.total_price) as total_price,
+                                SUM(sales.shipping_cost) as shipping_cost')
+                    ->first();
+
+        $returned_data = Sale::where('sale_status', 4)
+                        ->whereHas('products', fn($q) => $q->where('products.supplier_id', $supplier_id))
+                        ->selectRaw('SUM(shipping_cost) as shipping_cost, SUM(return_shipping_cost) as return_shipping_cost')->first();
+
+        $signed_total = $signed_data->total_price - $signed_data->shipping_cost;
+        $returned_total = $returned_data->shipping_cost + $returned_data->return_shipping_cost;
+
+        return view('backend.report.supplier_report',
+        compact('start_date', 'end_date', 
+            'supplier_id', 'lims_supplier_list', 'signed_total', 'returned_total'));
     }
 
     public function supplierPurchaseData(Request $request)
@@ -4851,7 +4871,6 @@ class ReportController extends Controller
 
             $totalFiltered = $query->count();
         }
-
         
         // Fetch paginated sales
         $sales = $query
@@ -4875,7 +4894,7 @@ class ReportController extends Controller
                 "return_shipping_cost"  => $return->return_shipping_cost,
                 "product"       => $return->products->pluck('name')->toArray(),
                 "qty"           => $return->products->pluck('pivot.qty')->toArray(),
-                "grand_total"   => number_format($return->sipping_cost + $return->return_shipping_cost, cache()->get('general_setting')->decimal)
+                "grand_total"   => $return->shipping_cost + $return->return_shipping_cost,
             ];
             $data[] = $nestedData;
         }

@@ -140,9 +140,9 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
+                            <td>{{ $signed_total }}</td>
+                            <td>{{ $returned_total }}</td>
+                            <td>{{ $signed_total - $returned_total }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -161,8 +161,6 @@
     var start_date = <?php echo json_encode($start_date); ?>;
     var end_date = <?php echo json_encode($end_date); ?>;
     var supplier_id = <?php echo json_encode($supplier_id); ?>;
-    var total_purchase = 0;
-    var total_return = 0;
 
     $.ajaxSetup({
         headers: {
@@ -294,13 +292,11 @@
             for(var _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             }
-            total_purchase = dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}});
         }
         else {
             for(var _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
             }
-            total_purchase = dt_selector.column( 8 , {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}});
         }
     }
 
@@ -424,22 +420,14 @@
             var rows = dt_selector.rows( '.selected' ).indexes();
 
             for(let _i = 5; _i < 9; _i ++){
-                $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
+                $( dt_selector.column( _i ).footer() ).html(dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             }
-             total_return = dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}});
         }
         else {
             for(let _i = 5; _i < 9; _i ++){
-                $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
+                $( dt_selector.column( _i ).footer() ).html(dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
             }
-            total_return = dt_selector.column( 8 , {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}});
         }
-    }
-
-    function calc_total_balance(){
-        $('#return-quotation tbody tr td:nth-child(1)').html(total_purchase);
-        $('#return-quotation tbody tr td:nth-child(2)').html(total_return);
-        $('#return-quotation tbody tr td:nth-child(3)').html((total_purchase - total_return).toFixed({{$general_setting->decimal}}));
     }
 
     $(document).ready(function(){
@@ -458,10 +446,6 @@
             'width': '100%',
             'min-width': '300px',
             'max-width': '100%'
-        });
-
-        $('#supplier-quotation').on('click', function(){
-            calc_total_balance();
         });
     });
 
