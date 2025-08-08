@@ -59,8 +59,8 @@ class ReturnController extends Controller
                 $starting_date = $request->input('starting_date');
                 $ending_date = $request->input('ending_date');
             } else {
-                $starting_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d'))))));
-                $ending_date = date("Y-m-d");
+                // $starting_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 day', strtotime(date('Y-m-d'))))));
+                $starting_date = $ending_date = date("Y-m-d");
             }
 
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
@@ -88,7 +88,7 @@ class ReturnController extends Controller
             if($supplier_id > 0){
                 $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
                                     ->join('sales', 'sales.id', '=', 'product_sales.sale_id')
-                                    ->where('sales.sale_status', 4)
+                                    ->where('sales.sale_status', 13)
                                     ->where('product_sales.supplier_id', $supplier_id)
                                     ->select('products.code')
                                     ->distinct()
@@ -97,7 +97,7 @@ class ReturnController extends Controller
             else {
                 $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
                                     ->join('sales', 'sales.id', '=', 'product_sales.sale_id')
-                                    ->where('sales.sale_status', 4)
+                                    ->where('sales.sale_status', 13)
                                     ->select('products.code')
                                     ->distinct()
                                     ->get();
@@ -134,6 +134,8 @@ class ReturnController extends Controller
 
         $warehouse_id = $request->input('warehouse_id');
         $supplier_id = $user->supplier_id ?? $request->input('supplier_id');
+        $product_code = $request->input('product_code') ?? 0;
+
         $start = $request->input('start', 0);
         $limit = $request->input('length', 10);
         $order = ($columns[$request->input('order.0.column')] ?? 'sales.updated_at');
@@ -153,11 +155,16 @@ class ReturnController extends Controller
             ->when($warehouse_id != 0, function ($q) use ($warehouse_id) {
                 $q->where('warehouse_id', $warehouse_id);
             });
-    
         
         if ($supplier_id > 0) {
             $baseQuery->whereHas('products', function($q) use ($supplier_id) {
                 $q->where('products.supplier_id', $supplier_id);
+            });
+        }
+
+        if($product_code > 0){
+             $baseQuery->whereHas('products', function($q) use ($product_code) {
+                $q->where('products.code', $product_code);
             });
         }
 

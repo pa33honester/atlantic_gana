@@ -185,8 +185,7 @@
             },
             dataType: "json",
             type:"post"
-        },$2y$10$Z6ShO9GNwM.Fh6Gt6wLID.Fp64Zp7yGkmr7SjKB6qrdn.JWFe1viS
-        $2y$10$LYBgE0oVXO7x/RNnsQbTmuKoN2nwcMrtj0uwlzFuiMp2ANLEf38B2
+        },
         "columns": [
             {"data": "key"},
             {"data": "date"},
@@ -302,128 +301,6 @@
                 $( dt_selector.column( _i ).footer() ).html(dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
             }
             total_purchase = dt_selector.column( 8 , {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}});
-        }
-    }
-
-    $('#payment-table').DataTable({
-        "processing": true,
-        "serverSide": true,
-        "ajax":{
-            url:"supplier-payment-data",
-            data:{
-                start_date: start_date,
-                end_date: end_date,
-                supplier_id: supplier_id
-            },
-            dataType: "json",
-            type:"post"
-        },
-        "columns": [
-            {"data": "key"},
-            {"data": "date"},
-            {"data": "reference_no"},
-            {"data": "purchase_reference"},
-            {"data": "amount"},
-            {"data": "paying_method"}
-        ],
-        'language': {
-
-            'lengthMenu': '_MENU_ {{trans("file.records per page")}}',
-             "info":      '<small>{{trans("file.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{trans("file.Search")}}',
-            'paginate': {
-                    'previous': '<i class="dripicons-chevron-left"></i>',
-                    'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        },
-        order:[['1', 'desc']],
-        'columnDefs': [
-            {
-                "orderable": false,
-                'targets': [0, 2, 3]
-            },
-            {
-                'render': function(data, type, row, meta){
-                    if(type === 'display'){
-                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
-                    }
-
-                   return data;
-                },
-                'checkboxes': {
-                   'selectRow': true,
-                   'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
-                },
-                'targets': [0]
-            }
-        ],
-        'select': { style: 'multi',  selector: 'td:first-child'},
-        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        dom: '<"row"lfB>rtip',
-        rowId: 'ObjectID',
-        buttons: [
-            {
-                extend: 'pdf',
-                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-payment)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_payment(dt, true);
-                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum_payment(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'csv',
-                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-payment)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_payment(dt, true);
-                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum_payment(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'print',
-                text: '<i title="print" class="fa fa-print"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported-payment)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum_payment(dt, true);
-                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
-                    datatable_sum_payment(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'colvis',
-                text: '<i title="column visibility" class="fa fa-eye"></i>',
-                columns: ':gt(0)'
-            },
-        ],
-        drawCallback: function () {
-            var api = this.api();
-            datatable_sum_payment(api, false);
-        }
-    });
-
-    function datatable_sum_payment(dt_selector, is_calling_first) {
-        if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
-            var rows = dt_selector.rows( '.selected' ).indexes();
-
-            $( dt_selector.column( 4 ).footer() ).html(dt_selector.cells( rows, 4, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-        }
-        else {
-            $( dt_selector.column( 4 ).footer() ).html(dt_selector.column( 4, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
         }
     }
 
@@ -549,36 +426,44 @@
             for(let _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.cells( rows, _i, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
             }
+             total_return = dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}});
         }
         else {
             for(let _i = 5; _i < 9; _i ++){
                 $( dt_selector.column( _i ).footer() ).html(total_return = dt_selector.column( _i, {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}}));
             }
+            total_return = dt_selector.column( 8 , {page:'current'} ).data().sum().toFixed({{$general_setting->decimal}});
         }
     }
 
+    function calc_total_balance(){
+        $('#return-quotation tbody tr td:nth-child(1)').html(total_purchase);
+        $('#return-quotation tbody tr td:nth-child(2)').html(total_return);
+        $('#return-quotation tbody tr td:nth-child(3)').html((total_purchase - total_return).toFixed({{$general_setting->decimal}}));
+    }
+
     $(document).ready(function(){
-        setTimeout(function(){
-            $('#return-quotation tbody tr td:nth-child(1)').html(total_purchase);
-            $('#return-quotation tbody tr td:nth-child(2)').html(total_return);
-            $('#return-quotation tbody tr td:nth-child(3)').html((total_purchase - total_return).toFixed({{$general_setting->decimal}}));
-        }, 2000);
+
+        $(".daterangepicker-field").daterangepicker({
+            callback: function(startDate, endDate, period){
+                var start_date = startDate.format('YYYY-MM-DD');
+                var end_date = endDate.format('YYYY-MM-DD');
+                var title = start_date + ' to ' + end_date;
+                $(this).val(title);
+                $('input[name="start_date"]').val(start_date);
+                $('input[name="end_date"]').val(end_date);
+            }
+        });
+        $('.daterangepicker-field').css({
+            'width': '100%',
+            'min-width': '300px',
+            'max-width': '100%'
+        });
+
+        $('#supplier-quotation').on('click', function(){
+            calc_total_balance();
+        });
     });
 
-    $(".daterangepicker-field").daterangepicker({
-        callback: function(startDate, endDate, period){
-            var start_date = startDate.format('YYYY-MM-DD');
-            var end_date = endDate.format('YYYY-MM-DD');
-            var title = start_date + ' to ' + end_date;
-            $(this).val(title);
-            $('input[name="start_date"]').val(start_date);
-            $('input[name="end_date"]').val(end_date);
-        }
-    });
-    $('.daterangepicker-field').css({
-        'width': '100%',
-        'min-width': '300px',
-        'max-width': '100%'
-    });
 </script>
 @endpush

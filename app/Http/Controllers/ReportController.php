@@ -4732,10 +4732,10 @@ class ReportController extends Controller
             });
         }
 
-        $totalData = $query->count();
+        $totalData = (clone $query)->count();
         $totalFiltered = $totalData;
 
-              // Pagination and ordering
+        // Pagination and ordering
         $limit = $request->input('length', 10);
         $start = $request->input('start', 0);
         $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
@@ -4791,90 +4791,6 @@ class ReportController extends Controller
             "recordsTotal"    => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data"            => $data,
-        );
-        echo json_encode($json_data);
-    }
-
-    public function supplierPaymentData(Request $request)
-    {
-        $columns = array(
-            1 => 'created_at',
-            2 => 'reference_no',
-        );
-
-        $supplier_id = $request->input('supplier_id');
-        $q = DB::table('payments')
-           ->join('purchases', 'payments.purchase_id', '=', 'purchases.id')
-           ->where('purchases.supplier_id', $supplier_id)
-           ->whereDate('payments.created_at', '>=' , $request->input('start_date'))
-           ->whereDate('payments.created_at', '<=' , $request->input('end_date'));
-
-        $totalData = $q->count();
-        $totalFiltered = $totalData;
-
-        if($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
-        $start = $request->input('start');
-        $order = 'payments.'.$columns[$request->input('order.0.column')];
-        $dir = $request->input('order.0.dir');
-        $q = $q->select('payments.*', 'purchases.reference_no as purchase_reference')
-            ->offset($start)
-            ->limit($limit)
-            ->orderBy($order, $dir);
-        if(empty($request->input('search.value'))) {
-            $payments = $q->get();
-        }
-        else
-        {
-            $search = $request->input('search.value');
-            $q = $q->whereDate('payments.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))));
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $payments =  $q->orwhere([
-                                ['payments.payment_reference', 'LIKE', "%{$search}%"],
-                                ['payments.user_id', Auth::id()]
-                            ])
-                            ->orwhere([
-                                ['payments.created_at', 'LIKE', "%{$search}%"],
-                                ['payments.user_id', Auth::id()]
-                            ])
-                            ->get();
-                $totalFiltered = $q->orwhere([
-                                    ['payments.payment_reference', 'LIKE', "%{$search}%"],
-                                    ['payments.user_id', Auth::id()]
-                                ])
-                                ->orwhere([
-                                    ['payments.created_at', 'LIKE', "%{$search}%"],
-                                    ['payments.user_id', Auth::id()]
-                                ])
-                                ->count();
-            }
-            else {
-                $payments =  $q->orwhere('payments.created_at', 'LIKE', "%{$search}%")->orwhere('payments.payment_reference', 'LIKE', "%{$search}%")->get();
-                $totalFiltered = $q->orwhere('payments.created_at', 'LIKE', "%{$search}%")->orwhere('payments.payment_reference', 'LIKE', "%{$search}%")->count();
-            }
-        }
-        $data = array();
-        if(!empty($payments))
-        {
-            foreach ($payments as $key => $payment)
-            {
-                $nestedData['id'] = $payment->id;
-                $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format'), strtotime($payment->created_at));
-                $nestedData['reference_no'] = $payment->payment_reference;
-                $nestedData['purchase_reference'] = $payment->purchase_reference;
-                $nestedData['amount'] = number_format($payment->amount, cache()->get('general_setting')->decimal);
-                $nestedData['paying_method'] = $payment->paying_method;
-                $data[] = $nestedData;
-            }
-        }
-        $json_data = array(
-            "draw"            => intval($request->input('draw')),
-            "recordsTotal"    => intval($totalData),
-            "recordsFiltered" => intval($totalFiltered),
-            "data"            => $data
         );
         echo json_encode($json_data);
     }
@@ -4964,6 +4880,90 @@ class ReportController extends Controller
             $data[] = $nestedData;
         }
 
+        $json_data = array(
+            "draw"            => intval($request->input('draw')),
+            "recordsTotal"    => intval($totalData),
+            "recordsFiltered" => intval($totalFiltered),
+            "data"            => $data
+        );
+        echo json_encode($json_data);
+    }
+
+    public function supplierPaymentData(Request $request)
+    {
+        $columns = array(
+            1 => 'created_at',
+            2 => 'reference_no',
+        );
+
+        $supplier_id = $request->input('supplier_id');
+        $q = DB::table('payments')
+           ->join('purchases', 'payments.purchase_id', '=', 'purchases.id')
+           ->where('purchases.supplier_id', $supplier_id)
+           ->whereDate('payments.created_at', '>=' , $request->input('start_date'))
+           ->whereDate('payments.created_at', '<=' , $request->input('end_date'));
+
+        $totalData = $q->count();
+        $totalFiltered = $totalData;
+
+        if($request->input('length') != -1)
+            $limit = $request->input('length');
+        else
+            $limit = $totalData;
+        $start = $request->input('start');
+        $order = 'payments.'.$columns[$request->input('order.0.column')];
+        $dir = $request->input('order.0.dir');
+        $q = $q->select('payments.*', 'purchases.reference_no as purchase_reference')
+            ->offset($start)
+            ->limit($limit)
+            ->orderBy($order, $dir);
+        if(empty($request->input('search.value'))) {
+            $payments = $q->get();
+        }
+        else
+        {
+            $search = $request->input('search.value');
+            $q = $q->whereDate('payments.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))));
+            if(Auth::user()->role_id > 2 && config('staff_access') == 'own') {
+                $payments =  $q->orwhere([
+                                ['payments.payment_reference', 'LIKE', "%{$search}%"],
+                                ['payments.user_id', Auth::id()]
+                            ])
+                            ->orwhere([
+                                ['payments.created_at', 'LIKE', "%{$search}%"],
+                                ['payments.user_id', Auth::id()]
+                            ])
+                            ->get();
+                $totalFiltered = $q->orwhere([
+                                    ['payments.payment_reference', 'LIKE', "%{$search}%"],
+                                    ['payments.user_id', Auth::id()]
+                                ])
+                                ->orwhere([
+                                    ['payments.created_at', 'LIKE', "%{$search}%"],
+                                    ['payments.user_id', Auth::id()]
+                                ])
+                                ->count();
+            }
+            else {
+                $payments =  $q->orwhere('payments.created_at', 'LIKE', "%{$search}%")->orwhere('payments.payment_reference', 'LIKE', "%{$search}%")->get();
+                $totalFiltered = $q->orwhere('payments.created_at', 'LIKE', "%{$search}%")->orwhere('payments.payment_reference', 'LIKE', "%{$search}%")->count();
+            }
+        }
+        $data = array();
+        if(!empty($payments))
+        {
+            foreach ($payments as $key => $payment)
+            {
+                $nestedData['id'] = $payment->id;
+                $nestedData['key'] = $key;
+                $nestedData['date'] = date(config('date_format'), strtotime($payment->created_at));
+                $nestedData['reference_no'] = $payment->payment_reference;
+                $nestedData['purchase_reference'] = $payment->purchase_reference;
+                $nestedData['amount'] = number_format($payment->amount, cache()->get('general_setting')->decimal);
+                $nestedData['paying_method'] = $payment->paying_method;
+                $data[] = $nestedData;
+            }
+        }
         $json_data = array(
             "draw"            => intval($request->input('draw')),
             "recordsTotal"    => intval($totalData),
