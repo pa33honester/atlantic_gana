@@ -401,7 +401,7 @@
                     }
                 ],
                 'select': { style: 'multi', selector: 'td:first-child' },
-                'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                'lengthMenu': [[10, 25, 50, 100], [10, 25, 50, 100]],
                 dom: '<"row"lfB>rtip',
                 buttons: [
                     {

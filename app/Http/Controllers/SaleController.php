@@ -441,13 +441,14 @@ class SaleController extends Controller
             2  => 'products.name',
             3  => 'products.code',
             4  => 'suppliers.name',
+            5  => 'sales.created_at',
             7  => 'sales.total_qty',
             8  => 'sales.total_price',
             12 => 'sales.updated_at',
             13 => 'sales.location'
         ];
 
-        $orderColumn = $columns[$request->input('order.0.column')] ?? 'sales.updated_at';
+        $orderColumn = $columns[$request->input('order.0.column')] ?? 'sales.created_at';
         $orderDir = $request->input('order.0.dir', 'desc');
 
         $filters = [
