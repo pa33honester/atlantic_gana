@@ -39,7 +39,7 @@
                     <div class="col-md-1">
                         <div class="form-group">
                             <label><strong>{{trans('file.Supplier')}}</strong></label>
-                            <select id="supplier-id" class="form-control" name="supplier_id">
+                            <select id="supplier-id" class="form-control" name="supplier_id" data-live-search="true">
                                 <option value="0">All</option>
                                 @foreach($lims_supplier_list as $supplier)
                                     <option value="{{$supplier->id}}">{{$supplier->name}} ({{$supplier->phone_number}})</option>

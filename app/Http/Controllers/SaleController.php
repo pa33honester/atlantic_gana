@@ -351,7 +351,7 @@ class SaleController extends Controller
 
             if($user->supplier_id) {
                 $supplier_id = $user->supplier_id;
-                $lims_supplier_list = Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
+                $lims_supplier_list = [];//Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
             }
             else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();

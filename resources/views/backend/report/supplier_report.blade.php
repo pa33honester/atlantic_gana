@@ -433,13 +433,20 @@
     $(document).ready(function(){
 
         $(".daterangepicker-field").daterangepicker({
-            callback: function(startDate, endDate, period){
-                var start_date = startDate.format('YYYY-MM-DD');
-                var end_date = endDate.format('YYYY-MM-DD');
-                var title = start_date + ' to ' + end_date;
+            ranges: {
+                'Today': [moment(), moment()],
+                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(29, 'days'), moment()]
+            },
+            alwaysShowCalendars: true,
+            callback: function(startDate, endDate, period) {
+                var starting_date = startDate.format('YYYY-MM-DD');
+                var ending_date = endDate.format('YYYY-MM-DD');
+                var title = starting_date + ' To ' + ending_date;
                 $(this).val(title);
-                $('input[name="start_date"]').val(start_date);
-                $('input[name="end_date"]').val(end_date);
+                $('input[name="starting_date"]').val(starting_date);
+                $('input[name="ending_date"]').val(ending_date);
             }
         });
         $('.daterangepicker-field').css({
