@@ -127,8 +127,9 @@ class ReturnController extends Controller
         $role = Role::find($user->role_id);
         $columns = array(
             1   => 'sales.reference_no',
+            3   => 'sales.updated_at',
             9   => 'sales.total_qty',
-            10   => 'sales.total_price',
+            10  => 'sales.total_price',
             13  => 'sales.report_times',
         );
 
@@ -144,8 +145,8 @@ class ReturnController extends Controller
 
         $baseQuery = Sale::with(['customer', 'warehouse', 'user' , 'products'])
             ->where('sale_status', 13) // reported orders
-            ->whereDate('created_at', '>=', $request->input('starting_date'))
-            ->whereDate('created_at', '<=', $request->input('ending_date'))
+            ->whereDate('updated_at', '>=', $request->input('starting_date'))
+            ->whereDate('updated_at', '<=', $request->input('ending_date'))
             ->when($user->role_id > 2 && config('staff_access') == 'own', function ($q) {
                 $q->where('user_id', Auth::id());
             })
@@ -195,7 +196,6 @@ class ReturnController extends Controller
             
             $nestedData['id'] = $returns->id;
             $nestedData['key'] = $key;
-            $nestedData['date'] = date(config('date_format'), strtotime($returns->created_at->toDateString()));
          
             $nestedData['sale_reference'] = $returns->reference_no ?? 'N/A';
             $nestedData['warehouse'] = $returns->warehouse->name;
@@ -211,9 +211,8 @@ class ReturnController extends Controller
             $nestedData['product_name'] = implode(',', $product_names);
             $nestedData['product_code'] = implode(',', $product_codes);
 
-
-            $nestedData['order_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->created_at));
-            $nestedData['updated_date'] = date(config('date_format') . ' h:i:s', strtotime($returns->updated_at));
+            $nestedData['order_date'] = date(config('date_format') . ' h:i:sa', strtotime($returns->created_at));
+            $nestedData['reporting_date'] = date(config('date_format') . ' h:i:sa', strtotime($returns->updated_at));
             $nestedData['customer_address'] = $returns->customer->address . '<br>' . $returns->customer->city;
 
             $nestedData['return_note'] = $returns->sale_note;

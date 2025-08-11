@@ -326,14 +326,21 @@
     $("ul#return #sale-return-menu").addClass("active");
 
     $(".daterangepicker-field").daterangepicker({
-      callback: function(startDate, endDate, period){
-        var starting_date = startDate.format('YYYY-MM-DD');
-        var ending_date = endDate.format('YYYY-MM-DD');
-        var title = starting_date + ' To ' + ending_date;
-        $(this).val(title);
-        $('input[name="starting_date"]').val(starting_date);
-        $('input[name="ending_date"]').val(ending_date);
-      }
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()]
+        },
+        alwaysShowCalendars: true,
+        callback: function(startDate, endDate, period) {
+            var starting_date = startDate.format('YYYY-MM-DD');
+            var ending_date = endDate.format('YYYY-MM-DD');
+            var title = starting_date + ' To ' + ending_date;
+            $(this).val(title);
+            $('input[name="starting_date"]').val(starting_date);
+            $('input[name="ending_date"]').val(ending_date);
+        }
     });
 
     var all_permission = <?php echo json_encode($all_permission) ?>;
@@ -402,10 +409,10 @@
             $(row).attr('data-return', data['return']);
         },
         "columns": [
-            {"data": "key"},            
+            {"data": "key"},
             {"data": "sale_reference"},
             {"data": "return_note"},
-            {"data": "date"},
+            {"data": "reporting_date"},
             {"data": "call_on"},
             {"data": "product_name"}, 
             {"data": "product_code"},
@@ -428,11 +435,11 @@
                     'next': '<i class="dripicons-chevron-right"></i>'
             }
         },
-        order:[['1', 'desc']],
+        order:[['3', 'desc']], // reporting time
         'columnDefs': [
             {
                 "orderable": false,
-                'targets': [0, 2, 3, 4, 5, 6, 7,8, 11, 12, 14]
+                'targets': [0, 2, 4, 5, 6, 7, 8, 11, 12, 14]
             },
             {
                 'render': function(data, type, row, meta){
