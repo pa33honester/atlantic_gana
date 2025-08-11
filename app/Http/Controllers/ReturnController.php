@@ -201,7 +201,7 @@ class ReturnController extends Controller
             $nestedData['warehouse'] = $returns->warehouse->name;
             $nestedData['customer'] = $returns->customer->name . '<br>' . $returns->customer->phone_number;
             $nestedData['call_on'] = $returns->call_on;
-            $nestedData['report_times'] = $returns->report_times ?? 0;
+            $nestedData['report_times'] = ($returns->report_times ?? 0) + 1;
 
             $product_names = $returns->products->pluck('name')->toArray();
             $product_codes = $returns->products->pluck('code')->toArray();

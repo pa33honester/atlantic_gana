@@ -27,7 +27,6 @@
             @if(in_array("products-add", $all_permission))
                 <a href="{{route('products.create')}}" class="btn btn-info add-product-btn"><i class="dripicons-plus"></i>
                     {{__('file.add_product')}}</a>
-                <!-- <a href="#" data-toggle="modal" data-target="#importProduct" class="btn btn-primary add-product-btn"><i class="dripicons-copy"></i> {{__('file.import_product')}}</a> -->
 
             @endif
             @if(in_array("products-edit", $all_permission) && in_array('ecommerce', explode(',', $general_setting->modules)))
@@ -36,27 +35,26 @@
                 <a href="{{route('product.showAllProductOnline')}}" class="btn btn-dark add-product-btn"><i
                         class="dripicons-wifi"></i> {{__('file.Show All Product Online')}}</a>
             @endif
-            <div class="card mt-3 hidden">
-                <!-- <h3 class="text-center mt-3">{{trans('file.Filter Products')}}</h3> -->
+            <div class="card mt-3">
                 <div class="card-body">
                     {!! Form::open(['route' => 'products.index', 'method' => 'get']) !!}
                     <div class="row">
-                        <div class="col-md-3 offset-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <!-- <label><strong>{{trans('file.Warehouse')}}</strong></label> -->
-                                <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control"
+                                <label><strong>{{trans('Product Code')}}</strong></label>
+                                <select id="product_code" name="product_code" class="selectpicker form-control"
                                     data-live-search="true" data-live-search-style="begins">
-                                    <option value="0">{{trans('file.All Warehouse')}}</option>
-                                    @foreach($lims_warehouse_list as $warehouse)
-                                        <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
+                                    <option value="0">{{trans('All')}}</option>
+                                    @foreach($product_code_list as $product)
+                                        <option value="{{$product->code}}">{{$product->code}}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 offset-2">
+                            <label for="filter-btn"><strong>&nbsp;</strong></label>
                             <div class="form-group">
-                                <button class="btn btn-primary" id="filter-btn"
-                                    type="submit">{{trans('file.submit')}}</button>
+                                <button class="btn btn-primary" id="filter-btn" type="submit">{{trans('file.submit')}}</button>
                             </div>
                         </div>
                     </div>
@@ -253,7 +251,7 @@
         var role_id = <?php echo json_encode($role_id) ?>;
         var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
         var logoUrl = <?php echo json_encode(url('logo', $general_setting->site_logo)) ?>;
-        var warehouse_id = <?php echo json_encode($warehouse_id); ?>;
+        var product_code = <?php echo json_encode($product_code); ?>;
 
         $.ajaxSetup({
             headers: {
@@ -261,7 +259,7 @@
             }
         });
 
-        $("#warehouse_id").val(warehouse_id);
+        $("#product_code").val(product_code);
 
         $("#select_all").on("change", function () {
             if ($(this).is(':checked')) {
@@ -358,7 +356,7 @@
                     url: "products/product-data",
                     data: {
                         all_permission: all_permission,
-                        warehouse_id: warehouse_id
+                        product_code : product_code
                     },
                     dataType: "json",
                     type: "post"

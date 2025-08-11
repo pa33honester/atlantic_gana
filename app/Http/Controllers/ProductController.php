@@ -54,6 +54,13 @@ class ProductController extends Controller
                 $warehouse_id = $request->input('warehouse_id');
             else
                 $warehouse_id = 0;
+
+            if ($request->input('product_code')){
+                $product_code = $request->input('product_code');
+            }
+            else {
+                $product_code = 0;
+            }
             
             $permissions = Role::findByName($role->name)->permissions;
 
@@ -61,8 +68,11 @@ class ProductController extends Controller
                 $all_permission[] = $permission->name;
             if (empty($all_permission))
                 $all_permission[] = 'dummy text';
+
             $role_id = $role->id;
             $numberOfProduct = DB::table('products')->where('is_active', true)->count();
+            $product_code_list = DB::table('products')->where('is_active', true)->select('code')->distinct()->get();
+
             $custom_fields = CustomField::where([
                 ['belongs_to', 'product'],
                 ['is_table', true]
@@ -72,9 +82,12 @@ class ProductController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
 
-
-
-            return view('backend.product.index', compact('warehouse_id', 'all_permission', 'role_id', 'numberOfProduct', 'custom_fields', 'field_name', 'lims_warehouse_list'));
+            return view('backend.product.index', compact('warehouse_id', 'all_permission', 
+                        'role_id', 'numberOfProduct', 
+                        'custom_fields', 'field_name',
+                        'product_code_list', 
+                        'product_code',
+                        'lims_warehouse_list'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -91,7 +104,7 @@ class ProductController extends Controller
             9 => 'supplier_name'
         ];
 
-        $warehouse_id = $request->input('warehouse_id');
+        $product_code = $request->input('product_code');
         $search = $request->input('search.value');
         $order = 'products.' . $columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
@@ -118,9 +131,13 @@ class ProductController extends Controller
 
         $query = Product::with(['category', 'brand', 'unit', 'supplier', 'variant'])
             ->where('is_active', true);
-
+    
         if ($user->supplier_id) {
             $query->where('supplier_id', $user->supplier_id);
+        }
+
+        if($product_code){
+            $query = $query->where('code', $product_code);
         }
 
         // If you need warehouse filtering and it's not a direct column, use whereHas here
