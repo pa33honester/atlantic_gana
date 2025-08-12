@@ -41,6 +41,18 @@
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
+                                <label><strong>{{trans('Supplier')}}</strong></label>
+                                <select id="supplier_id" name="supplier_id" class="selectpicker form-control"
+                                    data-live-search="true" data-live-search-style="begins">
+                                    <option value="0">{{trans('All')}}</option>
+                                    @foreach($lims_supplier_list as $supplier)
+                                        <option value="{{$supplier->id}}">{{$supplier->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
                                 <label><strong>{{trans('Product Code')}}</strong></label>
                                 <select id="product_code" name="product_code" class="selectpicker form-control"
                                     data-live-search="true" data-live-search-style="begins">
@@ -252,6 +264,7 @@
         var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
         var logoUrl = <?php echo json_encode(url('logo', $general_setting->site_logo)) ?>;
         var product_code = <?php echo json_encode($product_code); ?>;
+        var supplier_id = <?php echo json_encode($supplier_id); ?>;
 
         $.ajaxSetup({
             headers: {
@@ -260,6 +273,7 @@
         });
 
         $("#product_code").val(product_code);
+        $("#supplier_id").val(supplier_id);
 
         $("#select_all").on("change", function () {
             if ($(this).is(':checked')) {
@@ -356,6 +370,7 @@
                     url: "products/product-data",
                     data: {
                         all_permission: all_permission,
+                        supplier_id : supplier_id,
                         product_code : product_code
                     },
                     dataType: "json",

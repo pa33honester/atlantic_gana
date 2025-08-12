@@ -61,6 +61,13 @@ class ProductController extends Controller
             else {
                 $product_code = 0;
             }
+
+            if ($request->input('supplier_id')){
+                $supplier_id = $request->input('supplier_id');
+            }
+            else {
+                $supplier_id = 0;
+            }
             
             $permissions = Role::findByName($role->name)->permissions;
 
@@ -72,6 +79,14 @@ class ProductController extends Controller
             $role_id = $role->id;
             $numberOfProduct = DB::table('products')->where('is_active', true)->count();
             $product_code_list = DB::table('products')->where('is_active', true)->select('code')->distinct()->get();
+            
+            if($user->supplier_id) {
+                $supplier_id = $user->supplier_id;
+                $lims_supplier_list = [];//Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
+            }
+            else {
+                $lims_supplier_list = Supplier::where('is_active', true)->get();
+            }
 
             $custom_fields = CustomField::where([
                 ['belongs_to', 'product'],
@@ -87,6 +102,8 @@ class ProductController extends Controller
                         'custom_fields', 'field_name',
                         'product_code_list', 
                         'product_code',
+                        'lims_supplier_list',
+                        'supplier_id',
                         'lims_warehouse_list'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -105,6 +122,8 @@ class ProductController extends Controller
         ];
 
         $product_code = $request->input('product_code');
+        $supplier_id = $request->input('supplier_id');
+
         $search = $request->input('search.value');
         $order = 'products.' . $columns[$request->input('order.0.column')];
         $dir = $request->input('order.0.dir');
@@ -132,8 +151,8 @@ class ProductController extends Controller
         $query = Product::with(['category', 'brand', 'unit', 'supplier', 'variant'])
             ->where('is_active', true);
     
-        if ($user->supplier_id) {
-            $query->where('supplier_id', $user->supplier_id);
+        if($supplier_id){
+            $query->where('supplier_id', $supplier_id);
         }
 
         if($product_code){
@@ -214,7 +233,7 @@ class ProductController extends Controller
             }
 
             $nestedData['supplier_id'] = $product->supplier_id;
-            $nestedData['supplier_name'] = $product->supplier_name;
+            $nestedData['supplier_name'] = Supplier::where('id', $product->supplier_id)->select('name')->first()->name;
 
             //fetching custom fields data
             foreach ($field_names as $field_name) {
