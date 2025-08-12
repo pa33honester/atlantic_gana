@@ -357,19 +357,13 @@ class SaleController extends Controller
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
             }
 
-            if($supplier_id > 0){
-                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
-                                    ->where('product_sales.supplier_id', $supplier_id)
-                                    ->select('products.code')
-                                    ->distinct()
-                                    ->get();
-            }
-            else {
-                $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
-                                    ->select('products.code')
-                                    ->distinct()
-                                    ->get();
-            }
+            $lims_product_codes = Product_Sale::join('products', 'products.id', '=', 'product_sales.product_id')
+                    ->when($supplier_id, function($query) use($supplier_id) {
+                        return $query->where('product_sales.supplier_id', $supplier_id);
+                    })
+                    ->select('products.code')
+                    ->distinct()
+                    ->get();
 
             $lims_pos_setting_data = PosSetting::latest()->first();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();

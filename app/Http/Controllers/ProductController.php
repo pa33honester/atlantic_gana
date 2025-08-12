@@ -78,15 +78,23 @@ class ProductController extends Controller
 
             $role_id = $role->id;
             $numberOfProduct = DB::table('products')->where('is_active', true)->count();
-            $product_code_list = DB::table('products')->where('is_active', true)->select('code')->distinct()->get();
             
             if($user->supplier_id) {
                 $supplier_id = $user->supplier_id;
-                $lims_supplier_list = [];//Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
+                $lims_supplier_list = []; //Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
             }
             else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
             }
+
+            $product_code_list = DB::table('products')
+                                ->when($supplier_id, function($query) use($supplier_id){
+                                    return $query->where('supplier_id', $supplier_id);
+                                })
+                                ->where('is_active', true)
+                                ->select('code')
+                                ->distinct()
+                                ->get();
 
             $custom_fields = CustomField::where([
                 ['belongs_to', 'product'],

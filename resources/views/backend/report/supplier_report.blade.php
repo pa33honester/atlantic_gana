@@ -445,8 +445,8 @@
                 var ending_date = endDate.format('YYYY-MM-DD');
                 var title = starting_date + ' To ' + ending_date;
                 $(this).val(title);
-                $('input[name="starting_date"]').val(starting_date);
-                $('input[name="ending_date"]').val(ending_date);
+                $('input[name="start_date"]').val(starting_date);
+                $('input[name="end_date"]').val(ending_date);
             }
         });
         $('.daterangepicker-field').css({

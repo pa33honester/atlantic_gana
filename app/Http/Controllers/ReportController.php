@@ -4688,8 +4688,8 @@ class ReportController extends Controller
             $end_date = $request->input('end_date');
         }
         else {
-            $start_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d') )))));
-            $end_date = date("Y-m-d");
+            // $start_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d') )))));
+            $start_date = $end_date = date("Y-m-d");
         }
 
         if($user->supplier_id){
