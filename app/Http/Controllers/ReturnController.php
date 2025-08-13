@@ -59,8 +59,8 @@ class ReturnController extends Controller
                 $starting_date = $request->input('starting_date');
                 $ending_date = $request->input('ending_date');
             } else {
-                // $starting_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 day', strtotime(date('Y-m-d'))))));
-                $starting_date = $ending_date = date("Y-m-d");
+                $starting_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d'))))));
+                $ending_date = date("Y-m-d");
             }
 
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();

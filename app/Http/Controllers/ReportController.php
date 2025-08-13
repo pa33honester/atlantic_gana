@@ -4688,8 +4688,8 @@ class ReportController extends Controller
             $end_date = $request->input('end_date');
         }
         else {
-            // $start_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d') )))));
-            $start_date = $end_date = date("Y-m-d");
+            $start_date = date("Y-m-d", strtotime(date('Y-m-d', strtotime('-1 year', strtotime(date('Y-m-d') )))));
+            $end_date = date("Y-m-d");
         }
 
         if($user->supplier_id){
@@ -4698,20 +4698,24 @@ class ReportController extends Controller
         else {
             $lims_supplier_list = Supplier::where('is_active', true)->get();
         }
-
-        if($supplier_id == 0){
-            $supplier_id = $lims_supplier_list[0]->id;
-        }
         
         $signed_data = Sale::where('sale_status', 9)
-                    ->whereHas('products', fn($q) => $q->where('products.supplier_id', $supplier_id))
+                    ->whereHas('products', function($q) use($supplier_id){
+                        if($supplier_id > 0)
+                            $q->where('products.supplier_id', $supplier_id);
+                    })
                     ->selectRaw('SUM(sales.total_price) as total_price,
                                 SUM(sales.shipping_cost) as shipping_cost')
                     ->first();
 
         $returned_data = Sale::where('sale_status', 4)
-                        ->whereHas('products', fn($q) => $q->where('products.supplier_id', $supplier_id))
-                        ->selectRaw('SUM(shipping_cost) as shipping_cost, SUM(return_shipping_cost) as return_shipping_cost')->first();
+                        ->whereHas('products', function($q) use($supplier_id) {
+                            if($supplier_id > 0) 
+                                $q->where('products.supplier_id', $supplier_id);
+                        })
+                        ->selectRaw('SUM(shipping_cost) as shipping_cost, 
+                                                SUM(return_shipping_cost) as return_shipping_cost')
+                        ->first();
 
         $signed_total = $signed_data->total_price - $signed_data->shipping_cost;
         $returned_total = $returned_data->shipping_cost + $returned_data->return_shipping_cost;

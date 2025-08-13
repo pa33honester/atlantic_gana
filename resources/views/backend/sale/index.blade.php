@@ -20,7 +20,7 @@
                     <div class="col-md-2">
                         <div class="form-group">
                             <label><strong>{{trans('file.Date')}}</strong></label>
-                            <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} To {{$ending_date}}" required />
+                            <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} ~ {{$ending_date}}" required />
                             <input type="hidden" name="starting_date" value="{{$starting_date}}" />
                             <input type="hidden" name="ending_date" value="{{$ending_date}}" />
                         </div>
@@ -262,47 +262,6 @@
             <div class="modal-body"></div>
             <div class="modal-footer">
                 <button id="btn-delivery" type="submit" class="btn btn-rounded btn-md btn-success d-print-none"> Deliver </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Packing Slip modal -->
-<div id="packing-slip-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">Create Packing Slip</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true">×</span></button>
-            </div>
-            <div class="modal-body">
-                <form action="{{route('packingSlip.store')}}" method="POST" class="packing-slip-form">
-                @csrf
-                  <div class="row">
-                        <input type="hidden" name="sale_id">
-                        <input type="hidden" name="amount">
-                        <div class="col-md-12 form-group">
-                            <h5>Product List</h5>
-                            <table class="table table-bordered table-hover product-list mt-3">
-                                <thead>
-                                    <tr>
-                                        <th>{{ trans('file.name') }}</th>
-                                        <th>{{ trans('file.Code') }}</th>
-                                        <th>Qty</th>
-                                        <th>{{ trans('file.Unit Price') }}</th>
-                                        <th>{{ trans('file.Total Price') }}</th>
-                                        <th>{{ trans('file.Packed') }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                </tbody>
-                            </table>
-                        </div>
-                  </div>
-                  <div class="form-group">
-                      <button type="submit" class="btn btn-primary packing-slip-submit-btn">Submit</button>
-                  </div>
-                </form>
             </div>
         </div>
     </div>
@@ -728,23 +687,19 @@
             'Today': [moment(), moment()],
             'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
             'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'Last 30 Days': [moment().subtract(29, 'days'), moment()]
+            'Last 1 Year': [moment().subtract(1, 'years'), moment()]
         },
         alwaysShowCalendars: true,
         callback: function(startDate, endDate, period) {
             var starting_date = startDate.format('YYYY-MM-DD');
             var ending_date = endDate.format('YYYY-MM-DD');
-            var title = starting_date + ' To ' + ending_date;
+            var title = starting_date + ' ~ ' + ending_date;
             $(this).val(title);
             $('input[name="starting_date"]').val(starting_date);
             $('input[name="ending_date"]').val(ending_date);
         }
     });
 
-    $(".gift-card").hide();
-    $(".card-element").hide();
-    $("#cheque").hide();
-    $('#view-payment').modal('hide');
     $('.selectpicker').selectpicker('refresh');
 
     function make_active(sale_status){
@@ -1359,7 +1314,11 @@
                 }
             },
             "dom": '<"datatable-controls-wrapper"<"left-section"l><"middle-section"><"right-section"B>>rtip',
-            "order":[['5', 'desc']],
+            @if($sale_status == 4 || $sale_status == 9)
+                "order":[['12', 'desc']],
+            @else
+                "order":[['5', 'desc']],
+            @endif
             'columnDefs': [
                 {
                     "orderable": false,

@@ -1,4 +1,4 @@
-@extends('backend.layout.ajax') 
+@extends('backend.layout.ajax')
 @section('content')
 @if(session()->has('message'))
   <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{!! session()->get('message') !!}</div>
@@ -50,17 +50,6 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-4 hidden">
-                                        <div class="form-group">
-                                            <label>{{trans('file.Biller')}} *</label>
-                                            <input type="hidden" name="biller_id_hidden" value="{{$lims_sale_data->biller_id}}" />
-                                            <select required name="biller_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Biller...">
-                                                @foreach($lims_biller_list as $biller)
-                                                <option value="{{$biller->id}}" selected>{{$biller->name . ' (' . $biller->company_name . ')'}}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="row mt-3">
                                     <div class="col-md-12">
@@ -81,8 +70,6 @@
                                                         <th>{{trans('file.name')}}</th>
                                                         <th>{{trans('file.Code')}}</th>
                                                         <th width="7%">{{trans('file.Quantity')}}</th>
-                                                        <th width="10%">{{trans('file.Batch No')}}</th>
-                                                        <th>{{trans('file.Expired Date')}}</th>
                                                         <th>{{trans('file.Net Unit Price')}}</th>
                                                         <th>{{trans('file.Discount')}}</th>
                                                         <th>{{trans('file.Tax')}}</th>
@@ -100,13 +87,7 @@
                                                     <tr>
                                                     <?php
                                                         $product_data = DB::table('products')->find($product_sale->product_id);
-                                                        if($product_sale->variant_id){
-                                                            $product_variant_data = \App\Models\ProductVariant::select('id', 'item_code')->FindExactProduct($product_data->id, $product_sale->variant_id)->first();
-                                                            $product_variant_id = $product_variant_data->id;
-                                                            $product_data->code = $product_variant_data->item_code;
-                                                        }
-                                                        else
-                                                            $product_variant_id = null;
+
                                                         if($product_data->tax_method == 1){
                                                             $product_price = $product_sale->net_unit_price + ($product_sale->discount / $product_sale->qty);
                                                         }
@@ -128,8 +109,6 @@
                                                         $temp_unit_operator = $unit_operator = implode(",",$unit_operator) .',';
 
                                                         $temp_unit_operation_value = $unit_operation_value =  implode(",",$unit_operation_value) . ',';
-
-                                                        $product_batch_data = \App\Models\ProductBatch::select('batch_no', 'expired_date')->find($product_sale->product_batch_id);
                                                         
                                                         $product_name = $product_data->name;
 
@@ -141,19 +120,6 @@
                                                         <td>{{$product_name}} <input type="hidden" class="product-type" value="{{$product_data->type}}" /></td>
                                                         <td>{{$product_data->code}}</td>
                                                         <td><input type="number" class="form-control qty" readonly name="qty[]" value="{{$product_sale->qty}}" step="any" required/></td>
-                                                        @if($product_batch_data)
-                                                        <td>
-                                                            <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="{{$product_sale->product_batch_id}}">
-                                                            <input type="text" class="form-control batch-no" name="batch_no[]" value="{{$product_batch_data->batch_no}}" required/>
-                                                        </td>
-                                                        <td>{{date($general_setting->date_format, strtotime($product_batch_data->expired_date))}}</td>
-                                                        @else
-                                                        <td>
-                                                            <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="">
-                                                            <input type="text" class="form-control batch-no" name="batch_no[]" value="" disabled />
-                                                        </td>
-                                                        <td>N/A</td>
-                                                        @endif
                                                         <td class="net_unit_price">{{ number_format((float)$product_sale->net_unit_price, $general_setting->decimal, '.', '')}} </td>
                                                         <td class="discount">{{ number_format((float)$product_sale->discount, $general_setting->decimal, '.', '')}}</td>
                                                         <td class="tax">{{ number_format((float)$product_sale->tax, $general_setting->decimal, '.', '')}}</td>
@@ -164,7 +130,6 @@
                                                         </td>
                                                         <input type="hidden" class="product-code" name="product_code[]" value="{{$product_data->code}}"/>
                                                         <input type="hidden" class="product-id" name="product_id[]" value="{{$product_data->id}}"/>
-                                                        <input type="hidden" name="product_variant_id[]" value="{{$product_variant_id}}"/>
                                                         <input type="hidden" class="product-price" name="product_price[]" value="{{$product_price}}"/>
                                                         <input type="hidden" class="sale-unit" name="sale_unit[]" value="{{$unit_name}}"/>
                                                         <input type="hidden" class="sale-unit-operator" value="{{$unit_operator}}"/>
@@ -181,15 +146,12 @@
                                                         <input type="hidden" class="tax-value" name="tax[]" value="{{$product_sale->tax}}" />
                                                         <input type="hidden" class="subtotal-value" name="subtotal[]" value="{{$product_sale->total}}" />
                                                         <input type="hidden" class="imei-number" name="imei_number[]"  value="{{$product_sale->imei_number}}" />
-                                                        <input type="hidden" class="is-imei"  value="{{$product_data->is_imei}}" />
                                                     </tr>
                                                     @endforeach
                                                 </tbody>
                                                 <tfoot class="tfoot active">
                                                     <th colspan="2">{{trans('file.Total')}}</th>
                                                     <th id="total-qty">{{$lims_sale_data->total_qty}}</th>
-                                                    <th></th>
-                                                    <th></th>
                                                     <th></th>
                                                     <th id="total-discount">{{ number_format((float)$lims_sale_data->total_discount, $general_setting->decimal, '.', '')}}</th>
                                                     <th id="total-tax">{{ number_format((float)$lims_sale_data->total_tax, $general_setting->decimal, '.', '')}}</th>
@@ -253,9 +215,9 @@
                                             <label>{{trans('file.Order Tax')}}</label>
                                             <select class="form-control" name="order_tax_rate">
                                                 <option value="0">No Tax</option>
-                                                @foreach($lims_tax_list as $tax)
-                                                <option value="{{$tax->rate}}">{{$tax->name}}</option>
-                                                @endforeach
+                                                <option value="10">10%</option>
+                                                <option value="15">15%</option>
+                                                <option value="20">20%</option>
                                             </select>
                                         </div>
                                     </div>
@@ -301,65 +263,6 @@
                                             @endif
                                         </div>
                                     </div>
-                                    @foreach($custom_fields as $field)
-                                        <?php $field_name = str_replace(' ', '_', strtolower($field->name)); ?>
-                                        @if(!$field->is_admin || \Auth::user()->role_id == 1)
-                                            <div class="{{'col-md-'.$field->grid_value}}">
-                                                <div class="form-group">
-                                                    <label>{{$field->name}}</label>
-                                                    @if($field->type == 'text')
-                                                        <input type="text" name="{{$field_name}}" value="{{$lims_sale_data->$field_name}}" class="form-control" @if($field->is_required){{'required'}}@endif>
-                                                    @elseif($field->type == 'number')
-                                                        <input type="number" name="{{$field_name}}" value="{{$lims_sale_data->$field_name}}" class="form-control" @if($field->is_required){{'required'}}@endif>
-                                                    @elseif($field->type == 'textarea')
-                                                        <textarea rows="5" name="{{$field_name}}" value="{{$lims_sale_data->$field_name}}" class="form-control" @if($field->is_required){{'required'}}@endif></textarea>
-                                                    @elseif($field->type == 'checkbox')
-                                                        <br>
-                                                        <?php
-                                                        $option_values = explode(",", $field->option_value);
-                                                        $field_values =  explode(",", $lims_sale_data->$field_name);
-                                                        ?>
-                                                        @foreach($option_values as $value)
-                                                            <label>
-                                                                <input type="checkbox" name="{{$field_name}}[]" value="{{$value}}" @if(in_array($value, $field_values)) checked @endif @if($field->is_required){{'required'}}@endif> {{$value}}
-                                                            </label>
-                                                            &nbsp;
-                                                        @endforeach
-                                                    @elseif($field->type == 'radio_button')
-                                                        <br>
-                                                        <?php
-                                                        $option_values = explode(",", $field->option_value);
-                                                        ?>
-                                                        @foreach($option_values as $value)
-                                                            <label class="radio-inline">
-                                                                <input type="radio" name="{{$field_name}}" value="{{$value}}" @if($value == $lims_sale_data->$field_name){{'checked'}}@endif @if($field->is_required){{'required'}}@endif> {{$value}}
-                                                            </label>
-                                                            &nbsp;
-                                                        @endforeach
-                                                    @elseif($field->type == 'select')
-                                                        <?php $option_values = explode(",", $field->option_value); ?>
-                                                        <select class="form-control" name="{{$field_name}}" @if($field->is_required){{'required'}}@endif>
-                                                            @foreach($option_values as $value)
-                                                                <option value="{{$value}}" @if($value == $lims_sale_data->$field_name){{'selected'}}@endif>{{$value}}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    @elseif($field->type == 'multi_select')
-                                                        <?php
-                                                        $option_values = explode(",", $field->option_value);
-                                                        $field_values =  explode(",", $lims_sale_data->$field_name);
-                                                        ?>
-                                                        <select class="form-control" name="{{$field_name}}[]" @if($field->is_required){{'required'}}@endif multiple>
-                                                            @foreach($option_values as $value)
-                                                                <option value="{{$value}}" @if(in_array($value, $field_values)) selected @endif>{{$value}}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    @elseif($field->type == 'date_picker')
-                                                        <input type="text" name="{{$field_name}}" value="{{$lims_sale_data->$field_name}}" class="form-control date" @if($field->is_required){{'required'}}@endif>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endif
-                                    @endforeach
                                     @if($lims_sale_data->coupon_id)
                                     <div class="col-md-4">
                                         <div class="form-group">
@@ -548,9 +451,6 @@
 @push('scripts')
 <script type="text/javascript">
 
-    $("#card-element").hide();
-    $("#cheque").hide();
-
     // array data depend on warehouse
     var lims_product_array = [];
     var product_code = [];
@@ -570,8 +470,6 @@
     var unit_name = [];
     var unit_operator = [];
     var unit_operation_value = [];
-    var is_imei = [];
-    var is_variant = [];
 
     // temporary array
     var temp_unit_name = [];
@@ -591,7 +489,7 @@
 
     var rownumber = $('table.order-list tbody tr:last').index();
 
-    for(rowindex  =0; rowindex <= rownumber; rowindex++){
+    for(rowindex  = 0; rowindex <= rownumber; rowindex++){
         product_price.push(parseFloat($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-price').val()));
         exist_code.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text());
         exist_type.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-type').val());
@@ -606,10 +504,6 @@
         unit_name.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sale-unit').val());
         unit_operator.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sale-unit-operator').val());
         unit_operation_value.push($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sale-unit-operation-value').val());
-        if( !$('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val().includes(null) )
-            is_imei.push(1);
-        else
-            is_imei.push(0);
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sale-unit').val(temp_unit_name[0]);
     }
 
@@ -730,7 +624,6 @@
         unit_name.splice(rowindex, 1);
         unit_operator.splice(rowindex, 1);
         unit_operation_value.splice(rowindex, 1);
-        is_imei.splice(rowindex, 1);
 
         $(this).closest("tr").remove();
         calculateTotal();
@@ -817,40 +710,27 @@
                         cols += '<td>' + product_name + '</td>';
                         cols += '<td>' + data[1] + '</td>';
                         cols += '<td><input type="number" class="form-control qty" readonly name="qty[]" value="'+data[15]+'" step="any" required/></td>';
-                        if(data[12]) {
-                            cols += '<td><input type="text" class="form-control batch-no" value="'+batch_no[pos]+'" required/> <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="'+product_batch_id[pos]+'"/> </td>';
-                            cols += '<td class="expired-date">'+expired_date[pos]+'</td>';
-                        }
-                        else {
-                            cols += '<td><input type="text" class="form-control batch-no" disabled/> <input type="hidden" class="product-batch-id" name="product_batch_id[]"/> </td>';
-                            cols += '<td class="expired-date">N/A</td>';
-                        }
 
-                        cols += '<td class="net_unit_price"></td>';
+                        cols += `<td class="net_unit_price">${data[2].toFixed({{$general_setting->decimal}})}</td>`;
                         cols += '<td class="discount">{{number_format(0, $general_setting->decimal, '.', '')}}</td>';
-                        cols += '<td class="tax"></td>';
+                        cols += '<td class="tax">0.00</td>';
                         cols += '<td class="sub-total"></td>';
                         cols += '<td><button type="button" class="edit-product btn btn-info" data-toggle="modal" data-target="#editModal"> <i class="dripicons-document-edit"></i></button> <button type="button" class="ibtnDel btn btn-md btn-danger"><i class="dripicons-trash"></i></button></td>';
                         cols += '<input type="hidden" class="product-code" name="product_code[]" value="' + data[1] + '"/>';
                         cols += '<input type="hidden" class="product-id" name="product_id[]" value="' + data[9] + '"/>';
                         cols += '<input type="hidden" class="sale-unit" name="sale_unit[]" value="' + temp_unit_name[0] + '"/>';
-                        cols += '<input type="hidden" class="net_unit_price" name="net_unit_price[]" />';
+                        cols += `<input type="hidden" class="net_unit_price" name="net_unit_price[]" value="${data[2]}"/>`;
                         cols += '<input type="hidden" class="discount-value" name="discount[]" />';
                         cols += '<input type="hidden" class="tax-rate" name="tax_rate[]" value="' + data[3] + '"/>';
                         cols += '<input type="hidden" class="tax-value" name="tax[]" />';
                         cols += '<input type="hidden" class="subtotal-value" name="subtotal[]" />';
-                        cols += '<input type="hidden" class="imei-number" name="imei_number[]" value="'+data[18]+'" />';
 
                         newRow.append(cols);
                         $("table.order-list tbody").prepend(newRow);
                         rowindex = newRow.index();
 
-                        if(!data[11] && product_warehouse_price[pos]) {
-                            product_price.splice(rowindex, 0, parseFloat(product_warehouse_price[pos] * currencyExchangeRate) + parseFloat(product_warehouse_price[pos] * currencyExchangeRate * customer_group_rate));
-                        }
-                        else {
-                            product_price.splice(rowindex, 0, parseFloat(data[2] * currencyExchangeRate) + parseFloat(data[2] * currencyExchangeRate * customer_group_rate));
-                        }
+                        product_price.splice(rowindex, 0, parseFloat(data[2]));
+
                         product_discount.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
                         tax_rate.splice(rowindex, 0, parseFloat(data[3]));
                         tax_name.splice(rowindex, 0, data[4]);
@@ -858,8 +738,6 @@
                         unit_name.splice(rowindex, 0, data[6]);
                         unit_operator.splice(rowindex, 0, data[7]);
                         unit_operation_value.splice(rowindex, 0, data[8]);
-                        is_imei.splice(rowindex, 0, data[13]);
-                        is_variant.splice(rowindex, 0, data[14]);
                         checkQuantity(data[15], true);
                     }
                 }
@@ -893,7 +771,7 @@
         if(!flag){
             $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty); // change quantity
             $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .net_unit_price').val(product_price[rowindex]); // change net_unit_price
-            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(6)').text(product_price[rowindex]); // change net_unit_price
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(4)').text(product_price[rowindex]); // change net_unit_price
             $('#editModal').modal('hide');
         }
 
@@ -911,8 +789,7 @@
         var net_unit_price = row_product_price; // - product_discount[rowindex]; @dorian
         var tax = 0;
         var sub_total = (row_product_price - row_product_discount) * quantity;
-
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
+        console.info("net_unit_price=", row_product_price);
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.sub-total').text(sub_total.toFixed({{$general_setting->decimal}}));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed({{$general_setting->decimal}}));
@@ -1047,25 +924,6 @@
         calculateGrandTotal();
     });
 
-    $(window).keydown(function(e){
-        if (e.which == 13) {
-            var $targ = $(e.target);
-            if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
-                var focusNext = false;
-                $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
-                    if (this === e.target) {
-                        focusNext = true;
-                    }
-                    else if (focusNext){
-                        $(this).focus();
-                        return false;
-                    }
-                });
-                return false;
-            }
-        }
-    });
-
     $('#payment-form').on('submit',function(e){
         var rownumber = $('table.order-list tbody tr:last').index();
         $("table.order-list tbody .qty").each(function(index) {
@@ -1086,10 +944,10 @@
             parent.$('#edit-sale').modal('hide');
             parent.$('#sale-details').modal('hide');
             parent.location.reload();
-            // $("#submit-button").prop('disabled', true);
-            // $(".batch-no").prop('disabled', false);
+            $("#submit-button").prop('disabled', true);
+            $(".batch-no").prop('disabled', false);
         }
     });
     </script>
-<script type="text/javascript" src="https://js.stripe.com/v3/"></script>
+<!-- <script type="text/javascript" src="https://js.stripe.com/v3/"></script> -->
 @endpush

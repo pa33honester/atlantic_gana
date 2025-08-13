@@ -336,7 +336,7 @@
         callback: function(startDate, endDate, period) {
             var starting_date = startDate.format('YYYY-MM-DD');
             var ending_date = endDate.format('YYYY-MM-DD');
-            var title = starting_date + ' To ' + ending_date;
+            var title = starting_date + ' ~ ' + ending_date;
             $(this).val(title);
             $('input[name="starting_date"]').val(starting_date);
             $('input[name="ending_date"]').val(ending_date);

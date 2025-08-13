@@ -24,7 +24,8 @@
                         <label class="d-tc mt-2"><strong>{{trans('file.Choose Supplier')}}</strong> &nbsp;</label>
                         <div class="d-tc">
                             <input type="hidden" name="supplier_id_hidden" value="{{$supplier_id}}" />
-                            <select id="supplier_id" name="supplier_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
+                            <select id="supplier_id" name="supplier_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins">
+                                <option value = "0"> All </option>
                                 @foreach($lims_supplier_list as $supplier)
                                 <option value="{{$supplier->id}}">{{$supplier->name}} ({{$supplier->phone_number}})</option>
                                 @endforeach
@@ -443,7 +444,7 @@
             callback: function(startDate, endDate, period) {
                 var starting_date = startDate.format('YYYY-MM-DD');
                 var ending_date = endDate.format('YYYY-MM-DD');
-                var title = starting_date + ' To ' + ending_date;
+                var title = starting_date + ' ~ ' + ending_date;
                 $(this).val(title);
                 $('input[name="start_date"]').val(starting_date);
                 $('input[name="end_date"]').val(ending_date);
