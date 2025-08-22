@@ -278,6 +278,12 @@ class SaleController extends Controller
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
                 break;
             
+            case 'recover_ship':
+                $sale_details["sale_status"] = 8; // shipped
+                $sale_details['shipping_cost'] = 0;
+                $sale_details['return_shipping_cost'] = 0;
+                break;
+            
             case "return_receiving":
                 $sale_details["sale_status"] = 4; // return receiving - return
                 $sale_details["return_shipping_cost"] = $data["return_shipping_cost"];
@@ -551,8 +557,8 @@ class SaleController extends Controller
                 'id'               => $sale->id,
                 'key'              => $sale->id,
                 'reference_no'     => $sale->reference_no,
-                'product_name'     => implode(', ', $sale->products->pluck('name')->toArray()),
-                'product_code'     => implode(', ', $sale->products->pluck('code')->toArray()),
+                'product_name'     => "",
+                'product_code'     => "",
                 'supplier_name'    => implode(', ', $sale->products->pluck('supplier.name')->filter()->unique()->toArray()),
                 'date'             => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'sale_status'      => $sale->sale_status,
@@ -567,6 +573,12 @@ class SaleController extends Controller
                 'location'         => $sale->location,
                 'res_reason'       => $sale->res_reason,
             ];
+
+            $nestedData['product_name'] = '';
+            foreach($sale->products as $product){
+                $nestedData['product_name'] .= "$product->name x$product->qty ,<br>";
+                $nestedData['product_code'] .= $product->code . ',<br>';
+            }
 
             switch($sale->location){
                 case '1': $nestedData['location'] = "Inside Accra"; break;
@@ -586,7 +598,7 @@ class SaleController extends Controller
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
             }
             else if ($sale->sale_status == 4 && $role->hasPermissionTo('returned')) {
-                $nestedData['options'] = ' ';
+                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="recover_ship(' . $sale->id . ')">Recover</button>';
             }
             else if ($sale->sale_status == 6 && $role->hasPermissionTo('unpaid')) {
                 $nestedData['options'] = 
@@ -657,7 +669,7 @@ class SaleController extends Controller
                 }
             } 
             else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
-                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="return_ship(' . $sale->id . ')">return</button>';
+                $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="recover_ship(' . $sale->id . ')">Recover</button>';
                 $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">revise</button>';
             } 
             else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
@@ -686,6 +698,7 @@ class SaleController extends Controller
                 'total_qty'             => $sale->total_qty,
                 'total_price'           => $nestedData['total_price'],
                 'location'              => $nestedData['location'],
+                'tracking_code'         => 'GCP230892',//$sale->location == 2 ? $sale->tracking_code : '',
             ]);
 
             $data[] = $nestedData;
@@ -695,8 +708,7 @@ class SaleController extends Controller
             "draw" => intval($request->input('draw')),
             "recordsTotal" => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
-            "data" => $data,
-            "sales"=> $sales,
+            "data" => $data
         ];
 
         return response()->json($json_data);
@@ -1809,7 +1821,8 @@ class SaleController extends Controller
                     'sale_note'     => $sale_note,
                     'staff_note'    => $staff_note,
                     'order_tax_rate'=> $order_tax_rate,
-                    'res_type'      => 'new',
+                    'res_type'      => 'import',
+                    'tracking_code' => $row[8],
                     'queue'         => ++ $queue
                 ];
                 

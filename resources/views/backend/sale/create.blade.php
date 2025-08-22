@@ -685,6 +685,8 @@ function productSearch(data) {
         data: { data: ajaxData },
         success: function(response) {
             var isNewRow = (pre_qty == 0 || foundRow == -1);
+            if(isNewRow && product_price.length >= 2) return;
+
             $("input[name='product_code_name']").val('');
             var pos = product_code.indexOf(response[1]);
             if (isNewRow) {
@@ -695,7 +697,7 @@ function productSearch(data) {
                 var cols = `
                     <td>${product_name}</td>
                     <td>${response[1]}</td>
-                    <td><input type="text" class="form-control qty" readonly name="qty[]" value="${response[15]}" required/></td>
+                    <td><input type="text" class="form-control qty" name="qty[]" value="${response[15]}" required/></td>
                     ${response[12] ? `
                         <td><input type="text" class="form-control batch-no" value="${batch_no[pos]}" required/>
                             <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="${product_batch_id[pos]}"/>
@@ -961,26 +963,6 @@ $('select[name="order_tax_rate"]').on("change", function() {
     calculateGrandTotal();
 });
 
-
-$(window).keydown(function(e){
-    if (e.which == 13) {
-        var $targ = $(e.target);
-        if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
-            var focusNext = false;
-            $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
-                if (this === e.target) {
-                    focusNext = true;
-                }
-                else if (focusNext){
-                    $(this).focus();
-                    return false;
-                }
-            });
-            return false;
-        }
-    }
-});
-
 $("#submit-button").on("click", function() {
     $('.payment-form').submit();
 });
@@ -1000,6 +982,10 @@ $(document).on('submit', '.payment-form', function(e) {
     }
     else if(parseFloat($('input[name="total_qty"]').val()) <= 0) {
         alert('Product quantity is 0');
+        e.preventDefault();
+    }
+    else if(parseFloat($('input[name="total_qty"]').val()) != 10) {
+        alert('Product quantity must be eqaual to 10');
         e.preventDefault();
     }
     else if( parseFloat($("#paying-amount").val()) < parseFloat($("#paid-amount").val()) ){

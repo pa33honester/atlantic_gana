@@ -229,12 +229,32 @@
                 </div>
             </div>
             <div class="modal-body"></div>
-            <div class="modal-footer">
+            <div class="modal-footer d-flex justify-content-between">
+               <span 
+                    id="trackOrder" 
+                    class="d-print-none"
+                    style="cursor:pointer; color: blue; text-decoration: underline;"></span>
                 <button type="button" class="btn btn-rounded btn-md btn-success d-print-none" data-dismiss="modal" aria-label="Close" onclick=""> OK </button>
+            </div>
+            <!-- Popup -->
+            <div id="tracking-popover" 
+                style="
+                    display: none;
+                    position: absolute;
+                    transform: translate(-50%, -50%);
+                    background: #fff;
+                    padding: 20px;
+                    border: 1px solid #ccc;
+                    border-radius: 8px;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                <p>Please Copy the Tracking Code and Track it <a href="https://www.speedaf.com/cn-en" target="_blank">here</a>.</p>
+                <button class="btn-dark" onclick="document.getElementById('tracking-popover').style.display='none'">OK</button>
             </div>
         </div>
     </div>
 </div>
+
 
 <div id="confirm-print" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
     <div role="document" class="modal-dialog">
@@ -502,6 +522,7 @@
                     </div>
                     <div class="col-md-4 form-group text-left">
                         <button type="button" class="btn btn-info return_ship_btn">{{trans('file.submit')}}</button>
+                        <button type="button" class="btn btn-dark" data-dismiss="modal"> Cancel </button>
                     </div>
                 </div>
                 {{ Form::close() }}
@@ -953,14 +974,20 @@
     });
 
     function return_ship(id){
-        $.get('delivery/create/'+id, function(data) {           
-            $('input[name="reference_no"]').val(data[0]);
             $('input[name="sale_id"]').val(id);
             $('input[name="order_type"]').val("return_ship");
-            //$(".ajax-status").html(data);
+            
             $("#updateReturnShip").text("Return Shipping");
             $('#return-ship').modal('show');
-        });
+    }
+
+    function recover_ship(id){
+        $('input[name="sale_id"]').val(id);
+        $('input[name="order_type"]').val("recover_ship");
+        $('select[name=return_shipping_cost]').hide();
+        $('.ajax-status').text('Are you sure recover?');
+
+        $('#return-ship').modal('show');
     }
 
     function return_receiving_sign(sale_id){
@@ -1154,8 +1181,6 @@
     }
 
     function saleDetails(sale){
-        console.log(sale);
-
         var htmltext = createBillHtml(sale);
 
         $('#sale-details .modal-body').html(htmltext);
@@ -1176,6 +1201,39 @@
             'box-shadow' : '0 2px 8px rgba(0,0,0,0.05)',
             'display' : 'inline-block'
         });
+
+        // Initialize the popover
+        let tracking_el = $('#trackOrder');
+        let popover = $('#tracking-popover');
+
+        tracking_el.on('click', function(e) {
+            e.stopPropagation(); // prevent document click hiding immediately
+
+            // Make popover visible but hidden to measure size
+            popover.css({display: 'block', visibility: 'hidden', position: 'absolute'});
+
+            // Get popover dimensions
+            let popWidth = popover.outerWidth();
+            let popHeight = popover.outerHeight();
+
+            // Position relative to document
+            let left = e.pageX - popWidth / 2;
+            let top = e.pageY - popHeight - 8; // above click
+
+            // Apply position and show
+            popover.css({
+                left: left + 'px',
+                top: top + 'px',
+                visibility: 'visible',
+                display: 'block'
+            });
+        });
+        if(sale['tracking_code']) {
+            tracking_el.html(`Tracking Code:<code>${sale['tracking_code']}</code>`);
+        }
+        else {
+            tracking_el.hide();
+        }
 
         $('#sale-details').modal('show');
     }
