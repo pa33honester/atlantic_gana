@@ -283,6 +283,9 @@ class SaleController extends Controller
                 $sale_details['shipping_cost'] = 0;
                 $sale_details['return_shipping_cost'] = 0;
                 break;
+            case 'add_tracking_code':
+                $sale_details['tracking_code'] = $data['tracking_code'];
+                break;
             
             case "return_receiving":
                 $sale_details["sale_status"] = 4; // return receiving - return
@@ -574,10 +577,16 @@ class SaleController extends Controller
                 'res_reason'       => $sale->res_reason,
             ];
 
+            $second = 0;
             $nestedData['product_name'] = '';
             foreach($sale->products as $product){
-                $nestedData['product_name'] .= "$product->name x$product->qty ,<br>";
-                $nestedData['product_code'] .= $product->code . ',<br>';
+                if($second){
+                    $nestedData['product_name'] .= ',<br>';
+                    $nestedData['product_code'] .= ',';
+                }
+                $nestedData['product_name'] .= $product->name.' x'.$product->pivot->qty;
+                $nestedData['product_code'] .= $product->code;
+                $second ++;
             }
 
             switch($sale->location){
@@ -662,15 +671,18 @@ class SaleController extends Controller
             }
             else if ($sale->sale_status == 8 && $role->hasPermissionTo('shipped')) {
                 if($role->hasPermissionTo('shipped-sign')){
-                    $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">sign</button>';
+                    $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">Sign</button>';
                 }
                 if($role->hasPermissionTo('shipped-return')){
-                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">return</button>';
+                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="return_ship(' . $sale->id . ')">Return</button>';
+                }
+                if($role->hasPermissionTo('add-tracking-code')){
+                    $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="add_tracking_code(' . $sale->id . ')">Add tracking code</button>';
                 }
             } 
             else if ($sale->sale_status == 9 && $role->hasPermissionTo('signed')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-link text-primary" onclick="recover_ship(' . $sale->id . ')">Recover</button>';
-                $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">revise</button>';
+                $nestedData['options'] .= ' <button type="button" class="update-status btn btn-link text-info" onclick="update_shipping_fee(' . $sale->id . ', ' . $sale->shipping_cost . ')">Revise</button>';
             } 
             else if ($sale->sale_status == 11 && $role->hasPermissionTo('cancelled')) {
                 $nestedData['options'] = ' <button type="button" class="update-status btn btn-danger" onclick="reset_order(' . $sale->id . ')"><i class="fa fa-refresh"></i> Confirm</button>';
@@ -1730,6 +1742,15 @@ class SaleController extends Controller
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
 
+    public function saleTracking(){
+        $role = Role::find(Auth::user()->role_id);
+        if ($role->hasPermissionTo('sales-tracking')) {
+            $numberOfInvoice = Sale::count();
+            return view('backend.sale.tracking', compact('numberOfInvoice'));
+        } else
+            return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
+    }
+
     public function importSale(Request $request)
     {
         $request->validate([
@@ -1745,7 +1766,6 @@ class SaleController extends Controller
         }, $request->file('file'));
 
         $field_name = $products[0][0];
-
         
         $warehouse_id = $request->input('warehouse_id');
         $sale_note = $request->input('sale_note') ?? "N/A";
@@ -1862,6 +1882,60 @@ class SaleController extends Controller
             'msg'       => 'Creating Order Successful',
             'data'  => $result,
             'rows'  => $products
+        ]);
+    }
+
+    public function importTracking(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $products = Excel::toArray(
+            new class implements ToArray {
+            public function array(array $array)
+            {
+                return $array;
+            }
+        }, $request->file('file'));
+
+        $field_name = $products[0][0];
+
+        $rows = sizeof($products[0]);
+        $result = 0;
+
+        DB::beginTransaction();
+        try{
+            for($i = 1; $i < $rows; $i ++){
+                $row = $products[0][$i];
+
+                if($row[0] == null || $row[0] == "") break;
+
+                $reference_no = $row[0];
+                $tracking_code = $row[1];
+
+                $lims_sale_data = Sale::where('reference_no', $reference_no)->first();
+                if($lims_sale_data && $lims_sale_data->sale_status == 8) { // shipped
+                    $lims_sale_data->update([
+                        'tracking_code'     => $tracking_code
+                    ]);
+                    $result ++;
+                }
+            }
+
+            DB::commit();
+        }
+        catch(Exception $e){
+            DB::rollBack();
+            return response()->json([
+                'code'      => 500,
+                'msg'       => $e
+            ]);
+        }
+
+        return response()->json([
+            'code'      => 200,
+            'msg'       => 'Tracking Order Successfully ('. $rows. ' / '.  $result . ')',
         ]);
     }
 
@@ -2715,12 +2789,13 @@ class SaleController extends Controller
                             ['product_id', $product_sale->product_id],
                             ['warehouse_id', $lims_sale_data->warehouse_id]
                         ])->first();
-                        
-                //adjust product quantity
-                $lims_product_data->qty += $product_sale->qty;
-                $lims_product_warehouse_data->qty += $product_sale->qty;
-                $lims_product_data->save();
-                $lims_product_warehouse_data->save();
+                if($lims_sale_data->sale_status == 7 || $lims_sale_data->sale_status == 8 || $lims_sale_data->sale_status == 9 ){
+                    //adjust product quantity
+                    $lims_product_data->qty += $product_sale->qty;
+                    $lims_product_warehouse_data->qty += $product_sale->qty;
+                    $lims_product_data->save();
+                    $lims_product_warehouse_data->save();
+                }
 
                 $product_sale->delete();
             }

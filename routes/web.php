@@ -316,8 +316,10 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
         Route::post('sales/sale-scan', 'saleScan');
         Route::post('sales/sendmail', 'sendMail')->name('sale.sendmail');
         Route::get('sales/sale_by_csv', 'saleByCsv');
+        Route::get('sales/tracking', 'saleTracking');
         Route::get('sales/product_sale/{id}', 'productSaleData');
-        Route::post('importsale', 'importSale')->name('sale.import');
+        Route::post('import-sale', 'importSale')->name('sale.import');
+        Route::post('import-tracking', 'importTracking')->name('sale.tracking');
         Route::get('pos/{id?}', 'posSale')->name('sale.pos');
         Route::get('sales/recent-sale', 'recentSale');
         Route::get('sales/recent-draft', 'recentDraft');

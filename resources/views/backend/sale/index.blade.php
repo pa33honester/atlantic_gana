@@ -519,11 +519,14 @@
                             <option value="{{ $opt }}"> {{ $opt }}</option>
                             @endforeach
                         </select>
+                        <label for="tracking-code-input">Tracking Code</label>
+                        <input type="text" class="form-control" id="tracking-code-input" name="tracking_code" placeholder="Enter code">
                     </div>
-                    <div class="col-md-4 form-group text-left">
-                        <button type="button" class="btn btn-info return_ship_btn">{{trans('file.submit')}}</button>
-                        <button type="button" class="btn btn-dark" data-dismiss="modal"> Cancel </button>
-                    </div>
+                    <br>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info return_ship_btn">{{trans('file.submit')}}</button>
+                    <button type="button" class="btn btn-dark" data-dismiss="modal"> Cancel </button>
                 </div>
                 {{ Form::close() }}
             </div>
@@ -976,7 +979,7 @@
     function return_ship(id){
             $('input[name="sale_id"]').val(id);
             $('input[name="order_type"]').val("return_ship");
-            
+            $('select[name="return_shipping_cost"]').closest('.bootstrap-select').show();
             $("#updateReturnShip").text("Return Shipping");
             $('#return-ship').modal('show');
     }
@@ -984,8 +987,21 @@
     function recover_ship(id){
         $('input[name="sale_id"]').val(id);
         $('input[name="order_type"]').val("recover_ship");
-        $('select[name=return_shipping_cost]').hide();
-        $('.ajax-status').text('Are you sure recover?');
+        $('select[name="return_shipping_cost"]').closest('.bootstrap-select').hide();
+
+        $('.ajax-status').text('Are you sure want to recover?');
+        $('#return-ship label').hide();
+        $('#tracking-code-input').hide();
+
+        $('#return-ship').modal('show');
+    }
+
+    function add_tracking_code(id){
+        $('input[name="sale_id"]').val(id);
+        $('input[name="order_type"]').val("add_tracking_code");
+        $('select[name="return_shipping_cost"]').closest('.bootstrap-select').hide();
+        $('.ajax-status').hide();
+
 
         $('#return-ship').modal('show');
     }
@@ -1002,7 +1018,6 @@
         var sale_id = $('input[name="sale_id"]').val();
         var reference_no = $('input[name="reference_no"]').val();
         var return_shipping_cost = $('input[name="return_shipping_cost"]').val();
-
         $.ajax({
             url: '../../sales/updatestatusfilters',
             type: "POST",
@@ -1092,10 +1107,6 @@
     $(document).on("click", ".view", function(){
         var sale = $(this).parent().parent().parent().parent().parent().data('sale');
         saleDetails(sale);
-    });
-
-    $(document).on('submit', '.packing-slip-form', function(e) {
-        $(".packing-slip-submit-btn").prop("disabled", true);
     });
 
     function printDocument(selector) {

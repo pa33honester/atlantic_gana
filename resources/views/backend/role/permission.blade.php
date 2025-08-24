@@ -2358,6 +2358,21 @@
 													</div>
 												</div>
 											</span>
+                                            <span>
+												<div aria-checked="false" aria-disabled="false">
+													<div class="checkbox">
+														@if(in_array("sales-tracking", $all_permission))
+														<input type="checkbox" value="1" id="sales-tracking"
+															name="sales-tracking" checked>
+														@else
+														<input type="checkbox" value="1" id="sales-tracking"
+															name="sales-tracking">
+														@endif
+														<label for="sales-tracking" class="padding05">Add Tracking Code
+															&nbsp;&nbsp;</label>
+													</div>
+												</div>
+											</span>
 										</td>
 									</tr>
                                     <tr class="sale-report-row">

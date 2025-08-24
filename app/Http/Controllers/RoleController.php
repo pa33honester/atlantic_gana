@@ -1353,6 +1353,7 @@ class RoleController extends Controller
             'shipped-return',
             'return-receiving',
             'sales-import',
+            'sales-tracking',
 
             // reporting order permissions
             'sale-report',

@@ -60,6 +60,7 @@
                 $coupon_permission_active = $role_has_permissions_list->where('name', 'coupon')->first();
                 $sale_add_permission_active = $role_has_permissions_list->where('name', 'sales-add')->first();
                 $sale_import_permission_active = $role_has_permissions_list->where('name', 'sales-import')->first();
+                $sale_tracking_code_permission_active = $role_has_permissions_list->where('name', 'sales-tracking')->first();
             ?>
             @if($sale_index_permission_active || $coupon_permission_active)
             <li><a href="#sale" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-cart"></i><span>{{trans('file.Order')}}</span></a>
@@ -72,7 +73,10 @@
                     @endif
                     @if($sale_index_permission_active)
                     <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('Order List')}}</a></li>
-                    @endif                
+                    @endif     
+                    @if($sale_tracking_code_permission_active)
+                    <li id="sale-tracking-menu"><a href="{{url('sales/tracking')}}">{{trans('Import Tracking Code')}}</a></li>
+                    @endif             
                 </ul>
             </li>
             @endif
