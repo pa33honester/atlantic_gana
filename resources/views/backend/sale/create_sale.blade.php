@@ -7,7 +7,6 @@
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
 <!-- Side Navbar -->
- <h1>net unit</h1>
 <nav class="side-navbar shrink">
     <div class="side-navbar-wrapper">
       <!-- Sidebar Header    -->

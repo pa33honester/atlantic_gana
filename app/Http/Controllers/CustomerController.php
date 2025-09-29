@@ -405,7 +405,7 @@ class CustomerController extends Controller
             ]);
         }
 
-        if (!isset($input['address'])) {
+         if (!isset($input['address'])) {
             return response()->json([
                 'code'  => 400,
                 'msg'   => 'Please enter the customer address'

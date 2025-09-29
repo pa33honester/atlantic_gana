@@ -71,11 +71,12 @@ class SettingController extends Controller
             \App\Models\ProductVariant::truncate();
             \App\Models\ProductPurchase::truncate();
 
+
             \App\Models\Sale::truncate();
             \App\Models\Purchase::truncate();
             \App\Models\Returns::truncate();
-            Customer::truncate();
-            CustomerGroup::truncate();
+            \App\Models\Customer::truncate();
+            \App\Models\CustomerGroup::truncate();
             \App\Models\Tax::truncate();
 
             DB::commit();
