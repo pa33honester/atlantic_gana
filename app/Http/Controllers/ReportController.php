@@ -15,11 +15,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
 
-        $supplier_id = $request->input('supplier_id') ?? 0;
-        if (intval($supplier_id) > 0)
-            $supplier_uids = \App\Models\User::where('supplier_id', $supplier_id)->pluck('id');
-        else
-            $supplier_uids = [];
+        $supplier_id = $request->input('supplier_id');
 
         if ($request->input('start_date')) {
             $start_date = $request->input('start_date');
@@ -38,10 +34,11 @@ class ReportController extends Controller
         $query = Sale::where('sale_status', 9);
         $query2 = Sale::where('sale_status', 4);
 
-        if ($user->role_id == 1) {
-            if (!empty($supplier_uids)) {
-                $query->whereIn('user_id', $supplier_uids);
-                $query2->whereIn('user_id', $supplier_uids);
+        if ($user->role_id === 1) {
+            if (intval($supplier_id) > 0) {
+                $query->whereHas('products', function ($q) use ($supplier_id) {
+                    $q->where('products.supplier_id', $supplier_id);
+                });
             }
         } else if ($user->is_special) {
             $query->whereHas('products', function ($q) use ($user) {
@@ -97,11 +94,6 @@ class ReportController extends Controller
             'end_date'       => $request->input('end_date'),
         ];
 
-        if (intval($filters['supplier_id']) > 0)
-            $supplier_uids = \App\Models\User::where('supplier_id', $filters['supplier_id'])->pluck('id');
-        else
-            $supplier_uids = [];
-
         $query = Sale::with([
             'customer',
             'warehouse',
@@ -113,8 +105,10 @@ class ReportController extends Controller
             ->where('sale_status', $filters['sale_status']);
 
         if ($user->role_id === 1) {
-            if (!empty($supplier_uids)) {
-                $query->whereIn('user_id', $supplier_uids);
+            if (intval($filters['supplier_id']) > 0) {
+                $query->whereHas('products', function ($q) use ($filters) {
+                    $q->where('products.supplier_id', $filters['supplier_id']);
+                });
             }
         } else if ($user->is_special) {
             $query->whereHas('products', function ($q) use ($user) {
@@ -182,6 +176,7 @@ class ReportController extends Controller
             "recordsTotal"    => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data"            => $data,
+            "supplier"        => $filters['supplier_id'],
         );
         echo json_encode($json_data);
     }
@@ -202,11 +197,6 @@ class ReportController extends Controller
             'end_date'       => $request->input('end_date'),
         ];
 
-        if (intval($filters['supplier_id']) > 0)
-            $supplier_uids = \App\Models\User::where('supplier_id', $filters['supplier_id'])->pluck('id');
-        else
-            $supplier_uids = [];
-
         $query = Sale::with([
             'customer',
             'warehouse',
@@ -219,8 +209,10 @@ class ReportController extends Controller
 
         // Filter by supplier if needed
         if ($user->role_id === 1) {
-            if (!empty($supplier_uids)) {
-                $query->whereIn('user_id', $supplier_uids);
+            if (intval($filters['supplier_id']) > 0) {
+                $query->whereHas('products', function ($q) use ($filters) {
+                    $q->where('products.supplier_id', $filters['supplier_id']);
+                });
             }
         } else if ($user->is_special) {
             $query->whereHas('products', function ($q) use ($user) {

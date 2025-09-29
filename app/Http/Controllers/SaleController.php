@@ -31,29 +31,20 @@ use App\Models\PaymentWithCheque;
 use App\Models\PaymentWithGiftCard;
 use App\Models\PaymentWithCreditCard;
 use App\Models\PaymentWithPaypal;
-use App\Models\Variant;
+
 use App\Models\ProductVariant;
 use App\Models\Returns;
 use App\Models\ProductReturn;
-use App\Models\Expense;
-use App\Models\ProductPurchase;
 use App\Models\ProductBatch;
-use App\Models\Purchase;
 use App\Models\RewardPointSetting;
 use App\Models\CustomField;
-use App\Models\Table;
-use App\Models\ExternalService;
-use Illuminate\Support\Facades\Cache;
 use App\Models\GeneralSetting;
-use App\Models\MailSetting;
 use Spatie\Permission\Models\Role;
-use App\Mail\SaleDetails;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Currency;
 use App\ViewModels\ISmsModel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class SaleController extends Controller
@@ -413,7 +404,7 @@ class SaleController extends Controller
 
         $filters = [
             'warehouse_id' => $request->input('warehouse_id'),
-            'supplier_id'  => $request->input('supplier_id'),
+            'supplier_id'  => $request->input('supplier_id') ?? 0,
             'product_code' => $request->input('product_code') ?? 0,
             'sale_status'  => $request->input('sale_status'),
             'location'     => $request->input('location'),
@@ -451,14 +442,15 @@ class SaleController extends Controller
         }
 
         $supplier_name = Supplier::find($filters['supplier_id'])?->name;
-        $supplier_uids = \App\Models\User::where('supplier_id', $filters['supplier_id'])->pluck('id');
         if ($user->is_special) {
             $baseQuery->whereHas('products', function ($q) use ($user) {
                 $q->where('products.supplier_id', $user->supplier_id);
             });
         } else if ($user->role_id === 1) { // Admin
             if ($filters['supplier_id']) {
-                $baseQuery->whereIn('sales.user_id', $supplier_uids);
+                $baseQuery->whereHas('products', function ($q) use ($filters) {
+                    $q->where('products.supplier_id', $filters['supplier_id']);
+                });
             }
         } else if ($user->supplier_id) {
             $baseQuery->where('sales.user_id', $user->id);
@@ -715,7 +707,7 @@ class SaleController extends Controller
             "recordsTotal" => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data" => $data,
-            "suppliers" => $supplier_uids,
+            "suppliers" => $filters['supplier_id'],
         ];
 
         return response()->json($json_data);
