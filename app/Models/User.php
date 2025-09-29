@@ -12,11 +12,23 @@ class User extends Authenticatable
     use HasRoles;
 
     protected $fillable = [
-        'name', 'email', 'password',"phone","company_name", "role_id", "biller_id", "supplier_id", "warehouse_id", "is_active", "is_deleted"
+        'name',
+        'email',
+        'password',
+        "phone",
+        "company_name",
+        "role_id",
+        "biller_id",
+        "supplier_id",
+        "warehouse_id",
+        "is_active",
+        "is_deleted",
+        "is_special",
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
     public function isActive()
@@ -24,7 +36,8 @@ class User extends Authenticatable
         return $this->is_active;
     }
 
-    public function holiday() {
+    public function holiday()
+    {
         return $this->hasMany('App\Models\Holiday');
     }
 }

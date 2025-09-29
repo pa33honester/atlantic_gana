@@ -10,21 +10,20 @@ use App\Models\Category;
 use App\Models\Unit;
 use App\Models\Tax;
 use App\Models\Warehouse;
-use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Supplier;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Product_Warehouse;
 use App\Models\ProductAdjustment;
-use App\Models\Product_Supplier;
 use App\Models\CustomField;
-use Auth;
-use DNS1D;
+use Milon\Barcode\Facades\DNS1DFacade as DNS1D;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Validation\Rule;
-use DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Variant;
 use App\Models\ProductVariant;
 use App\Models\Barcode;
@@ -36,7 +35,7 @@ use App\Traits\TenantInfo;
 use App\Traits\CacheForget;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
-use File;
+use Collective\Html\FormFacade as Form;
 
 class ProductController extends Controller
 {
@@ -55,20 +54,18 @@ class ProductController extends Controller
             else
                 $warehouse_id = 0;
 
-            if ($request->input('product_code')){
+            if ($request->input('product_code')) {
                 $product_code = $request->input('product_code');
-            }
-            else {
+            } else {
                 $product_code = 0;
             }
 
-            if ($request->input('supplier_id')){
+            if ($request->input('supplier_id')) {
                 $supplier_id = $request->input('supplier_id');
-            }
-            else {
+            } else {
                 $supplier_id = 0;
             }
-            
+
             $permissions = Role::findByName($role->name)->permissions;
 
             foreach ($permissions as $permission)
@@ -78,23 +75,22 @@ class ProductController extends Controller
 
             $role_id = $role->id;
             $numberOfProduct = DB::table('products')->where('is_active', true)->count();
-            
-            if($user->supplier_id) {
+
+            if ($user->supplier_id) {
                 $supplier_id = $user->supplier_id;
                 $lims_supplier_list = []; //Supplier::where("id", $user->supplier_id)->select("id", "name", "phone_number")->get();
-            }
-            else {
+            } else {
                 $lims_supplier_list = Supplier::where('is_active', true)->get();
             }
 
             $product_code_list = DB::table('products')
-                                ->when($supplier_id, function($query) use($supplier_id){
-                                    return $query->where('supplier_id', $supplier_id);
-                                })
-                                ->where('is_active', true)
-                                ->select('code')
-                                ->distinct()
-                                ->get();
+                ->when($supplier_id, function ($query) use ($supplier_id) {
+                    return $query->where('supplier_id', $supplier_id);
+                })
+                ->where('is_active', true)
+                ->select('code')
+                ->distinct()
+                ->get();
 
             $custom_fields = CustomField::where([
                 ['belongs_to', 'product'],
@@ -105,14 +101,19 @@ class ProductController extends Controller
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
 
-            return view('backend.product.index', compact('warehouse_id', 'all_permission', 
-                        'role_id', 'numberOfProduct', 
-                        'custom_fields', 'field_name',
-                        'product_code_list', 
-                        'product_code',
-                        'lims_supplier_list',
-                        'supplier_id',
-                        'lims_warehouse_list'));
+            return view('backend.product.index', compact(
+                'warehouse_id',
+                'all_permission',
+                'role_id',
+                'numberOfProduct',
+                'custom_fields',
+                'field_name',
+                'product_code_list',
+                'product_code',
+                'lims_supplier_list',
+                'supplier_id',
+                'lims_warehouse_list'
+            ));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -138,57 +139,59 @@ class ProductController extends Controller
         $start = $request->input('start');
         $limit = ($request->input('length') != -1) ? $request->input('length') : null;
 
-        // Fetch custom fields and normalize names
-        $custom_fields = CustomField::where([
-            ['belongs_to', 'product'],
-            ['is_table', true]
-        ])->pluck('name');
-        $field_names = collect($custom_fields)->map(function($name) {
-            return str_replace(' ', '_', strtolower($name));
-        })->toArray();
-
-        // Direct fields on Product
-        $searchFields = array_merge(['name', 'code', 'supplier_name'], $field_names);
+        // Direct fields on Product (fields that exist on products table)
+        $searchFields = ['name', 'code'];
         // Related fields: relation => field
         $relatedSearchFields = [
             'category' => 'name',
             'brand' => 'title',
-            'variant' => 'item_code'
+            'variant' => 'item_code',
+            // search supplier name via relation instead of supplier_name column
+            'supplier' => 'name'
         ];
 
         $query = Product::with(['category', 'brand', 'unit', 'supplier', 'variant'])
             ->where('is_active', true);
-    
-        if($supplier_id){
-            $query->where('supplier_id', $supplier_id);
+
+        if ($supplier_id) {
+            // group supplier filters so other where clauses remain intact
+            $special_supplier = Supplier::where('name', 'special_supplier')->first();
+            $query->where(function ($q) use ($supplier_id, $special_supplier) {
+                $q->where('supplier_id', $supplier_id);
+                if ($special_supplier && $special_supplier->id) {
+                    $q->orWhere('supplier_id', $special_supplier->id);
+                }
+            });
         }
 
-        if($product_code){
+        if ($product_code) {
             $query = $query->where('code', $product_code);
         }
 
         // If you need warehouse filtering and it's not a direct column, use whereHas here
 
         if (!empty($search)) {
-            $query->where(function($q) use ($search, $searchFields, $relatedSearchFields) {
+            $query->where(function ($q) use ($search, $searchFields, $relatedSearchFields) {
                 foreach ($searchFields as $field) {
                     $q->orWhere($field, 'LIKE', "%{$search}%");
                 }
                 foreach ($relatedSearchFields as $relation => $relField) {
-                    $q->orWhereHas($relation, function($q2) use ($relField, $search) {
+                    $q->orWhereHas($relation, function ($q2) use ($relField, $search) {
                         $q2->where($relField, 'LIKE', "%{$search}%");
                     });
                 }
             });
         }
 
+        // total records without filtering (but respecting user's supplier if any)
         $totalData = Product::where('is_active', true)
-            ->when($user->supplier_id, function($q) use ($user) {
+            ->when($user->supplier_id, function ($q) use ($user) {
                 $q->where('supplier_id', $user->supplier_id);
             })
             ->count();
 
-        $totalFiltered = $query->count();
+        // total after applying current query filters
+        $totalFiltered = (clone $query)->count();
 
         $products = $query->offset($start)
             ->limit($limit)
@@ -224,7 +227,7 @@ class ProductController extends Controller
             // @dorian - 6.20
             $nestedData['sold_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 9)->where('product_id', $product->id)->sum('qty');
             $nestedData['delivery_qty'] = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $product->id)->sum('qty');
-            
+
             if ($product->unit_id)
                 $nestedData['unit'] = $product->unit->unit_name;
             else
@@ -243,11 +246,6 @@ class ProductController extends Controller
             $nestedData['supplier_id'] = $product->supplier_id;
             $nestedData['supplier_name'] = Supplier::where('id', $product->supplier_id)->select('name')->first()->name;
 
-            //fetching custom fields data
-            foreach ($field_names as $field_name) {
-                $nestedData[$field_name] = $product->$field_name;
-            }
-
             $nestedData['options'] = '<div class="btn-group">
                         <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' . trans("file.action") . '
                             <span class="caret"></span>
@@ -263,25 +261,25 @@ class ProductController extends Controller
                         <a href="' . route('products.edit', $product->id) . '" class="btn btn-link"><i class="fa fa-edit"></i> ' . trans('file.edit') . '</a>
                     </li>';
             if (in_array("product_history", $request['all_permission']))
-                $nestedData['options'] .= \Form::open(["route" => "products.history", "method" => "GET"]) . '
+                $nestedData['options'] .= Form::open(["route" => "products.history", "method" => "GET"]) . '
                         <li>
                             <input type="hidden" name="product_id" value="' . $product->id . '" />
                             <button type="submit" class="btn btn-link"><i class="dripicons-checklist"></i> ' . trans("file.Product History") . '</button>
-                        </li>' . \Form::close();
+                        </li>' . Form::close();
             if (in_array("print_barcode", $request['all_permission'])) {
                 $product_info = $product->code . ' (' . $product->name . ')';
-                $nestedData['options'] .= \Form::open(["route" => "product.printBarcode", "method" => "GET"]) . '
+                $nestedData['options'] .= Form::open(["route" => "product.printBarcode", "method" => "GET"]) . '
                     <li>
                         <input type="hidden" name="data" value="' . $product_info . '" />
                         <button type="submit" class="btn btn-link"><i class="dripicons-print"></i> ' . trans("file.print_barcode") . '</button>
-                    </li>' . \Form::close();
+                    </li>' . Form::close();
             }
-            if (in_array("products-delete", $request['all_permission'])){
+            if (in_array("products-delete", $request['all_permission'])) {
                 $deletable = ($nestedData['sold_qty'] == 0 && $nestedData['delivery_qty'] == 0) ? 'true' : 'false';
-                $nestedData['options'] .= \Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"]) . '
+                $nestedData['options'] .= Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"]) . '
                         <li>
                             <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="fa fa-trash"></i> ' . trans("file.delete") . '</button>
-                        </li>' . \Form::close() . '
+                        </li>' . Form::close() . '
                     </ul>
                 </div>';
             }
@@ -323,10 +321,17 @@ class ProductController extends Controller
 
     public function create()
     {
-        $role = Role::firstOrCreate(['id' => Auth::user()->role_id]);
+        $user = Auth::user();
+        $role = Role::firstOrCreate(['id' => $user->role_id]);
         if ($role->hasPermissionTo('products-add')) {
             $lims_customer_group_all = CustomerGroup::where('is_active', true)->get();
-            $lims_supplier_list = Supplier::where('is_active', true)->get();
+
+            if ($user->is_special) {
+                $lims_supplier_list = Supplier::where('is_active', true)->where('name', 'special_supplier')->get();
+            } else {
+                $lims_supplier_list = Supplier::where('is_active', true)->get();
+            }
+
             $lims_product_list_without_variant = $this->productWithoutVariant();
             $lims_product_list_with_variant = $this->productWithVariant();
             $lims_brand_list = Brand::where('is_active', true)->get();
@@ -335,8 +340,8 @@ class ProductController extends Controller
             $lims_tax_list = Tax::where('is_active', true)->get();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $numberOfProduct = Product::where('is_active', true)->count();
-            $custom_fields = CustomField::where('belongs_to', 'product')->get();
-            return view('backend.product.create', compact('lims_customer_group_all', 'lims_supplier_list', 'lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_brand_list', 'lims_category_list', 'lims_unit_list', 'lims_tax_list', 'lims_warehouse_list', 'numberOfProduct', 'custom_fields'));
+
+            return view('backend.product.create', compact('lims_customer_group_all', 'lims_supplier_list', 'lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_brand_list', 'lims_category_list', 'lims_unit_list', 'lims_tax_list', 'lims_warehouse_list', 'numberOfProduct'));
         } else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -353,7 +358,7 @@ class ProductController extends Controller
             ],
             'name' => [
                 'max:255',
-                Rule::unique('products')->where(function ($query) use($supplier_id) {
+                Rule::unique('products')->where(function ($query) use ($supplier_id) {
                     return $query->where('is_active', 1)->where('supplier_id', $supplier_id);
                 }),
             ]
@@ -415,7 +420,6 @@ class ProductController extends Controller
                 // Handle multi-tenant logic if necessary
                 if (!config('database.connections.saleprosaas_landlord')) {
                     $imageName = $imageName . '.' . $ext;
-
                 } else {
                     $imageName = $this->getTenantId() . '_' . $imageName . '.' . $ext;
                 }
@@ -450,7 +454,7 @@ class ProductController extends Controller
             $file->move(public_path('product/files'), $fileName);
             $data['file'] = $fileName;
         }
-        if (!isset($data['is_sync_disable']) && \Schema::hasColumn('products', 'is_sync_disable'))
+        if (!isset($data['is_sync_disable']) && Schema::hasColumn('products', 'is_sync_disable'))
             $data['is_sync_disable'] = null;
 
         // set defaul value
@@ -485,7 +489,8 @@ class ProductController extends Controller
                         'variant_id'        => null,
                         'adjustment_id'     => 0,
                         'qty'               => $stock,
-                        'action'            => '+'
+                        'action'            => '+',
+                        'reason'            => 'add product',
                     ]);
                     $initial_stock += $stock;
                 }
@@ -549,7 +554,7 @@ class ProductController extends Controller
         }
         $this->cacheForget('product_list');
         $this->cacheForget('product_list_with_variant');
-        \Session::flash('create_message', 'Product created successfully');
+        Session::flash('create_message', 'Product created successfully');
     }
 
     public function autoPurchase($product_data, $warehouse_id, $stock)
@@ -1070,7 +1075,7 @@ class ProductController extends Controller
             $this->validate($request, [
                 'name' => [
                     'max:255',
-                    Rule::unique('products')->ignore($request->input('id'))->where(function ($query) use($supplier_id) {
+                    Rule::unique('products')->ignore($request->input('id'))->where(function ($query) use ($supplier_id) {
                         return $query->where('is_active', 1)->where('supplier_id', $supplier_id);
                     }),
                 ],
@@ -1128,7 +1133,7 @@ class ProductController extends Controller
             if (!isset($data['is_imei']))
                 $data['is_imei'] = null;
 
-            if (!isset($data['is_sync_disable']) && \Schema::hasColumn('products', 'is_sync_disable'))
+            if (!isset($data['is_sync_disable']) && Schema::hasColumn('products', 'is_sync_disable'))
                 $data['is_sync_disable'] = null;
 
             if (isset($data['short_description']))
@@ -1317,7 +1322,7 @@ class ProductController extends Controller
                 DB::table('products')->where('id', $lims_product_data->id)->update($custom_field_data);
             $this->cacheForget('product_list');
             $this->cacheForget('product_list_with_variant');
-            \Session::flash('edit_message', 'Product updated successfully');
+            Session::flash('edit_message', 'Product updated successfully');
         }
     }
 
@@ -1493,11 +1498,6 @@ class ProductController extends Controller
         }
         return $products;
     }
-
-    /*public function getBarcode()
-    {
-        return DNS1D::getBarcodePNG('72782608', 'C128');
-    }*/
 
     public function checkBatchAvailability($product_id, $batch_no, $warehouse_id)
     {
@@ -1694,22 +1694,12 @@ class ProductController extends Controller
             return redirect()->back()->with('message', 'Error: ' . $e->getMessage());
         }
     }
-
-
     public function allProductInStock()
     {
         if (!in_array('ecommerce', explode(',', config('addons'))))
             return redirect()->back()->with('not_permitted', 'Please install the ecommerce addon!');
         Product::where('is_active', true)->update(['in_stock' => true]);
         return redirect()->back()->with('create_message', 'All Products set to in stock successfully!');
-    }
-
-    public function showAllProductOnline()
-    {
-        if (!in_array('ecommerce', explode(',', config('addons'))))
-            return redirect()->back()->with('not_permitted', 'Please install the ecommerce addon!');
-        Product::where('is_active', true)->update(['is_online' => true]);
-        return redirect()->back()->with('create_message', 'All Products will be showed to online!');
     }
 
     public function deleteBySelection(Request $request)
@@ -1719,9 +1709,9 @@ class ProductController extends Controller
         foreach ($product_id as $id) {
             $lims_product_data = Product::findOrFail($id);
 
-            if($lims_product_data->qty > 0) continue;
+            if ($lims_product_data->qty > 0) continue;
 
-            $deleted ++;
+            $deleted++;
 
             $lims_product_data->is_active = false;
             $lims_product_data->save();
@@ -1733,12 +1723,11 @@ class ProductController extends Controller
                 }
             }
         }
-        if($deleted > 0){
+        if ($deleted > 0) {
             $this->cacheForget('product_list');
             $this->cacheForget('product_list_with_variant');
             return 'Product deleted successfully!';
-        }
-        else {
+        } else {
             return 'You cannot delete product!';
         }
     }
@@ -1751,9 +1740,9 @@ class ProductController extends Controller
             $lims_product_data = Product::findOrFail($id);
 
             $delivery_qty = Product_Sale::join('sales', 'sales.id', '=', 'sale_id')->where('sales.sale_status', 8)->where('product_id', $id)->sum('qty');
-            
 
-            if($lims_product_data->qty > 0 || $delivery_qty > 0) { // added 7.9
+
+            if ($lims_product_data->qty > 0 || $delivery_qty > 0) { // added 7.9
                 return redirect('products')->with('message', 'Sorry, Product delete failed');
             }
 
