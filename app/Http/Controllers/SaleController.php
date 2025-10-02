@@ -444,23 +444,24 @@ class SaleController extends Controller
 
         $special_supplier_uids = User::where('is_special', 1)->pluck('supplier_id');
 
-        if ($user->is_special) {
-            $baseQuery->whereHas('products', function ($q) use ($user) {
-                $q->where('products.supplier_id', $user->supplier_id);
-            });
-        } else if ($user->role_id === 1) { // Admin
+        if ($user->role_id === 1) { // Admin
+            $supplier_uid = \App\Models\User::where('supplier_id', $filters['supplier_id'])->first()->id;
             if ($filters['supplier_id']) {
-                $baseQuery->whereHas('products', function ($q) use ($filters) {
-                    $q->where('products.supplier_id', $filters['supplier_id']);
+                $baseQuery->where(function ($q) use ($filters, $supplier_uid) {
+                    $q->whereHas('products', function ($qp) use ($filters) {
+                        $qp->where('products.supplier_id', $filters['supplier_id']);
+                    })
+                        ->orWhere('sales.user_id', $supplier_uid);
                 });
             }
         } else if ($user->supplier_id) {
-            $baseQuery->where('sales.user_id', $user->id);
-        }
-
-        if (!empty($filters['product_code'])) {
-            $baseQuery->whereHas('products', function ($qp) use ($filters) {
-                $qp->where('products.code', $filters['product_code']);
+            // Group the supplier_product check with the user_id OR so the OR doesn't
+            // bypass other filters (e.g., sale_status or date filters).
+            $baseQuery->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
             });
         }
 
@@ -926,14 +927,17 @@ class SaleController extends Controller
     public function getProduct($id)
     {
         $supplier_id = Auth::user()->supplier_id;
-        $special_supplier = Supplier::where('name', 'special_supplier')->first();
+
+        $special_supplier_ids = User::where('is_special', 1)->get()->map(function ($item) {
+            return $item->supplier_id;
+        });
         $query = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
-            ->when($supplier_id, function ($q) use ($supplier_id, $special_supplier) {
+            ->when($supplier_id, function ($q) use ($supplier_id, $special_supplier_ids) {
                 // Group supplier filters so the OR does not escape the intended where scope.
-                $q->where(function ($sq) use ($supplier_id, $special_supplier) {
+                $q->where(function ($sq) use ($supplier_id, $special_supplier_ids) {
                     $sq->where('products.supplier_id', $supplier_id);
-                    if ($special_supplier && $special_supplier->id) {
-                        $sq->orWhere('products.supplier_id', $special_supplier->id);
+                    if (!empty($special_supplier_ids)) {
+                        $sq->orWhereIn('products.supplier_id', $special_supplier_ids);
                     }
                 });
                 return $q;
