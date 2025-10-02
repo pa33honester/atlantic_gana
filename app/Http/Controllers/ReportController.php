@@ -31,9 +31,10 @@ class ReportController extends Controller
             $lims_supplier_list = Supplier::where('is_active', true)->get();
         }
 
-        $query = Sale::where('sale_status', 9);
-        $query2 = Sale::where('sale_status', 4);
+        $query = Sale::where('sale_status', 9)->whereDate('updated_at', '>=', $start_date)->whereDate('updated_at', '<=', $end_date);
+        $query2 = Sale::where('sale_status', 4)->whereDate('updated_at', '>=', $start_date)->whereDate('updated_at', '<=', $end_date);
 
+        // if user is admin
         if ($user->role_id === 1) {
             if (intval($supplier_id) > 0) {
                 $query->whereHas('products', function ($q) use ($supplier_id) {
@@ -85,6 +86,7 @@ class ReportController extends Controller
         $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
+            9 => 'updated_at',
         );
 
         $filters = [
@@ -100,8 +102,8 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->whereDate('created_at', '>=', $filters['start_date'])
-            ->whereDate('created_at', '<=', $filters['end_date'])
+            ->whereDate('updated_at', '>=', $filters['start_date'])
+            ->whereDate('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
         if ($user->role_id === 1) {
@@ -188,6 +190,7 @@ class ReportController extends Controller
         $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
+            9 => 'updated_at',
         );
 
         $filters = [
@@ -203,8 +206,8 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->whereDate('created_at', '>=', $filters['start_date'])
-            ->whereDate('created_at', '<=', $filters['end_date'])
+            ->whereDate('updated_at', '>=', $filters['start_date'])
+            ->whereDate('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
         // Filter by supplier if needed
