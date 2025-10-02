@@ -155,11 +155,13 @@ class ProductController extends Controller
 
         if ($supplier_id) {
             // group supplier filters so other where clauses remain intact
-            $special_supplier = Supplier::where('name', 'special_supplier')->first();
-            $query->where(function ($q) use ($supplier_id, $special_supplier) {
+            $special_supplier_ids = \App\Models\User::where('is_special', 1)->get()->map(function ($item) {
+                return $item->supplier_id;
+            });
+            $query->where(function ($q) use ($supplier_id, $special_supplier_ids) {
                 $q->where('supplier_id', $supplier_id);
-                if ($special_supplier && $special_supplier->id) {
-                    $q->orWhere('supplier_id', $special_supplier->id);
+                if (!empty($special_supplier_ids)) {
+                    $q->orWhereIn('supplier_id', $special_supplier_ids);
                 }
             });
         }
