@@ -19,6 +19,7 @@ use App\Models\Unit;
 use App\Models\Tax;
 use App\Models\Sale;
 use App\Models\Supplier;
+use App\Models\User;
 use App\Models\Delivery;
 use App\Models\PosSetting;
 use App\Models\Product_Sale;
@@ -441,7 +442,8 @@ class SaleController extends Controller
             }
         }
 
-        $supplier_name = Supplier::find($filters['supplier_id'])?->name;
+        $special_supplier_uids = User::where('is_special', 1)->pluck('supplier_id');
+
         if ($user->is_special) {
             $baseQuery->whereHas('products', function ($q) use ($user) {
                 $q->where('products.supplier_id', $user->supplier_id);
@@ -549,7 +551,7 @@ class SaleController extends Controller
                 'reference_no'     => $sale->reference_no,
                 'product_name'     => "",
                 'product_code'     => "",
-                'supplier_name'    => $supplier_name ?? implode(', ', $sale->products->pluck('supplier.name')->filter()->unique()->toArray()),
+                'supplier_name'    => "",
                 'date'             => date(config('date_format') . ' h:i:s', strtotime($sale->created_at)),
                 'sale_status'      => $sale->sale_status,
                 'total_qty'        => $sale->total_qty,
@@ -565,14 +567,21 @@ class SaleController extends Controller
             ];
 
             $second = 0;
-            $nestedData['product_name'] = '';
             foreach ($sale->products as $product) {
                 if ($second) {
-                    $nestedData['product_name'] .= ',<br>';
+                    $nestedData['product_name'] .= '<br>';
                     $nestedData['product_code'] .= ',';
+                    $nestedData['supplier_name'] .= '<br>';
                 }
                 $nestedData['product_name'] .= $product->name . ' x' . $product->pivot->qty;
                 $nestedData['product_code'] .= $product->code;
+
+                if ($special_supplier_uids->contains($product->supplier_id)) {
+                    $nestedData['supplier_name'] .= User::find($sale->user_id)?->name ?? '';
+                } else {
+                    $nestedData['supplier_name'] .= $product->supplier->name;
+                }
+
                 $second++;
             }
 
