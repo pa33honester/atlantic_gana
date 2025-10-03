@@ -419,11 +419,11 @@ class SaleController extends Controller
         // We'll eager load after we determine the matching sale IDs
 
         if ($filters['sale_status'] == 4 || $filters['sale_status'] == 9) { // received or signed
-            $baseQuery->whereDate('sales.updated_at', '>=', $filters['start_date'])
-                ->whereDate('sales.updated_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.updated_at', '>=', $filters['start_date'])
+                ->where('sales.updated_at', '<=', $filters['end_date']);
         } else { // others
-            $baseQuery->whereDate('sales.created_at', '>=', $filters['start_date'])
-                ->whereDate('sales.created_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.created_at', '>=', $filters['start_date'])
+                ->where('sales.created_at', '<=', $filters['end_date']);
         }
 
         // Role-based access
@@ -441,6 +441,13 @@ class SaleController extends Controller
                 $baseQuery->where("sales.$field", $filters[$field]);
             }
         }
+
+        if (!empty($filters['product_code'])) {
+            $baseQuery->whereHas('products', function ($q) use ($filters) {
+                return $q->where('products.code', $filters['product_code']);
+            });
+        }
+
 
         $special_supplier_uids = User::where('is_special', 1)->pluck('supplier_id');
 
@@ -880,7 +887,7 @@ class SaleController extends Controller
         }
 
         if (isset($data['table_id'])) {
-            $latest_sale = Sale::whereNotNull('table_id')->whereDate('created_at', date('Y-m-d'))->where('warehouse_id', $data['warehouse_id'])->select('queue')->orderBy('id', 'desc')->first();
+            $latest_sale = Sale::whereNotNull('table_id')->where('created_at', date('Y-m-d'))->where('warehouse_id', $data['warehouse_id'])->select('queue')->orderBy('id', 'desc')->first();
             if ($latest_sale)
                 $data['queue'] = $latest_sale->queue + 1;
             else
