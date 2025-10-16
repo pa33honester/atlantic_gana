@@ -32,25 +32,10 @@ class ReportController extends Controller
             $lims_supplier_list = Supplier::where('is_active', true)->get();
         }
 
-        $query = Sale::where('sale_status', 9)->whereDate('updated_at', '>=', $start_date)->whereDate('updated_at', '<=', $end_date);
-        $query2 = Sale::where('sale_status', 4)->whereDate('updated_at', '>=', $start_date)->whereDate('updated_at', '<=', $end_date);
+        $query = Sale::where('sale_status', 9)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
+        $query2 = Sale::where('sale_status', 4)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
 
-        if ($user->role_id === 1) {
-            if (intval($supplier_id) > 0) {
-                $supplier_uid = User::where('supplier_id', $supplier_id)->first()->id;
-                $query->whereHas('products', function ($q) use ($supplier_id) {
-                    $q->where('products.supplier_id', $supplier_id);
-                });
-                $query2->whereHas('products', function ($q) use ($supplier_id) {
-                    $q->where('products.supplier_id', $supplier_id);
-                });
-
-                if ($supplier_uid) {
-                    $query->orWhere('sales.user_id', $supplier_uid);
-                    $query2->orWhere('sales.user_id', $supplier_uid);
-                }
-            }
-        } else if ($user->supplier_id) {
+        if ($user->supplier_id) {
             $query->where(function ($q) use ($user) {
                 $q->whereHas('products', function ($qp) use ($user) {
                     $qp->where('products.supplier_id', $user->supplier_id);
@@ -63,6 +48,23 @@ class ReportController extends Controller
                 })
                     ->orWhere('sales.user_id', $user->id);
             });
+        } else {
+            if (intval($supplier_id) > 0) {
+                $supplier_uid = User::where('supplier_id', $supplier_id)->first()->id;
+                $query->whereHas('products', function ($q) use ($supplier_id) {
+                    $q->where('products.supplier_id', $supplier_id);
+                })->orWhereHas(function ($q) use ($supplier_uid) {
+                    if ($supplier_uid)
+                        $q->where('sales.user_id', $supplier_uid);
+                });
+
+                $query2->whereHas('products', function ($q) use ($supplier_id) {
+                    $q->where('products.supplier_id', $supplier_id);
+                })->orWhereHas(function ($q) use ($supplier_uid) {
+                    if ($supplier_uid)
+                        $q->where('sales.user_id', $supplier_uid);
+                });
+            }
         }
 
         $signed_data = $query->selectRaw('SUM(sales.total_price) as total_price,
@@ -114,28 +116,27 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->whereDate('updated_at', '>=', $filters['start_date'])
-            ->whereDate('updated_at', '<=', $filters['end_date'])
+            ->where('updated_at', '>=', $filters['start_date'])
+            ->where('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
-        if ($user->role_id === 1) {
-            if (intval($filters['supplier_id']) > 0) {
-                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
-                $query->whereHas('products', function ($q) use ($filters) {
-                    $q->where('products.supplier_id', $filters['supplier_id']);
-                });
-
-                if ($supplier_uid) {
-                    $query->orWhere('sales.user_id', $supplier_uid);
-                }
-            }
-        } else if ($user->supplier_id) {
+        if ($user->supplier_id) {
             $query->where(function ($q) use ($user) {
                 $q->whereHas('products', function ($qp) use ($user) {
                     $qp->where('products.supplier_id', $user->supplier_id);
                 })
                     ->orWhere('sales.user_id', $user->id);
             });
+        } else {
+            if (intval($filters['supplier_id']) > 0) {
+                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
+                $query->whereHas('products', function ($q) use ($filters) {
+                    $q->where('products.supplier_id', $filters['supplier_id']);
+                })->orWhereHas(function ($q) use ($supplier_uid) {
+                    if ($supplier_uid)
+                        $q->where('sales.user_id', $supplier_uid);
+                });
+            }
         }
 
         $totalData = (clone $query)->count();
@@ -145,7 +146,7 @@ class ReportController extends Controller
         $limit = $request->input('length', 10);
         $start = $request->input('start', 0);
         $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
-        $orderColumn = $columns[$request->input('order.0.column')];
+        $orderColumn = $columns[$request->input('order.0.column')] ?? 'updated_at';
         $orderDir = $request->input('order.0.dir', 'desc');
 
         // Handle search
@@ -177,7 +178,8 @@ class ReportController extends Controller
             $nestedData = [
                 'id'                    => $purchase->id,
                 'key'                   => $key,
-                'date'                  => date(config('date_format') . ' h:i:s', strtotime($purchase->updated_at)),
+                'date'                  => date(config('date_format') . ' H:i:s', strtotime($purchase->created_at)),
+                'signed_time'          => date(config('date_format') . ' H:i:s', strtotime($purchase->updated_at)),
                 'reference_no'          => $purchase->reference_no,
                 'warehouse'             => $purchase->warehouse->name,
                 'shipping_cost'         => $purchase->shipping_cost,
@@ -224,28 +226,27 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->whereDate('updated_at', '>=', $filters['start_date'])
-            ->whereDate('updated_at', '<=', $filters['end_date'])
+            ->where('updated_at', '>=', $filters['start_date'])
+            ->where('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
-        if ($user->role_id === 1) {
-            if (intval($filters['supplier_id']) > 0) {
-                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
-                $query->whereHas('products', function ($q) use ($filters) {
-                    $q->where('products.supplier_id', $filters['supplier_id']);
-                });
-
-                if ($supplier_uid) {
-                    $query->orWhere('sales.user_id', $supplier_uid);
-                }
-            }
-        } else if ($user->supplier_id) {
+        if ($user->supplier_id) {
             $query->where(function ($q) use ($user) {
                 $q->whereHas('products', function ($qp) use ($user) {
                     $qp->where('products.supplier_id', $user->supplier_id);
                 })
                     ->orWhere('sales.user_id', $user->id);
             });
+        } else {
+            if (intval($filters['supplier_id']) > 0) {
+                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
+                $query->whereHas('products', function ($q) use ($filters) {
+                    $q->where('products.supplier_id', $filters['supplier_id']);
+                })->orWhereHas(function ($q) use ($supplier_uid) {
+                    if ($supplier_uid)
+                        $q->where('sales.user_id', $supplier_uid);
+                });
+            }
         }
 
         $totalData = $query->count();
@@ -255,7 +256,7 @@ class ReportController extends Controller
         $limit = $request->input('length', 10);
         $start = $request->input('start', 0);
         $limit = ($limit == -1) ? $totalFiltered : $limit; // Fetch all if limit = -1
-        $orderColumn = $columns[$request->input('order.0.column')];
+        $orderColumn = $columns[$request->input('order.0.column')] ?? 'updated_at';
         $orderDir = $request->input('order.0.dir', 'desc');
 
         // Handle search

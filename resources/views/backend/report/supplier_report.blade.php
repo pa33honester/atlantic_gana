@@ -51,8 +51,8 @@
                 <a class="nav-link active" href="#supplier-purchase" role="tab" data-toggle="tab"> Signed </a>
             </li>
             <!-- <li class="nav-item">
-                        <a class="nav-link " href="#supplier-payments" role="tab" data-toggle="tab">{{ trans('file.Payment') }}</a>
-                      </li> -->
+                                    <a class="nav-link " href="#supplier-payments" role="tab" data-toggle="tab">{{ trans('file.Payment') }}</a>
+                                  </li> -->
             <li class="nav-item">
                 <a class="nav-link" href="#supplier-return" role="tab" data-toggle="tab"> Returned </a>
             </li>
@@ -218,7 +218,7 @@
                     "data": "balance"
                 },
                 {
-                    "data": "date"
+                    "data": "signed_time"
                 },
             ],
             'language': {
@@ -232,7 +232,7 @@
                 }
             },
             order: [
-                ['1', 'desc']
+                ['9', 'desc']
             ],
             'columnDefs': [{
                     "orderable": false,
@@ -390,7 +390,7 @@
                 }
             },
             order: [
-                ['1', 'desc']
+                ['9', 'desc']
             ],
             'columnDefs': [{
                     "orderable": false,

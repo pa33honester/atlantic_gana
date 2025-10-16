@@ -419,11 +419,11 @@ class SaleController extends Controller
         // We'll eager load after we determine the matching sale IDs
 
         if ($filters['sale_status'] == 4 || $filters['sale_status'] == 9) { // received or signed
-            $baseQuery->whereDate('sales.updated_at', '>=', $filters['start_date'])
-                ->whereDate('sales.updated_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.updated_at', '>=', $filters['start_date'])
+                ->where('sales.updated_at', '<=', $filters['end_date']);
         } else { // others
-            $baseQuery->whereDate('sales.created_at', '>=', $filters['start_date'])
-                ->whereDate('sales.created_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.created_at', '>=', $filters['start_date'])
+                ->where('sales.created_at', '<=', $filters['end_date']);
         }
 
         // Role-based access
@@ -442,9 +442,25 @@ class SaleController extends Controller
             }
         }
 
+        if (!empty($filters['product_code'])) {
+            $baseQuery->whereHas('products', function ($q) use ($filters) {
+                return $q->where('products.code', $filters['product_code']);
+            });
+        }
+
+
         $special_supplier_uids = User::where('is_special', 1)->pluck('supplier_id');
 
-        if ($user->role_id === 1) { // Admin
+        if ($user->supplier_id) {
+            // Group the supplier_product check with the user_id OR so the OR doesn't
+            // bypass other filters (e.g., sale_status or date filters).
+            $baseQuery->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+        } else {
             $supplier_uid = \App\Models\User::where('supplier_id', $filters['supplier_id'])->first()->id;
             if ($filters['supplier_id']) {
                 $baseQuery->where(function ($q) use ($filters, $supplier_uid) {
@@ -454,15 +470,6 @@ class SaleController extends Controller
                         ->orWhere('sales.user_id', $supplier_uid);
                 });
             }
-        } else if ($user->supplier_id) {
-            // Group the supplier_product check with the user_id OR so the OR doesn't
-            // bypass other filters (e.g., sale_status or date filters).
-            $baseQuery->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
         }
 
         // Search (use whereHas for relations to avoid depending on explicit joins)
@@ -880,7 +887,7 @@ class SaleController extends Controller
         }
 
         if (isset($data['table_id'])) {
-            $latest_sale = Sale::whereNotNull('table_id')->whereDate('created_at', date('Y-m-d'))->where('warehouse_id', $data['warehouse_id'])->select('queue')->orderBy('id', 'desc')->first();
+            $latest_sale = Sale::whereNotNull('table_id')->where('created_at', date('Y-m-d'))->where('warehouse_id', $data['warehouse_id'])->select('queue')->orderBy('id', 'desc')->first();
             if ($latest_sale)
                 $data['queue'] = $latest_sale->queue + 1;
             else
