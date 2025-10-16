@@ -35,7 +35,20 @@ class ReportController extends Controller
         $query = Sale::where('sale_status', 9)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
         $query2 = Sale::where('sale_status', 4)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
 
-        if ($user->role_id === 1) {
+        if ($user->supplier_id) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+            $query2->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+        } else {
             if (intval($supplier_id) > 0) {
                 $supplier_uid = User::where('supplier_id', $supplier_id)->first()->id;
                 $query->whereHas('products', function ($q) use ($supplier_id) {
@@ -52,19 +65,6 @@ class ReportController extends Controller
                         $q->where('sales.user_id', $supplier_uid);
                 });
             }
-        } else if ($user->supplier_id) {
-            $query->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
-            $query2->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
         }
 
         $signed_data = $query->selectRaw('SUM(sales.total_price) as total_price,
@@ -120,7 +120,14 @@ class ReportController extends Controller
             ->where('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
-        if ($user->role_id === 1) {
+        if ($user->supplier_id) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+        } else {
             if (intval($filters['supplier_id']) > 0) {
                 $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
                 $query->whereHas('products', function ($q) use ($filters) {
@@ -130,13 +137,6 @@ class ReportController extends Controller
                         $q->where('sales.user_id', $supplier_uid);
                 });
             }
-        } else if ($user->supplier_id) {
-            $query->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
         }
 
         $totalData = (clone $query)->count();
@@ -230,7 +230,14 @@ class ReportController extends Controller
             ->where('updated_at', '<=', $filters['end_date'])
             ->where('sale_status', $filters['sale_status']);
 
-        if ($user->role_id === 1) {
+        if ($user->supplier_id) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+        } else {
             if (intval($filters['supplier_id']) > 0) {
                 $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
                 $query->whereHas('products', function ($q) use ($filters) {
@@ -240,13 +247,6 @@ class ReportController extends Controller
                         $q->where('sales.user_id', $supplier_uid);
                 });
             }
-        } else if ($user->supplier_id) {
-            $query->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
         }
 
         $totalData = $query->count();

@@ -451,7 +451,16 @@ class SaleController extends Controller
 
         $special_supplier_uids = User::where('is_special', 1)->pluck('supplier_id');
 
-        if ($user->role_id === 1) { // Admin
+        if ($user->supplier_id) {
+            // Group the supplier_product check with the user_id OR so the OR doesn't
+            // bypass other filters (e.g., sale_status or date filters).
+            $baseQuery->where(function ($q) use ($user) {
+                $q->whereHas('products', function ($qp) use ($user) {
+                    $qp->where('products.supplier_id', $user->supplier_id);
+                })
+                    ->orWhere('sales.user_id', $user->id);
+            });
+        } else {
             $supplier_uid = \App\Models\User::where('supplier_id', $filters['supplier_id'])->first()->id;
             if ($filters['supplier_id']) {
                 $baseQuery->where(function ($q) use ($filters, $supplier_uid) {
@@ -461,15 +470,6 @@ class SaleController extends Controller
                         ->orWhere('sales.user_id', $supplier_uid);
                 });
             }
-        } else if ($user->supplier_id) {
-            // Group the supplier_product check with the user_id OR so the OR doesn't
-            // bypass other filters (e.g., sale_status or date filters).
-            $baseQuery->where(function ($q) use ($user) {
-                $q->whereHas('products', function ($qp) use ($user) {
-                    $qp->where('products.supplier_id', $user->supplier_id);
-                })
-                    ->orWhere('sales.user_id', $user->id);
-            });
         }
 
         // Search (use whereHas for relations to avoid depending on explicit joins)
