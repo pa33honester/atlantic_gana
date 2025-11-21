@@ -674,16 +674,16 @@
                     <td>${response[1]}</td>
                     <td><input type="text" class="form-control qty" readonly name="qty[]" value="${response[15]}" required/></td>
                     ${response[12] ? `
-                                <td><input type="text" class="form-control batch-no" value="${batch_no[pos]}" required/>
-                                    <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="${product_batch_id[pos]}"/>
-                                </td>
-                                <td class="expired-date">${expired_date[pos]}</td>
-                            ` : `
-                                <td><input type="text" class="form-control batch-no" disabled/>
-                                    <input type="hidden" class="product-batch-id" name="product_batch_id[]"/>
-                                </td>
-                                <td class="expired-date">N/A</td>
-                            `}
+                                                                                <td><input type="text" class="form-control batch-no" value="${batch_no[pos]}" required/>
+                                                                                    <input type="hidden" class="product-batch-id" name="product_batch_id[]" value="${product_batch_id[pos]}"/>
+                                                                                </td>
+                                                                                <td class="expired-date">${expired_date[pos]}</td>
+                                                                            ` : `
+                                                                                <td><input type="text" class="form-control batch-no" disabled/>
+                                                                                    <input type="hidden" class="product-batch-id" name="product_batch_id[]"/>
+                                                                                </td>
+                                                                                <td class="expired-date">N/A</td>
+                                                                            `}
                     <td class="net_unit_price">${response[2]}</td>
                     <td class="discount">{{ number_format(0, $general_setting->decimal, '.', '') }}</td>
                     <td class="tax"></td>
@@ -982,37 +982,41 @@
             $('.payment-form').submit();
         });
 
+        let isSubmitting = false;
+
         $(document).on('submit', '.payment-form', function(e) {
+            e.preventDefault();
+
+            if (isSubmitting) {
+                return;
+            }
+
             var user_role = 1;
             var rownumber = $('table.order-list tbody tr:last').index();
             $("table.order-list tbody .qty").each(function(index) {
                 if ($(this).val() == '') {
                     alert('One of products has no quantity!');
-                    e.preventDefault();
                 }
             });
             if (rownumber < 0) {
                 alert("Please insert product to order table!")
-                e.preventDefault();
             } else if (parseFloat($('input[name="total_qty"]').val()) <= 0) {
                 alert('Product quantity is 0');
-                e.preventDefault();
             } else if (parseFloat($("#paying-amount").val()) < parseFloat($("#paid-amount").val())) {
                 alert('Paying amount cannot be bigger than recieved amount');
-                e.preventDefault();
-            } else if (!$('#biller_id').val() && user_role["name"] == 'Admin') {
-                alert('Please select a biller');
-                e.preventDefault();
             } else {
-                e.preventDefault(); // Prevents the default form submission behavior
+                isSubmitting = true;
                 $.ajax({
                     url: $('.payment-form').attr('action'),
                     type: $('.payment-form').attr('method'),
                     data: $('.payment-form').serialize(),
                     success: function(response) {
 
+                        isSubmitting = false;
+
                         if (response.code == 400) {
                             alert(response.msg);
+
                             $("#submit-button").prop('disabled', false);
                             return;
                         }
@@ -1047,10 +1051,10 @@
                         }
                     },
                     error: function(xhr) {
-                        console.log('Form submission failed.');
+                        console.log('Form submission failed. Try again.');
+                        isSubmitting = false;
                     }
                 });
-
             }
         });
     </script>

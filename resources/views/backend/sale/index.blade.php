@@ -961,8 +961,13 @@
             $('#update-status').modal('show');
         }
 
+        let isSubmittingUpdateStatus = false;
         $(".update_status_btn").on("click", function() {
+            if (isSubmittingUpdateStatus) {
+                return;
+            }
 
+            isSubmittingUpdateStatus = true;
             var loc = $('#update-status select[name=location]').val();
 
             var sale_id = $('input[name="sale_id"]').val();
@@ -1003,7 +1008,15 @@
                         location.reload();
                     } else {
                         alert(data['msg']);
+                        setTimeout(function() {
+                            isSubmittingUpdateStatus = false;
+                        }, 3000);
                     }
+                },
+                error: function() {
+                    setTimeout(function() {
+                        isSubmittingUpdateStatus = false;
+                    }, 3000);
                 }
             });
         });
@@ -1127,11 +1140,18 @@
             $('input[name="sale_id"]').val(sale_id);
             $('input[name="order_type"]').val("return_receiving");
             //$(".ajax-status").html(data);
-            $("#updateReturnShip").text("Return Receving");
+            $("#updateReturnShip").text("Return Receiving");
             $('#return-ship').modal('show');
         }
 
+        let isSubmittingReturnShip = false;
         $(".return_ship_btn").on("click", function() {
+            if (isSubmittingReturnShip) {
+                return;
+            }
+
+            isSubmittingReturnShip = true;
+
             var sale_id = $('input[name="sale_id"]').val();
             var reference_no = $('input[name="reference_no"]').val();
             var return_shipping_cost = $('input[name="return_shipping_cost"]').val();
@@ -1144,6 +1164,11 @@
                     //alert(data);
                     $('#return-ship').modal('hide');
                     location.reload();
+                },
+                error: function() {
+                    setTimeout(function() {
+                        isSubmittingReturnShip = false;
+                    }, 3000);
                 }
             });
         });

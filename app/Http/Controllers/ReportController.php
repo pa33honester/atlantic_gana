@@ -32,8 +32,8 @@ class ReportController extends Controller
             $lims_supplier_list = Supplier::where('is_active', true)->get();
         }
 
-        $query = Sale::where('sale_status', 9)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
-        $query2 = Sale::where('sale_status', 4)->where('updated_at', '>=', $start_date)->where('updated_at', '<=', $end_date);
+        $query = Sale::where('sale_status', 9)->where('updated_at', '>=', $start_date . ' 00:00:00')->where('updated_at', '<=', $end_date . ' 23:59:59');
+        $query2 = Sale::where('sale_status', 4)->where('updated_at', '>=', $start_date . ' 00:00:00')->where('updated_at', '<=', $end_date . ' 23:59:59');
 
         if ($user->supplier_id) {
             $query->where(function ($q) use ($user) {
@@ -116,8 +116,8 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->where('updated_at', '>=', $filters['start_date'])
-            ->where('updated_at', '<=', $filters['end_date'])
+            ->where('updated_at', '>=', $filters['start_date'] . ' 00:00:00')
+            ->where('updated_at', '<=', $filters['end_date'] . ' 23:59:59')
             ->where('sale_status', $filters['sale_status']);
 
         if ($user->supplier_id) {
@@ -226,8 +226,8 @@ class ReportController extends Controller
             'user',
             'products'
         ])
-            ->where('updated_at', '>=', $filters['start_date'])
-            ->where('updated_at', '<=', $filters['end_date'])
+            ->where('updated_at', '>=', $filters['start_date'] . ' 00:00:00')
+            ->where('updated_at', '<=', $filters['end_date'] . ' 23:59:59')
             ->where('sale_status', $filters['sale_status']);
 
         if ($user->supplier_id) {
