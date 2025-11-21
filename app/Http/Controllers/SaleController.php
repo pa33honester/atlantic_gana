@@ -419,11 +419,11 @@ class SaleController extends Controller
         // We'll eager load after we determine the matching sale IDs
 
         if ($filters['sale_status'] == 4 || $filters['sale_status'] == 9) { // received or signed
-            $baseQuery->where('sales.updated_at', '>=', $filters['start_date'])
-                ->where('sales.updated_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.updated_at', '>=', $filters['start_date'] . ' 00:00:00')
+                ->where('sales.updated_at', '<=', $filters['end_date'] . ' 23:59:59');
         } else { // others
-            $baseQuery->where('sales.created_at', '>=', $filters['start_date'])
-                ->where('sales.created_at', '<=', $filters['end_date']);
+            $baseQuery->where('sales.created_at', '>=', $filters['start_date'] . ' 00:00:00')
+                ->where('sales.created_at', '<=', $filters['end_date'] . ' 23:59:59');
         }
 
         // Role-based access
@@ -765,10 +765,18 @@ class SaleController extends Controller
                     }
 
                     $sale->save();
-                    return response()->json([
-                        "code"  => 200,
-                        "msg"   => "Scan Order Success!"
-                    ]);
+                    $updated = Sale::where('reference_no', $searchValue)->select('sale_status')->first();
+                    if ($status == $updated->sale_status) {
+                        return response()->json([
+                            "code"  => 400,
+                            "msg"   => "Scan failed!"
+                        ]);
+                    } else {
+                        return response()->json([
+                            "code"  => 200,
+                            "msg"   => "Scan Order Success!"
+                        ]);
+                    }
                 }
             }
         }
