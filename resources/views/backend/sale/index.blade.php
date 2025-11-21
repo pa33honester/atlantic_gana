@@ -1716,6 +1716,10 @@
                                 }
                             },
                             error: function(error) {
+                                const errorAudio = new Audio('/sounds/fail-scan.mp3');
+                                errorAudio.play().catch(err => {
+                                    console.error('Error audio failed:', err);
+                                });
                                 console.error('Scan Search Error : ', error);
                             }
                         });

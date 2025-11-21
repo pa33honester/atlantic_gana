@@ -50,19 +50,23 @@ class ReportController extends Controller
             });
         } else {
             if (intval($supplier_id) > 0) {
-                $supplier_uid = User::where('supplier_id', $supplier_id)->first()->id;
-                $query->whereHas('products', function ($q) use ($supplier_id) {
-                    $q->where('products.supplier_id', $supplier_id);
-                })->orWhereHas(function ($q) use ($supplier_uid) {
-                    if ($supplier_uid)
-                        $q->where('sales.user_id', $supplier_uid);
+                $supplier_uid = User::where('supplier_id', $supplier_id)->first()?->id;
+                $query->where(function ($q) use ($supplier_id, $supplier_uid) {
+                    $q->whereHas('products', function ($qp) use ($supplier_id) {
+                        $qp->where('products.supplier_id', $supplier_id);
+                    })->orWhere(function ($q2) use ($supplier_uid) {
+                        if ($supplier_uid)
+                            $q2->where('sales.user_id', $supplier_uid);
+                    });
                 });
 
-                $query2->whereHas('products', function ($q) use ($supplier_id) {
-                    $q->where('products.supplier_id', $supplier_id);
-                })->orWhereHas(function ($q) use ($supplier_uid) {
-                    if ($supplier_uid)
-                        $q->where('sales.user_id', $supplier_uid);
+                $query2->where(function ($q) use ($supplier_id, $supplier_uid) {
+                    $q->whereHas('products', function ($qp) use ($supplier_id) {
+                        $qp->where('products.supplier_id', $supplier_id);
+                    })->orWhere(function ($q2) use ($supplier_uid) {
+                        if ($supplier_uid)
+                            $q2->where('sales.user_id', $supplier_uid);
+                    });
                 });
             }
         }
@@ -129,12 +133,14 @@ class ReportController extends Controller
             });
         } else {
             if (intval($filters['supplier_id']) > 0) {
-                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
-                $query->whereHas('products', function ($q) use ($filters) {
-                    $q->where('products.supplier_id', $filters['supplier_id']);
-                })->orWhereHas(function ($q) use ($supplier_uid) {
-                    if ($supplier_uid)
-                        $q->where('sales.user_id', $supplier_uid);
+                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()?->id;
+                $query->where(function ($q) use ($filters, $supplier_uid) {
+                    $q->whereHas('products', function ($qp) use ($filters) {
+                        $qp->where('products.supplier_id', $filters['supplier_id']);
+                    })->orWhere(function ($q2) use ($supplier_uid) {
+                        if ($supplier_uid)
+                            $q2->where('sales.user_id', $supplier_uid);
+                    });
                 });
             }
         }
@@ -239,12 +245,14 @@ class ReportController extends Controller
             });
         } else {
             if (intval($filters['supplier_id']) > 0) {
-                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()->id;
-                $query->whereHas('products', function ($q) use ($filters) {
-                    $q->where('products.supplier_id', $filters['supplier_id']);
-                })->orWhereHas(function ($q) use ($supplier_uid) {
-                    if ($supplier_uid)
-                        $q->where('sales.user_id', $supplier_uid);
+                $supplier_uid = User::where('supplier_id', $filters['supplier_id'])->first()?->id;
+                $query->where(function ($q) use ($filters, $supplier_uid) {
+                    $q->whereHas('products', function ($qp) use ($filters) {
+                        $qp->where('products.supplier_id', $filters['supplier_id']);
+                    })->orWhere(function ($q2) use ($supplier_uid) {
+                        if ($supplier_uid)
+                            $q2->where('sales.user_id', $supplier_uid);
+                    });
                 });
             }
         }

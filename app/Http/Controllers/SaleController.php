@@ -765,10 +765,18 @@ class SaleController extends Controller
                     }
 
                     $sale->save();
-                    return response()->json([
-                        "code"  => 200,
-                        "msg"   => "Scan Order Success!"
-                    ]);
+                    $updated = Sale::where('reference_no', $searchValue)->select('sale_status')->first();
+                    if ($status == $updated->sale_status) {
+                        return response()->json([
+                            "code"  => 400,
+                            "msg"   => "Scan failed!"
+                        ]);
+                    } else {
+                        return response()->json([
+                            "code"  => 200,
+                            "msg"   => "Scan Order Success!"
+                        ]);
+                    }
                 }
             }
         }
